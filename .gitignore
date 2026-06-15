@@ -1,0 +1,24 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+**/build/
+**/.cxx/
+
+# Keep the model cache out of source control — it can be hundreds of MB.
+# The LLM model is downloaded on first run.
+**/files/llm/
+**/cache/llm/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Logs
+*.log

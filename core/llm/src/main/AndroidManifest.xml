@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+            OpenCL and vndksupport are optional. The LiteRT-LM engine falls
+            back to the CPU backend if neither is present. The declarations
+            are kept in :core:llm so that any module that depends on the
+            engine inherits them automatically.
+        -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
+    </application>
+
+</manifest>
