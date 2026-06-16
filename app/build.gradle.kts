@@ -11,6 +11,20 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+    // Per-ABI APK splits. The LiteRT-LM AAR ships arm64-v8a and x86_64
+    // native libraries (≈ 25–30 MB each); bundling them all into a single
+    // universal APK pushes the install above the free-space floor of
+    // low-storage devices and emulators. With splits enabled, Gradle
+    // produces `app-arm64-v8a-debug.apk`, `app-x86_64-debug.apk`, …
+    // and a thin `app-universal-debug.apk` containing all of them.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "x86_64", "armeabi-v7a", "x86")
+            isUniversalApk = true
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false

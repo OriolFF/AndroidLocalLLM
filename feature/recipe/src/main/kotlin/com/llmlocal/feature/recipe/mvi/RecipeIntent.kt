@@ -15,4 +15,8 @@ sealed interface RecipeIntent {
     data object DismissError : RecipeIntent
     data object CheckModel : RecipeIntent
     data object RetryModelDownload : RecipeIntent
+    data object CancelModelDownload : RecipeIntent
+
+    /** Switch between the real on-device LLM and the canned Demo engine. */
+    data class SetUseDemoEngine(val enabled: Boolean) : RecipeIntent
 }

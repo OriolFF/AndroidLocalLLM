@@ -14,6 +14,8 @@ import com.llmlocal.feature.recipe.mvi.RecipeIntent
 import com.llmlocal.feature.recipe.mvi.RecipeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,21 +36,32 @@ import kotlinx.coroutines.withContext
  *
  * Heavy work (model download, LLM generation) is launched on
  * [viewModelScope] and runs on the [DispatcherProvider.io] dispatcher.
+ *
+ * The [LlmEngine] injected here is the real on-device engine; the demo
+ * engine is injected separately and swapped in/out via the
+ * [RecipeIntent.SetUseDemoEngine] intent.
  */
 class RecipeViewModel(
     private val generateRecipe: GenerateRecipeUseCase,
     private val modelManager: LlmModelManager,
-    private val engine: LlmEngine,
+    private val realEngine: LlmEngine,
+    private val demoEngine: LlmEngine,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(RecipeState())
+    private val _state = MutableStateFlow(
+        RecipeState(
+            modelHumanSize = LlmModelManager.humanReadableBytes(modelManager.descriptor().sizeBytes),
+            modelFilename = modelManager.descriptor().filename,
+        )
+    )
     val state: StateFlow<RecipeState> = _state.asStateFlow()
 
     private val _effects = Channel<RecipeEffect>(Channel.BUFFERED)
     val effects: Flow<RecipeEffect> = _effects.receiveAsFlow()
 
     private var generationJob: Job? = null
+    private var downloadJob: Job? = null
 
     init {
         onIntent(RecipeIntent.CheckModel)
@@ -71,6 +84,8 @@ class RecipeViewModel(
             RecipeIntent.DismissError -> _state.update { it.copy(errorMessage = null) }
             RecipeIntent.CheckModel -> checkModel()
             RecipeIntent.RetryModelDownload -> retryDownload()
+            RecipeIntent.CancelModelDownload -> cancelDownload()
+            is RecipeIntent.SetUseDemoEngine -> setUseDemoEngine(intent.enabled)
         }
     }
 
@@ -94,37 +109,76 @@ class RecipeViewModel(
 
     private fun checkModel() {
         viewModelScope.launch {
+            if (_state.value.useDemoEngine) return@launch
             _state.update { it.copy(modelStatus = ModelStatus.Checking) }
             val available = modelManager.isModelAvailable()
             if (available) {
                 ensureEngineReady()
             } else {
-                _state.update { it.copy(modelStatus = ModelStatus.Failed(reason = "Model not downloaded")) }
+                _state.update {
+                    it.copy(modelStatus = ModelStatus.Unknown)
+                }
             }
         }
     }
 
+    /**
+     * Immediately updates the UI to "Downloading" so the user gets instant
+     * feedback, then launches the actual download. Real progress is reported
+     * via [ModelStatus.DownloadProgress] with bytes / total / speed / ETA.
+     */
     private fun retryDownload() {
-        viewModelScope.launch {
-            _state.update { it.copy(modelStatus = ModelStatus.Downloading) }
+        if (_state.value.useDemoEngine) {
+            viewModelScope.launch { _effects.send(RecipeEffect.ShowSnackbar("Demo mode is on — no download needed.")) }
+            return
+        }
+        // Cancel any in-flight download.
+        downloadJob?.cancel()
+        // INSTANT feedback: flip to "Downloading" before we even start the
+        // coroutine that actually fetches bytes. Without this, the button
+        // press looks dead for ~250 ms while OkHttp warms up.
+        _state.update { it.copy(modelStatus = ModelStatus.Downloading, errorMessage = null) }
+        downloadJob = viewModelScope.launch {
             try {
                 modelManager.ensureModel().collect { progress ->
-                    val percent = progress.percent
-                    if (percent in 1..99) {
-                        _state.update { it.copy(modelStatus = ModelStatus.DownloadProgress(percent)) }
+                    _state.update {
+                        it.copy(
+                            modelStatus = ModelStatus.DownloadProgress(
+                                bytesRead = progress.bytesRead,
+                                totalBytes = progress.totalBytes,
+                                percent = progress.percent,
+                                speedBytesPerSec = progress.speedBytesPerSec,
+                                etaSeconds = progress.etaSeconds,
+                            )
+                        )
                     }
                 }
                 ensureEngineReady()
+            } catch (t: kotlinx.coroutines.CancellationException) {
+                _state.update { it.copy(modelStatus = ModelStatus.Unknown) }
+                throw t
             } catch (t: Throwable) {
                 _state.update {
-                    it.copy(modelStatus = ModelStatus.Failed(reason = t.message ?: "Download failed"))
+                    it.copy(
+                        modelStatus = ModelStatus.Failed(
+                            reason = t.message ?: "Download failed",
+                        )
+                    )
                 }
             }
+        }
+    }
+
+    private fun cancelDownload() {
+        val job = downloadJob ?: return
+        viewModelScope.launch {
+            job.cancelAndJoin()
+            _state.update { it.copy(modelStatus = ModelStatus.Unknown) }
         }
     }
 
     private suspend fun ensureEngineReady() {
-        val outcome = engine.initialize()
+        val outcome = realEngine.initialize()
         when (outcome) {
             is com.llmlocal.core.common.result.Outcome.Success -> {
                 _state.update { it.copy(modelStatus = ModelStatus.Ready) }
@@ -137,10 +191,32 @@ class RecipeViewModel(
         }
     }
 
+    private fun setUseDemoEngine(enabled: Boolean) {
+        if (_state.value.useDemoEngine == enabled) return
+        if (enabled) {
+            // Cancel any in-flight download — Demo mode doesn't need it.
+            downloadJob?.cancel()
+            downloadJob = null
+        }
+        _state.update {
+            it.copy(
+                useDemoEngine = enabled,
+                // When switching back to real mode, the banner shows
+                // "Unknown" so the user can trigger a fresh check.
+                modelStatus = if (enabled) ModelStatus.NotSelected else ModelStatus.Unknown,
+                errorMessage = null,
+                streamedText = "",
+                recipe = null,
+            )
+        }
+        if (!enabled) onIntent(RecipeIntent.CheckModel)
+    }
+
     private fun startGeneration() {
         val current = _state.value
         if (!current.canGenerate) return
         generationJob?.cancel()
+        val engine = if (current.useDemoEngine) demoEngine else realEngine
         generationJob = viewModelScope.launch {
             withContext(dispatchers.io) {
                 _state.update {
@@ -153,7 +229,7 @@ class RecipeViewModel(
                 }
                 _effects.send(RecipeEffect.ScrollToOutput)
                 try {
-                    generateRecipe(current.ingredients).collect { event ->
+                    generateRecipe(engine, current.ingredients).collect { event ->
                         when (event) {
                             is RecipeEvent.Token -> _state.update {
                                 it.copy(streamedText = it.streamedText + event.delta)
@@ -178,12 +254,14 @@ class RecipeViewModel(
 
     private fun cancelGeneration() {
         generationJob?.cancel()
-        engine.cancel()
+        realEngine.cancel()
+        demoEngine.cancel()
         _state.update { it.copy(isGenerating = false) }
     }
 
     override fun onCleared() {
         generationJob?.cancel()
+        downloadJob?.cancel()
         super.onCleared()
     }
 }

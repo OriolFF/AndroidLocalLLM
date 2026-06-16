@@ -15,6 +15,6 @@ import org.koin.dsl.module
  * wiring.
  */
 val dataModule: Module = module {
-    single<RecipeRepository> { RecipeRepositoryImpl(get(), get(), get()) }
+    single<RecipeRepository> { RecipeRepositoryImpl(promptBuilder = get(), parser = get()) }
     factory { GenerateRecipeUseCase(repository = get()) }
 }

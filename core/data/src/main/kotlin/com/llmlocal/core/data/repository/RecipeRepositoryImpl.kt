@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.transform
  * [RecipeRepository] implementation that uses the on-device LLM.
  *
  * It wires together:
- *  - [LlmEngine]        — generates the text
+ *  - [LlmEngine]        — generates the text (injected per call so the
+ *    caller can swap between the real engine and a fake / demo one)
  *  - [RecipePromptBuilder] — formats the prompt
  *  - [RecipeParser]     — extracts the structured [Recipe]
  *
@@ -25,12 +26,14 @@ import kotlinx.coroutines.flow.transform
  * the LLM reports `done` and we have a fully-formed parsed recipe.
  */
 class RecipeRepositoryImpl(
-    private val engine: LlmEngine,
     private val promptBuilder: RecipePromptBuilder,
     private val parser: RecipeParser,
 ) : RecipeRepository {
 
-    override fun generateRecipeStream(ingredients: List<Ingredient>): Flow<RecipeEvent> {
+    override fun generateRecipeStream(
+        engine: LlmEngine,
+        ingredients: List<Ingredient>,
+    ): Flow<RecipeEvent> {
         val prompt = buildString {
             append(promptBuilder.systemInstruction())
             append("\n\n")

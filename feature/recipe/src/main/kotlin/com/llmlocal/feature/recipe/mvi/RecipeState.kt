@@ -19,7 +19,15 @@ data class RecipeState(
     val streamedText: String = "",
     val recipe: Recipe? = null,
     val errorMessage: String? = null,
+    /** When true, use the canned FakeLlmEngine and skip the model download. */
+    val useDemoEngine: Boolean = false,
+    /** Human-readable size of the default model (e.g. "2.58 GB") — for the banner. */
+    val modelHumanSize: String = "",
+    /** Filename of the default model — for the banner. */
+    val modelFilename: String = "",
 ) {
     val canGenerate: Boolean
-        get() = ingredients.isNotEmpty() && !isGenerating && modelStatus == ModelStatus.Ready
+        get() = ingredients.isNotEmpty() &&
+            !isGenerating &&
+            (useDemoEngine || modelStatus == ModelStatus.Ready)
 }
