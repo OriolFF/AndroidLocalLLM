@@ -57,6 +57,16 @@ class LiteRtLlmEngine(
     private val engineRef = AtomicReference<Engine?>(null)
 
     override suspend fun initialize(): Outcome<Unit> = withContext(Dispatchers.IO) {
+        // Idempotent: once the engine is built we keep using it. The
+        // LiteRT-LM `Engine` holds the loaded weights in memory and is
+        // safe to share across calls (concurrent use is serialized by
+        // [generateStream]'s mutex). Re-initializing on every re-check
+        // would mark the model as "Failed" with "Engine already
+        // initialized" whenever the user toggles demo mode or
+        // re-triggers the model download.
+        if (engineRef.get() != null) {
+            return@withContext Outcome.Success(Unit)
+        }
         try {
             val modelFile = modelPathProvider()
             require(modelFile.exists()) {
@@ -66,7 +76,6 @@ class LiteRtLlmEngine(
                 "Model file is suspiciously small (${modelFile.length()} bytes). " +
                     "Did the download complete?"
             }
-            require(engineRef.get() == null) { "Engine already initialized" }
 
             val config = EngineConfig(
                 modelPath = modelFile.absolutePath,

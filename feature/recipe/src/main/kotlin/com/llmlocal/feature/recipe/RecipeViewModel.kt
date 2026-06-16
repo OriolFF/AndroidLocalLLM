@@ -178,6 +178,10 @@ class RecipeViewModel(
     }
 
     private suspend fun ensureEngineReady() {
+        // Cheap re-entry guard: if the engine is already ready, there's
+        // nothing to do. Avoids a redundant init call whenever the user
+        // toggles demo mode or re-triggers a model check.
+        if (_state.value.modelStatus == ModelStatus.Ready) return
         val outcome = realEngine.initialize()
         when (outcome) {
             is com.llmlocal.core.common.result.Outcome.Success -> {
