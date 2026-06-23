@@ -13,10 +13,17 @@ sealed interface RecipeIntent {
     data object GenerateRecipe : RecipeIntent
     data object CancelGeneration : RecipeIntent
     data object DismissError : RecipeIntent
-    data object CheckModel : RecipeIntent
-    data object RetryModelDownload : RecipeIntent
-    data object CancelModelDownload : RecipeIntent
 
-    /** Switch between the real on-device LLM and the canned Demo engine. */
-    data class SetUseDemoEngine(val enabled: Boolean) : RecipeIntent
+    /**
+     * Open the model management screen (no-op if already there). Used by
+     * the [NoModelAvailableBanner] and any "manage models" entry points.
+     */
+    data object OpenModelManagement : RecipeIntent
+
+    /**
+     * Re-check the disk for the currently selected model. Useful after
+     * the user returns from the model-management screen and has finished
+     * downloading or switching models.
+     */
+    data object CheckModel : RecipeIntent
 }

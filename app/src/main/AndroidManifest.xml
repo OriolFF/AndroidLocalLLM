@@ -3,6 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+        Required on API 33+ to post the foreground-service notification that
+        keeps the model download alive when the app is backgrounded.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        Foreground-service permission (API 28+). Needed because
+        ModelDownloadWorker calls setForeground().
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".RecipeApp"
@@ -41,6 +52,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Disable WorkManager's default initializer so it uses our
+            Configuration.Provider path (RecipeApp), which lets us inject a
+            Koin-aware WorkerFactory.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

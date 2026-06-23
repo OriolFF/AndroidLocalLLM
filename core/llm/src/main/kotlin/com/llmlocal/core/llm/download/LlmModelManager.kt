@@ -2,9 +2,7 @@ package com.llmlocal.core.llm.download
 
 import android.content.Context
 import com.llmlocal.core.common.coroutines.DispatcherProvider
-import com.llmlocal.core.common.result.Outcome
 import com.llmlocal.core.llm.model.DownloadProgress
-import com.llmlocal.core.llm.model.LlmModelCatalog
 import com.llmlocal.core.model.LlmModelDescriptor
 import java.io.File
 import java.io.IOException
@@ -21,56 +19,95 @@ import okhttp3.Request
 import okhttp3.Response
 
 /**
- * Manages the on-disk LLM model file. Responsible for:
- *  - Locating the model's target directory (inside `Context.filesDir/llm/`).
- *  - Checking if the model is already downloaded.
- *  - Streaming the model from a URL with **real-time progress reporting**
- *    (bytes / total / speed / ETA) — the UI subscribes to the
- *    [ensureModel] flow and updates its banner on every emission.
+ * Manages the on-disk LLM model files. Stateless w.r.t. which model: every
+ * public method takes an [LlmModelDescriptor] so a single instance can serve
+ * the entire catalog.
+ *
+ * Responsibilities:
+ *  - Locating each model's target directory (inside `Context.filesDir/llm/`).
+ *  - Checking if a model is already downloaded (`isInstalled`).
+ *  - Listing all currently-installed models (`installedModelIds`).
+ *  - Streaming a model from its URL with **real-time progress reporting**
+ *    (bytes / total / speed / ETA) — consumers subscribe to the [download]
+ *    flow and update their UI on every emission.
  *  - Verifying the download (size sanity check; SHA-256 if the descriptor
  *    provides one).
- *  - Supporting cancellation — if the consumer of [ensureModel] cancels its
- *    collection, the in-flight HTTP call is cancelled and the partial
- *    `.part` file is deleted.
+ *  - Supporting cancellation — if the consumer cancels its collection, the
+ *    in-flight HTTP call is cancelled and the partial `.part` file is
+ *    deleted.
+ *  - Removing a model file from disk (`remove`).
  *
- * The class is stateless: a single instance can serve the entire app via
- * Koin. All blocking work runs on [DispatcherProvider.io].
+ * The class is a Koin `single` and runs all blocking work on
+ * [DispatcherProvider.io].
  */
 class LlmModelManager(
     private val context: Context,
     private val httpClient: OkHttpClient,
     private val dispatchers: DispatcherProvider,
-    private val model: LlmModelDescriptor = LlmModelCatalog.DEFAULT_MODEL,
 ) {
 
-    /** Returns the absolute path of the model file once it is on disk. */
-    fun targetFile(): File = File(modelDirectory(), model.filename)
+    /** Directory inside `filesDir` that holds every downloaded model. */
+    fun modelDirectory(): File = File(context.filesDir, MODEL_DIR_NAME)
 
-    /** True if the model file already exists locally. */
-    suspend fun isModelAvailable(): Boolean = withContext(dispatchers.io) {
-        targetFile().exists() && targetFile().length() > 0
+    /** Absolute path of the final (non-`.part`) file for [descriptor]. */
+    fun targetFile(descriptor: LlmModelDescriptor): File =
+        File(modelDirectory(), descriptor.filename)
+
+    /** True if [descriptor]'s file already exists locally with non-zero size. */
+    suspend fun isInstalled(descriptor: LlmModelDescriptor): Boolean =
+        withContext(dispatchers.io) {
+            val file = targetFile(descriptor)
+            file.exists() && file.length() > 0
+        }
+
+    /**
+     * Returns the set of catalog ids whose files are present on disk. A
+     * descriptor whose file exists but is not in [LlmModelCatalog.ALL] is
+     * ignored (the model has been removed from the catalog).
+     */
+    suspend fun installedModelIds(): Set<String> = withContext(dispatchers.io) {
+        val dir = modelDirectory()
+        if (!dir.exists()) return@withContext emptySet()
+        val onDisk = dir.listFiles()
+            ?.filter { it.isFile && !it.name.endsWith(".part") && it.length() > 0 }
+            ?.map { it.name }
+            ?.toSet()
+            .orEmpty()
+        com.llmlocal.core.llm.model.LlmModelCatalog.ALL
+            .filter { it.filename in onDisk }
+            .map { it.id }
+            .toSet()
     }
 
-    /** Human-readable size (e.g. "2.58 GB") for the UI. */
-    fun humanSize(): String = humanReadableBytes(model.sizeBytes)
-
     /**
-     * Returns the [LlmModelDescriptor] this manager is configured for. Useful
-     * for surfacing size/filename in the UI before the download starts.
+     * Deletes the model file for [descriptor] from disk. Returns `true` if
+     * the file was present and removed; `false` if there was nothing to
+     * remove. Any in-progress `.part` file is also cleaned up.
      */
-    fun descriptor(): LlmModelDescriptor = model
+    suspend fun remove(descriptor: LlmModelDescriptor): Boolean = withContext(dispatchers.io) {
+        val file = targetFile(descriptor)
+        val tmp = File(file.parentFile, "${file.name}.part")
+        var removed = false
+        if (tmp.exists()) removed = tmp.delete() || removed
+        if (file.exists()) removed = file.delete() || removed
+        removed
+    }
 
     /**
-     * Ensures the model is available on disk. If not, downloads it and
-     * emits [DownloadProgress] events throughout the transfer.
+     * Downloads [descriptor] from its URL into `filesDir/llm/<descriptor.filename>`
+     * and emits [DownloadProgress] events throughout the transfer.
+     *
+     * If the file already exists with non-zero size, the flow emits a single
+     * synthetic 100% tick and completes — useful for the UI which can then
+     * mark the model "installed" without doing a real download.
      *
      * On success, the flow completes normally and the resulting [File] can
-     * be queried via [targetFile]. On failure, the flow throws.
-     * Cancelling the collection aborts the download and deletes the
-     * partial file.
+     * be queried via [targetFile]. On failure, the flow throws. Cancelling
+     * the collection aborts the download and deletes the partial `.part`
+     * file.
      */
-    fun ensureModel(): Flow<DownloadProgress> = channelFlow {
-        val file = targetFile()
+    fun download(descriptor: LlmModelDescriptor): Flow<DownloadProgress> = channelFlow {
+        val file = targetFile(descriptor)
         if (file.exists() && file.length() > 0) {
             send(
                 DownloadProgress(
@@ -82,38 +119,26 @@ class LlmModelManager(
             )
             return@channelFlow
         }
-        downloadInto(file, this)
+        downloadInto(descriptor, file, this)
     }.flowOn(dispatchers.io)
 
     /**
-     * Convenience: ensures the model is downloaded and returns the [File]
-     * once ready. Use this from [com.llmlocal.core.llm.engine.LlmEngine]
-     * implementations.
-     */
-    suspend fun ensureModelBlocking(): Outcome<File> = withContext(dispatchers.io) {
-        val file = targetFile()
-        if (file.exists() && file.length() > 0) return@withContext Outcome.Success(file)
-        try {
-            downloadInto(file, scope = null)
-            Outcome.Success(file)
-        } catch (t: Throwable) {
-            Outcome.Failure(t)
-        }
-    }
-
-    /**
-     * Downloads [target] from [model].url and emits progress into [scope].
+     * Downloads [descriptor] into [target] and emits progress into [scope].
      *
      * The HTTP call runs on OkHttp's dispatcher; the read loop runs on
      * [dispatchers.io]. Progress is throttled to one emission per
      * [PROGRESS_INTERVAL_MS] to avoid flooding the consumer.
      */
-    private suspend fun downloadInto(target: File, scope: ProducerScope<DownloadProgress>?) {
+    private suspend fun downloadInto(
+        descriptor: LlmModelDescriptor,
+        target: File,
+        scope: ProducerScope<DownloadProgress>?,
+    ) {
         modelDirectory().mkdirs()
         val tmp = File(target.parentFile, "${target.name}.part")
         if (tmp.exists()) tmp.delete()
 
-        val request = Request.Builder().url(model.url).build()
+        val request = Request.Builder().url(descriptor.url).build()
         val call = httpClient.newCall(request)
 
         val startedAt = System.currentTimeMillis()
@@ -122,7 +147,7 @@ class LlmModelManager(
 
         try {
             // Run the blocking call on OkHttp's thread pool and bridge back
-            // via suspendCoroutine so cancellation propagates correctly.
+            // via suspendCancellableCoroutine so cancellation propagates correctly.
             val response: Response = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
                 cont.invokeOnCancellation { runCatching { call.cancel() } }
                 call.enqueue(object : Callback {
@@ -188,11 +213,13 @@ class LlmModelManager(
                     throw IOException("Truncated download: got $read, expected $total")
                 }
 
-                if (model.sha256 != null) {
+                if (descriptor.sha256 != null) {
                     val actual = sha256Of(tmp)
-                    if (!actual.equals(model.sha256, ignoreCase = true)) {
+                    if (!actual.equals(descriptor.sha256, ignoreCase = true)) {
                         tmp.delete()
-                        throw IOException("SHA-256 mismatch: expected ${model.sha256}, got $actual")
+                        throw IOException(
+                            "SHA-256 mismatch: expected ${descriptor.sha256}, got $actual",
+                        )
                     }
                 }
 
@@ -217,8 +244,6 @@ class LlmModelManager(
         }
     }
 
-    private fun modelDirectory(): File = File(context.filesDir, "llm")
-
     private fun sha256Of(file: File): String {
         val digest = java.security.MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input ->
@@ -234,6 +259,7 @@ class LlmModelManager(
 
     companion object {
         private const val PROGRESS_INTERVAL_MS = 250L
+        const val MODEL_DIR_NAME = "llm"
 
         /** Formats byte counts as "1.2 MB", "543 KB", "2.58 GB". */
         fun humanReadableBytes(bytes: Long): String = when {

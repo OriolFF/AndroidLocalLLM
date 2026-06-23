@@ -9,4 +9,10 @@ package com.llmlocal.feature.recipe.mvi
 sealed interface RecipeEffect {
     data class ShowSnackbar(val message: String) : RecipeEffect
     data object ScrollToOutput : RecipeEffect
+
+    /**
+     * Tells the Route to navigate to the model management destination.
+     * Consumed in [RecipeRoute] and forwarded to the `NavController`.
+     */
+    data object NavigateToModelManagement : RecipeEffect
 }

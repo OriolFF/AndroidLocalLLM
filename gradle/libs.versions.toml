@@ -21,6 +21,12 @@ coroutines = "1.9.0"
 # Networking
 okhttp = "4.12.0"
 
+# Background work
+androidx-work = "2.9.1"
+
+# Persistence
+androidx-datastore = "1.1.1"
+
 # DI
 koin = "4.0.0"
 
@@ -71,6 +77,12 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 # Networking
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+
+# Background work (model downloads run as CoroutineWorker with foreground notification)
+androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "androidx-work" }
+
+# Persistence (preferences DataStore — used by LlmModelSelectionStore + ModelDownloadProgressStore)
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidx-datastore" }
 
 # DI (Koin)
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }

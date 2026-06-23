@@ -42,6 +42,8 @@ dependencies {
     implementation(libs.litert.lm)
     implementation(libs.koin.android)
     implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
