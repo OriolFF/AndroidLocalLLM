@@ -6,7 +6,9 @@ import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.core.common.result.Outcome
 import com.llmlocal.core.domain.model.RecipeEvent
 import com.llmlocal.core.domain.usecase.GenerateRecipeUseCase
+import com.llmlocal.core.llm.download.DownloadState
 import com.llmlocal.core.llm.download.LlmModelManager
+import com.llmlocal.core.llm.download.ModelDownloadProgressStore
 import com.llmlocal.core.llm.engine.LlmEngine
 import com.llmlocal.core.llm.model.LlmModelCatalog
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
@@ -22,7 +24,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -47,6 +52,7 @@ class RecipeViewModel(
     private val generateRecipe: GenerateRecipeUseCase,
     private val modelManager: LlmModelManager,
     private val selectionStore: LlmModelSelectionStore,
+    private val progressStore: ModelDownloadProgressStore,
     private val realEngine: LlmEngine,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
@@ -204,11 +210,39 @@ class RecipeViewModel(
         _state.update { it.copy(isGenerating = false) }
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observeSelection() {
-        // When the user changes the selected model in model management,
-        // re-validate and (if installed) re-init the engine.
+        // Re-check the disk when EITHER the selected model changes OR the
+        // download state for the currently selected model transitions to
+        // SUCCEEDED. The second trigger is what fixes the
+        // "downloaded-a-model-in-model-management, came back to the
+        // recipe screen, still says NoModelAvailable" bug: for a
+        // first-time user the default model is auto-selected, so
+        // selectionStore.selectedModelId emits exactly once at init and
+        // never re-emits when the user downloads that same default model.
+        //
+        // RUNNING / FAILED / CANCELLED transitions don't change whether
+        // the file is on disk, so we skip those — checkModel() is
+        // idempotent but it does I/O, and the recipe screen wouldn't
+        // change its display state anyway.
         selectionStore.selectedModelId
-            .onEach { onIntent(RecipeIntent.CheckModel) }
+            .distinctUntilChanged()
+            .flatMapLatest { id ->
+                // LlmModelSelectionStore.selectedModelId is declared
+                // Flow<String?> even though the `?: DEFAULT_MODEL.id`
+                // fallback means it's never actually null. Coerce to the
+                // catalog id explicitly so progressStore.progressFor(...)
+                // gets the non-null String it requires.
+                val selectedId = id ?: LlmModelCatalog.DEFAULT_MODEL.id
+                progressStore.progressFor(selectedId)
+                    .map { selectedId to it?.state }
+            }
+            .distinctUntilChanged()
+            .onEach { (_, state) ->
+                if (state == null || state == DownloadState.SUCCEEDED) {
+                    onIntent(RecipeIntent.CheckModel)
+                }
+            }
             .launchIn(viewModelScope)
     }
 

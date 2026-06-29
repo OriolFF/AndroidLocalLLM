@@ -20,6 +20,7 @@ val recipeModule: Module = module {
             generateRecipe = get(),
             modelManager = get(),
             selectionStore = get(),
+            progressStore = get(),
             realEngine = get(named(REAL_ENGINE_QUALIFIER)),
             dispatchers = get(),
         )

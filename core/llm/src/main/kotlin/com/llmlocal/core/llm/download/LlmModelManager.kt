@@ -7,7 +7,10 @@ import com.llmlocal.core.model.LlmModelDescriptor
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ProducerScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
@@ -175,6 +178,18 @@ class LlmModelManager(
                 try {
                     body.byteStream().use { input ->
                         while (true) {
+                            // Cooperative cancellation check. The blocking
+                            // socket read below can't observe coroutine
+                            // cancellation, so without this an in-flight
+                            // download can outlive the worker until the next
+                            // byte arrives — and on a mid-flight cancel the
+                            // OS usually closes the socket first, surfacing
+                            // as SocketException instead of
+                            // CancellationException. The outer catch below
+                            // reclassifies that case; this check makes
+                            // cancellation responsive in the steady state
+                            // where bytes are still flowing.
+                            currentCoroutineContext().ensureActive()
                             val n = input.read(buffer)
                             if (n == -1) break
                             if (n > 0) {
@@ -240,6 +255,24 @@ class LlmModelManager(
             }
         } catch (t: Throwable) {
             runCatching { tmp.delete() }
+            // If the surrounding coroutine has been cancelled — the user
+            // closed the app and WorkManager is tearing the worker down,
+            // or the foreground-service notification was dismissed — any
+            // IO error from OkHttp (typically
+            // SocketException("Software caused connection abort") or
+            // EOFException) is a symptom of that cancellation rather than
+            // a real network failure. The worker has a dedicated
+            // catch (ce: CancellationException) branch that calls
+            // markCancelled(); reclassify here so it picks the right
+            // terminal state instead of falling through to
+            // catch (t: Throwable) → markFailed().
+            if (t !is CancellationException &&
+                currentCoroutineContext()[Job]?.isActive == false
+            ) {
+                throw CancellationException("Download cancelled").apply {
+                    initCause(t)
+                }
+            }
             throw t
         }
     }

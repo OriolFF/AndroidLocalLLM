@@ -68,6 +68,27 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!--
+            Required on API 34+ (Android 14): WorkManager's own
+            SystemForegroundService must be declared with a
+            foregroundServiceType that matches the type ModelDownloadWorker
+            requests when promoting itself to foreground via setForeground().
+            Without this, the OS throws IllegalArgumentException at runtime:
+
+                foregroundServiceType 0x00000001 is not a subset of
+                foregroundServiceType attribute 0x00000000 in service element
+
+            The library's own manifest entry isn't always merged into apps
+            that disable WorkManager's default initializer, so declare it
+            explicitly here. Keep this in sync with
+            ModelDownloadWorker.foregroundInfo(...) (DATA_SYNC).
+        -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            tools:node="merge" />
     </application>
 
 </manifest>

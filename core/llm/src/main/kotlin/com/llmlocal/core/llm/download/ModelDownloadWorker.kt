@@ -64,16 +64,49 @@ class ModelDownloadWorker(
 
         ensureNotificationChannel(applicationContext)
 
-        // Promote to foreground immediately so the OS doesn't kill us
-        // during the multi-GB download when the user backgrounds the app.
+        // Promote to a foreground service IMMEDIATELY. The foreground
+        // service is what makes "close the app, download keeps going
+        // with just a notification" work — without it the OS is free to
+        // kill the worker the moment the user backgrounds the app.
+        //
+        // We make this mandatory. If the foreground service can't be
+        // started (typically because battery optimization / an OEM ROM
+        // is restricting the app from running foreground services), fail
+        // the worker up front with a clear reason. Silently degrading
+        // to a notification-less download is what produced the original
+        // "Download failed: Software caused connection abort" symptom:
+        // the worker kept running without protection, the OS killed it
+        // on app close, and the socket tear-down surfaced as a generic
+        // IO failure.
         val initialInfo = buildForegroundInfo(descriptor, bytesRead = 0L, totalBytes = null)
         try {
             setForeground(initialInfo)
+            Log.i(
+                tag,
+                "Foreground service started for ${descriptor.displayName} — " +
+                    "download will continue after the app is closed.",
+            )
         } catch (t: Throwable) {
-            // setForeground may fail on devices that don't allow foreground
-            // services (e.g. battery saver). The download still proceeds;
-            // we just lose the notification.
-            Log.w(tag, "setForeground failed — continuing without notification", t)
+            Log.e(
+                tag,
+                "Could not start foreground service for ${descriptor.displayName}. " +
+                    "Background downloads require foreground-service permission " +
+                    "(Android may revoke it under battery optimization or OEM " +
+                    "task killers).",
+                t,
+            )
+            progressStore.markFailed(
+                descriptor.id,
+                "Background download needs a foreground service. Disable battery " +
+                    "optimization for this app and try again.",
+            )
+            return Result.failure(
+                workDataOf(
+                    KEY_FAILURE_REASON to
+                        "Could not start foreground service. Disable battery " +
+                        "optimization for this app and retry.",
+                ),
+            )
         }
 
         return try {
