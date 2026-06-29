@@ -6,8 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AllInclusive
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -15,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.model.ModelFamily
@@ -24,21 +33,19 @@ import com.llmlocal.feature.modelmanagement.mvi.SizeBucket
 import com.llmlocal.feature.modelmanagement.mvi.StatusFilter
 
 /**
- * Sticky-feeling filter bar for the model catalog. Renders three rows of
- * [FilterChip]s, one per filter dimension:
+ * Sticky-feeling filter bar for the model catalog. Renders four vertical
+ * rows of [FilterChip]s, one per filter dimension, each row labelled on
+ * the leading edge:
  *
  *  - **Status** — All / Installed / Available / Downloading.
  *  - **Family** — All / General / Chat / Instruct / Code / Multimodal.
- *  - **Size**   — All / Compact (< 1 GB) / Small (1–2 GB) / Full (> 2 GB).
+ *  - **Size**   — All / Compact / Small / Full.
  *  - **Quant**  — All / Quantised / Full precision.
  *
- * Each row carries a small label on the leading edge so the categories
- * stay obvious when the chips wrap. A "Clear" button in the header
- * resets to [ModelFilters.DEFAULT] and is only enabled when at least one
- * filter is non-default.
- *
- * The bar is stateless — it receives the current [filters] and emits
- * updates via [onFiltersChange]. The view model owns the source of truth.
+ * A "Clear" button in the header resets to [ModelFilters.DEFAULT] and is
+ * only enabled when at least one filter is non-default. The bar is
+ * stateless — receives the current [filters] and emits updates via
+ * [onFiltersChange].
  */
 @Composable
 fun FilterBar(
@@ -49,12 +56,12 @@ fun FilterBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
             Row(
@@ -64,7 +71,8 @@ fun FilterBar(
             ) {
                 Text(
                     text = "Filter by",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                 )
                 TextButton(
@@ -75,56 +83,63 @@ fun FilterBar(
                 }
             }
 
-            // Status
+            // Status (enum)
             ChipRow(label = "Status") {
                 StatusFilter.entries.forEach { opt ->
-                    FilterChip(
+                    val icon = when (opt) {
+                        StatusFilter.ALL -> Icons.Outlined.AllInclusive
+                        StatusFilter.INSTALLED -> Icons.Outlined.CheckCircle
+                        StatusFilter.AVAILABLE -> Icons.Outlined.DoneAll
+                        StatusFilter.DOWNLOADING -> Icons.Outlined.CloudDownload
+                    }
+                    StatusChip(
+                        label = opt.displayName,
                         selected = filters.status == opt,
+                        icon = icon,
                         onClick = { onFiltersChange(filters.copy(status = opt)) },
-                        label = { Text(opt.displayName) },
                     )
                 }
             }
 
-            // Family
+            // Family (nullable)
             ChipRow(label = "Family") {
-                FilterChip(
+                StatusChip(
+                    label = "All",
                     selected = filters.family == null,
                     onClick = { onFiltersChange(filters.copy(family = null)) },
-                    label = { Text("All") },
                 )
                 ModelFamily.entries.forEach { fam ->
-                    FilterChip(
+                    StatusChip(
+                        label = fam.displayName,
                         selected = filters.family == fam,
                         onClick = { onFiltersChange(filters.copy(family = fam)) },
-                        label = { Text(fam.name.lowercase().replaceFirstChar { it.uppercase() }) },
                     )
                 }
             }
 
-            // Size
+            // Size (nullable)
             ChipRow(label = "Size") {
-                FilterChip(
+                StatusChip(
+                    label = "All",
                     selected = filters.sizeBucket == null,
                     onClick = { onFiltersChange(filters.copy(sizeBucket = null)) },
-                    label = { Text("All") },
                 )
                 SizeBucket.entries.forEach { bucket ->
-                    FilterChip(
+                    StatusChip(
+                        label = bucket.displayName,
                         selected = filters.sizeBucket == bucket,
                         onClick = { onFiltersChange(filters.copy(sizeBucket = bucket)) },
-                        label = { Text(bucket.displayName) },
                     )
                 }
             }
 
-            // Quant
+            // Quant (enum)
             ChipRow(label = "Quant") {
                 QuantFilter.entries.forEach { opt ->
-                    FilterChip(
+                    StatusChip(
+                        label = opt.displayName,
                         selected = filters.quant == opt,
                         onClick = { onFiltersChange(filters.copy(quant = opt)) },
-                        label = { Text(opt.displayName) },
                     )
                 }
             }
@@ -132,34 +147,64 @@ fun FilterBar(
     }
 }
 
+/** Display name used in the filter chips. */
+val ModelFamily.displayName: String
+    get() = name.lowercase().replaceFirstChar { it.uppercase() }
+
 /**
- * Internal helper: a single labelled row of [FilterChip]s. The chips
- * scroll horizontally on overflow so the row stays one line tall.
+ * Single labelled row of chips. The label renders as a `titleSmall`
+ * leading label inside the row, then chips are horizontally scrollable
+ * when they overflow.
  */
 @Composable
 private fun ChipRow(
     label: String,
     content: @Composable () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(end = 4.dp),
+            fontWeight = FontWeight.SemiBold,
         )
         Row(
             modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(end = 4.dp),
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             content()
         }
     }
+}
+
+@Composable
+private fun StatusChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        },
+        leadingIcon = if (icon != null) {
+            {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                )
+            }
+        } else null,
+        shape = MaterialTheme.shapes.small,
+    )
 }
