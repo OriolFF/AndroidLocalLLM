@@ -10,8 +10,6 @@ import com.llmlocal.core.llm.download.ModelDownloadWorkerFactory
 import com.llmlocal.core.llm.engine.LiteRtLlmEngine
 import com.llmlocal.core.llm.engine.LlmEngine
 import com.llmlocal.core.llm.model.LlmModelCatalog
-import com.llmlocal.core.llm.parser.RecipeParser
-import com.llmlocal.core.llm.prompt.RecipePromptBuilder
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
@@ -38,9 +36,6 @@ import org.koin.dsl.module
  * real hardware. See `core/llm/build.gradle.kts`.
  */
 val llmModule: Module = module {
-    single { RecipePromptBuilder() }
-    single { RecipeParser() }
-
     single {
         LlmModelManager(
             context = androidContext(),

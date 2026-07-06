@@ -36,7 +36,8 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "llmlocalAndroid"
 
-include(":app")
+include(":app:recipes")
+include(":app:medical")
 include(":core:common")
 include(":core:model")
 include(":core:designsystem")
@@ -44,5 +45,5 @@ include(":core:network")
 include(":core:llm")
 include(":core:domain")
 include(":core:data")
-include(":feature:recipe")
+include(":feature:llm-task")
 include(":feature:modelmanagement")

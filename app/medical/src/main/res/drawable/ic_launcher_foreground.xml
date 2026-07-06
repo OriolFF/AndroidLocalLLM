@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+        Medical-cross foreground on the teal background. Two intersecting
+        rounded rectangles form the plus sign; both are inset inside the
+        108dp safe-zone so adaptive-icon masks don't clip the arms.
+    -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,28 L64,28 A4,4 0 0 1 68,32 L68,52 L88,52 A4,4 0 0 1 92,56 L92,68 A4,4 0 0 1 88,72 L68,72 L68,92 A4,4 0 0 1 64,96 L44,96 A4,4 0 0 1 40,92 L40,72 L20,72 A4,4 0 0 1 16,68 L16,56 A4,4 0 0 1 20,52 L40,52 L40,32 A4,4 0 0 1 44,28 z" />
+</vector>

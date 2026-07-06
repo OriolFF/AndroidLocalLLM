@@ -15,13 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llmlocal.core.designsystem.theme.Sage40
+import com.llmlocal.core.designsystem.theme.designTokens
 
 /**
  * Semantic tone for a [StatusDot] — pairs a colored pill background with a
  * contrast-aware foreground. The actual `Color`s are resolved against the
- * active [MaterialTheme] via the [containerColor] / [onContainerColor]
- * extension functions; `StatusTone` itself is just a tag.
+ * active [MaterialTheme] (via the [containerColor] / [onContainerColor]
+ * extension functions) and the [com.llmlocal.core.designsystem.theme.DesignTokens]
+ * supplied by the consuming app.
  */
 sealed interface StatusTone {
     data object Active : StatusTone
@@ -35,7 +36,7 @@ sealed interface StatusTone {
 @Composable
 fun StatusTone.containerColor(): Color = when (this) {
     StatusTone.Active -> MaterialTheme.colorScheme.primary
-    StatusTone.Installed -> Sage40
+    StatusTone.Installed -> designTokens.successColor
     StatusTone.Downloading -> MaterialTheme.colorScheme.secondaryContainer
     StatusTone.Failed -> MaterialTheme.colorScheme.errorContainer
     StatusTone.Idle -> MaterialTheme.colorScheme.surfaceVariant

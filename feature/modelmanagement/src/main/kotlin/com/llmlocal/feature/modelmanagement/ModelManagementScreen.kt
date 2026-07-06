@@ -22,10 +22,13 @@ import com.llmlocal.feature.modelmanagement.components.ModelCard
 import com.llmlocal.feature.modelmanagement.components.ModelDetailSheet
 import com.llmlocal.feature.modelmanagement.mvi.ModelManagementIntent
 import com.llmlocal.feature.modelmanagement.mvi.ModelManagementState
+import com.llmlocal.feature.modelmanagement.mvi.modelManagementLabels
 
 /**
  * Stateless model-management screen. Receives [state] + [onIntent]; does
  * not know about the ViewModel. Previewable.
+ *
+ * Reads [modelManagementLabels] for all user-visible strings.
  *
  * Layout:
  *  1. **Header** — title + count label.
@@ -43,6 +46,7 @@ fun ModelManagementScreen(
     onIntent: (ModelManagementIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val labels = modelManagementLabels
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
@@ -61,10 +65,9 @@ fun ModelManagementScreen(
             item(key = "empty") {
                 EmptyState(
                     icon = Icons.Outlined.SearchOff,
-                    title = "No models match your filters",
-                    message = "Try widening the size bucket or clearing the " +
-                        "family / status filter.",
-                    actionLabel = "Clear filters",
+                    title = labels.emptyTitle,
+                    message = labels.emptyMessage,
+                    actionLabel = labels.emptyActionLabel,
                     onAction = { onIntent(ModelManagementIntent.ClearFilters) },
                 )
             }
@@ -99,9 +102,10 @@ fun ModelManagementScreen(
 
 @Composable
 private fun Header(state: ModelManagementState) {
+    val labels = modelManagementLabels
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Available models",
+            text = labels.screenTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -115,6 +119,7 @@ private fun Header(state: ModelManagementState) {
 
 @Composable
 private fun IntroCard() {
+    val labels = modelManagementLabels
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -122,9 +127,7 @@ private fun IntroCard() {
         tonalElevation = 0.dp,
     ) {
         Text(
-            text = "Tap a model to download, view details, or select it for " +
-                "recipe generation. Downloads run in the background and " +
-                "survive closing the app.",
+            text = labels.introText,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -132,13 +135,15 @@ private fun IntroCard() {
     }
 }
 
+@Composable
 private fun countLabel(state: ModelManagementState): String {
+    val labels = modelManagementLabels
     val visible = state.filteredCatalog.size
     val total = state.catalog.size
     val installed = state.installedIds.size
     return if (state.filters.isDefault) {
-        "$visible of $total models · $installed installed"
+        labels.countLabelDefault(visible, total, installed)
     } else {
-        "Showing $visible of $total models · $installed installed"
+        labels.countLabelFiltered(visible, total, installed)
     }
 }

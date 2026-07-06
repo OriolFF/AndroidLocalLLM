@@ -46,24 +46,12 @@ import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
 import com.llmlocal.feature.modelmanagement.mvi.ModelManagementIntent
+import com.llmlocal.feature.modelmanagement.mvi.modelManagementLabels
 
 /**
  * A single model row in the catalog list.
  *
- * Visual treatment follows the state of the model — the user must be
- * able to tell at a glance which model is currently in use, which models
- * are downloaded, and which are still just available:
- *
- *  - **Active** (the engine will load this on its next `initialize()`):
- *    primary-tinted background with a subtle gradient, a star badge next
- *    to the title, and a primary "Use this model" highlight (only its
- *    outline visible — selection is its own state).
- *  - **Installed but not active**: subtle tonal background, sage
- *    "Installed" dot, plain Download-style outline button to remove.
- *  - **Downloading**: tonal progress + Cancel button replaces Download.
- *  - **Available**: filled Download button only.
- *  - **Failed**: error footer + a Retry button (Download is shown so the
- *    user can re-attempt without going through the state machine).
+ * Reads [modelManagementLabels] for all user-visible strings.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -76,6 +64,7 @@ fun ModelCard(
     onIntent: (ModelManagementIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val labels = modelManagementLabels
     val scheme = MaterialTheme.colorScheme
     val containerBrush: Brush? = if (isSelected) {
         Brush.verticalGradient(
@@ -136,12 +125,12 @@ fun ModelCard(
                             )
                             when {
                                 isSelected -> StatusDot(
-                                    label = "Active",
+                                    label = labels.activeBadge,
                                     icon = Icons.Filled.Star,
                                     tone = StatusTone.Active,
                                 )
                                 isInstalled -> StatusDot(
-                                    label = "Installed",
+                                    label = labels.installedBadge,
                                     icon = Icons.Filled.CheckCircle,
                                     tone = StatusTone.Installed,
                                 )
@@ -161,7 +150,7 @@ fun ModelCard(
                     IconButton(onClick = { onIntent(ModelManagementIntent.ShowDetails(descriptor.id)) }) {
                         Icon(
                             Icons.Outlined.Info,
-                            contentDescription = "Details",
+                            contentDescription = labels.detailsActionDescription,
                             tint = scheme.onSurfaceVariant,
                         )
                     }
@@ -211,7 +200,7 @@ fun ModelCard(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Text(
-                                    text = "Cancel",
+                                    text = labels.cancelDownloadLabel,
                                     modifier = Modifier.padding(start = 6.dp),
                                 )
                             }
@@ -232,7 +221,7 @@ fun ModelCard(
                                         modifier = Modifier.size(18.dp),
                                     )
                                     Text(
-                                        text = "Use this model",
+                                        text = labels.useModelLabel,
                                         modifier = Modifier.padding(start = 6.dp),
                                     )
                                 }
@@ -247,7 +236,7 @@ fun ModelCard(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Text(
-                                    text = "Remove",
+                                    text = labels.removeLabel,
                                     modifier = Modifier.padding(start = 6.dp),
                                 )
                             }
@@ -267,7 +256,7 @@ fun ModelCard(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Text(
-                                    text = "Download",
+                                    text = labels.downloadLabel,
                                     modifier = Modifier.padding(start = 6.dp),
                                 )
                             }
@@ -279,7 +268,7 @@ fun ModelCard(
                 progress?.let { p ->
                     if (p.state == DownloadState.FAILED) {
                         Text(
-                            text = p.failureReason ?: "Download failed — tap Download to retry",
+                            text = p.failureReason ?: labels.failureFooterFallback,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )

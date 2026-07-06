@@ -49,5 +49,9 @@ gradlePlugin {
             id = "llmlocal.android.room"
             implementationClass = "com.llmlocal.convention.AndroidRoomConventionPlugin"
         }
+        register("androidWhiteLabelApp") {
+            id = "llmlocal.android.white-label-app"
+            implementationClass = "com.llmlocal.convention.AndroidWhiteLabelAppConventionPlugin"
+        }
     }
 }

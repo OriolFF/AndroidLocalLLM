@@ -19,16 +19,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.llmlocal.core.designsystem.theme.heroDarkGradient
-import com.llmlocal.core.designsystem.theme.heroLightGradient
+import com.llmlocal.core.designsystem.theme.designTokens
 
 /**
  * Hero surface used at the top of a screen to introduce the feature.
  *
- * Renders a vertical 3-stop gradient (orange → brown → cream in light
- * mode; espresso stops in dark mode) inside a rounded `extraLarge` Surface.
- * An optional [icon] renders in a circular tinted container; [title] uses
- * `headlineMedium`; [subtitle] uses `bodyMedium` in `onSurfaceVariant`.
+ * Renders a vertical 3-stop gradient (brand-defined via
+ * [com.llmlocal.core.designsystem.theme.DesignTokens.heroLightGradient] /
+ * [com.llmlocal.core.designsystem.theme.DesignTokens.heroDarkGradient])
+ * inside a rounded `extraLarge` Surface. An optional [icon] renders in a
+ * circular tinted container; [title] uses `headlineMedium`; [subtitle] uses
+ * `bodyMedium` in `onSurfaceVariant`.
  *
  * Used by:
  *   - the recipe screen's "What's in your kitchen?" intro
@@ -52,7 +53,8 @@ fun GradientHero(
     onAction: (() -> Unit)? = null,
 ) {
     val darkTheme = isSystemInDarkTheme()
-    val gradient = if (darkTheme) heroDarkGradient else heroLightGradient
+    val tokens = designTokens
+    val gradient = if (darkTheme) tokens.heroDarkGradient else tokens.heroLightGradient
     val scheme = MaterialTheme.colorScheme
     val onHeroColor = if (darkTheme) scheme.onSurface else scheme.onPrimaryContainer
 
