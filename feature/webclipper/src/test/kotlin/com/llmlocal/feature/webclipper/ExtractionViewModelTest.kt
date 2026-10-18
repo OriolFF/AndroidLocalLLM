@@ -52,6 +52,7 @@ class ExtractionViewModelTest {
         candidateId: String,
         engine: FakeLlmEngine,
         downloader: FakePictureDownloader = FakePictureDownloader(),
+        config: FakeWebClipConfig = this.config,
     ) = ExtractionViewModel(
         candidateId = candidateId,
         config = config as WebClipConfig<Any>,
@@ -178,6 +179,80 @@ class ExtractionViewModelTest {
         assertThat(structuredVm.state.value.error).isNull()
         assertThat(structuredVm.state.value.savedId).isEqualTo("saved-1")
         assertThat(sink.saved.single().item).isEqualTo(Parsed("fallback"))
+    }
+
+    @Test
+    fun `switch off - a complete structured mapping still goes through the model`() = runTest {
+        session.set(snapshot(), listOf(candidate("s", source = CandidateSource.STRUCTURED)))
+        config.fallbackResult = Parsed("fallback")
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("s", engine)
+        advanceUntilIdle()
+
+        assertThat(engine.requests).hasSize(1)
+        assertThat(config.fallbackCalls).isEmpty()
+        assertThat(sink.saved.single().item).isEqualTo(Parsed(goodOutput))
+        assertThat(vm.state.value.extractedWithoutModel).isFalse()
+    }
+
+    @Test
+    fun `switch on - a complete structured mapping is saved without running the model`() = runTest {
+        session.set(snapshot(), listOf(candidate("s", source = CandidateSource.STRUCTURED)))
+        val skipping = FakeWebClipConfig(skipModelWhenStructuredComplete = true, fallbackResult = Parsed("fallback"))
+        skipping.pictureUrls = listOf("https://img.example/1.jpg")
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("s", engine, config = skipping)
+
+        vm.effects.test {
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.recipeSaved))
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.NavigateToSaved("saved-1"))
+        }
+
+        val state = vm.state.value
+        assertThat(engine.requests).isEmpty()
+        assertThat(skipping.renderedInputs).isEmpty()
+        assertThat(skipping.fallbackCalls).hasSize(1)
+        assertThat(state.extractedWithoutModel).isTrue()
+        assertThat(state.streamedText).isEmpty()
+        assertThat(state.truncated).isFalse()
+        assertThat(state.phases.values).containsExactly(PhaseStatus.Done, PhaseStatus.Done, PhaseStatus.Done, PhaseStatus.Done)
+        assertThat(state.pictures.single().status).isEqualTo(PictureStatus.Done)
+        val saved = sink.saved.single()
+        assertThat(saved.item).isEqualTo(Parsed("fallback"))
+        assertThat(saved.pictures).hasSize(1)
+        assertThat(saved.truncated).isFalse()
+        assertThat(session.current.value).isNull()
+    }
+
+    @Test
+    fun `switch on - an incomplete or missing mapping and TEXT candidates still run the model`() = runTest {
+        session.set(snapshot(), listOf(candidate("s", source = CandidateSource.STRUCTURED), candidate("t")))
+        val thin = FakeWebClipConfig(skipModelWhenStructuredComplete = true, fallbackResult = Parsed("thin"), complete = { it != Parsed("thin") })
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("s", engine, config = thin)
+        advanceUntilIdle()
+        assertThat(engine.requests).hasSize(1)
+        assertThat(thin.fallbackCalls).hasSize(1)
+        assertThat(vm.state.value.extractedWithoutModel).isFalse()
+        assertThat(sink.saved.single().item).isEqualTo(Parsed(goodOutput))
+
+        // Saving clears the session; seed it again for each further case.
+        session.set(snapshot(), listOf(candidate("s", source = CandidateSource.STRUCTURED), candidate("t")))
+        val none = FakeWebClipConfig(skipModelWhenStructuredComplete = true, fallbackResult = null)
+        val engine2 = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        viewModel("s", engine2, config = none)
+        advanceUntilIdle()
+        assertThat(engine2.requests).hasSize(1)
+
+        session.set(snapshot(), listOf(candidate("s", source = CandidateSource.STRUCTURED), candidate("t")))
+        val text = FakeWebClipConfig(skipModelWhenStructuredComplete = true, fallbackResult = Parsed("fallback"))
+        val engine3 = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        viewModel("t", engine3, config = text)
+        advanceUntilIdle()
+        assertThat(engine3.requests).hasSize(1)
+        assertThat(text.fallbackCalls).isEmpty()
+        assertThat(sink.saved).hasSize(3)
     }
 
     @Test

@@ -57,7 +57,12 @@ class FakeWebClipConfig(
     var fallbackResult: Parsed? = null,
     var pictureUrls: List<String> = emptyList(),
     override val maxOutputTokens: Int = 1_024,
+    override val skipModelWhenStructuredComplete: Boolean = false,
+    /** Fallback results that count as complete (direct path); default: every one. */
+    var complete: (Parsed) -> Boolean = { true },
 ) : WebClipConfig<Parsed> {
+
+    val fallbackCalls = mutableListOf<ClipCandidate>()
 
     /** Results `accept` rejects (by raw text). */
     var rejected: Set<Parsed> = emptySet()
@@ -80,7 +85,12 @@ class FakeWebClipConfig(
         return "INPUT:${candidate.id}"
     }
 
-    override fun fallback(candidate: ClipCandidate, snapshot: PageSnapshot): Parsed? = fallbackResult
+    override fun fallback(candidate: ClipCandidate, snapshot: PageSnapshot): Parsed? {
+        fallbackCalls += candidate
+        return fallbackResult
+    }
+
+    override fun isComplete(item: Parsed): Boolean = complete(item)
 
     override fun accept(candidate: ClipCandidate, item: Parsed): Boolean {
         acceptCalls += candidate to item

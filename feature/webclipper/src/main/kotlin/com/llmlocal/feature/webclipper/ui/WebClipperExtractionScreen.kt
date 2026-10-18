@@ -242,6 +242,7 @@ private fun PhaseList(state: ExtractionState, labels: WebClipperLabels, elapsedS
             phase == Phase.Extracting && status == PhaseStatus.Active ->
                 "${labels.extractingHint} · ${labels.elapsedTemplate(elapsedSeconds)}\n${labels.keepAppOpenHint}"
             phase == Phase.Extracting && status == PhaseStatus.Warning -> labels.truncatedWarning
+            phase == Phase.Extracting && status == PhaseStatus.Done && state.extractedWithoutModel -> labels.extractedWithoutModel
             phase == Phase.Pictures && status == PhaseStatus.Warning -> labels.picturesUnavailable
             else -> null
         }

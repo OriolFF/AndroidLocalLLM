@@ -39,6 +39,17 @@ interface WebClipConfig<T : Any> {
     /** Ranked picture URLs to download alongside the item, at most [max]. */
     fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String>
 
+    /**
+     * When `true`, a STRUCTURED candidate whose [fallback] passes
+     * [isComplete] is saved straight away and the model is never run for
+     * it (plan decision #3). `false` keeps today's behaviour: the model
+     * always runs and [fallback] is only a parse-failure net.
+     */
+    val skipModelWhenStructuredComplete: Boolean get() = false
+
+    /** Whether a deterministic [fallback] result is good enough to skip the model. */
+    fun isComplete(item: T): Boolean = true
+
     /** Prompt budget in characters (~2,500 tokens). */
     val budgetChars: Int get() = 9_000
 

@@ -345,6 +345,18 @@ class RecipeKeeperClipConfig(
     }
 
     /**
+     * Plan decision #3 switch. The WS7 eval showed the model reproducing the
+     * mapper verbatim on 6/7 well-formed JSON-LD pages at 11–32 s each, so
+     * skipping it for complete mappings is the recommended default; it is
+     * kept **off** until device numbers exist. Flipping it is this one line.
+     */
+    override val skipModelWhenStructuredComplete: Boolean = false
+
+    /** The eval's quality bar: enough ingredients and more than one step. */
+    override fun isComplete(item: ClippedRecipe): Boolean =
+        item.ingredients.size >= MIN_COMPLETE_INGREDIENTS && item.steps.size >= MIN_COMPLETE_STEPS
+
+    /**
      * A whole-page extraction (no detected candidate, "Extract anyway") is
      * only believed when at least [MIN_WHOLE_PAGE_QUANTITY_LINES] of its
      * ingredients carry a quantity; otherwise the model invented a recipe
@@ -423,6 +435,8 @@ class RecipeKeeperClipConfig(
         const val MIN_QUANTITY_LINES = 3
         const val MIN_WHOLE_PAGE_CHARS = 500
         const val MIN_WHOLE_PAGE_QUANTITY_LINES = 2
+        const val MIN_COMPLETE_INGREDIENTS = 3
+        const val MIN_COMPLETE_STEPS = 2
         private const val LOOKAHEAD_SECTIONS = 3
         private const val MAX_FOLLOWING_SECTIONS = 6
         private const val SNIPPET_CHARS = 100

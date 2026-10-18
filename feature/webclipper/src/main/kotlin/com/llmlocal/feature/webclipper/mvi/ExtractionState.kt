@@ -14,6 +14,8 @@ import java.io.File
  *   slot runs its own incremental parse over it)
  * @property pictures picture downloads running in parallel with the model
  * @property truncated whether the output looked cut off at the token cap
+ * @property extractedWithoutModel the item came from the config's deterministic
+ *   mapping and the model was never run (`WebClipConfig.skipModelWhenStructuredComplete`)
  * @property showRaw raw-output toggle
  * @property savedId set once the sink has saved the item
  * @property sourceHost host of the captured page, for the source strip
@@ -29,6 +31,7 @@ data class ExtractionState(
     val isRunning: Boolean,
     val error: ExtractionError? = null,
     val truncated: Boolean = false,
+    val extractedWithoutModel: Boolean = false,
     val showRaw: Boolean = false,
     val savedId: String? = null,
     val sourceHost: String? = null,

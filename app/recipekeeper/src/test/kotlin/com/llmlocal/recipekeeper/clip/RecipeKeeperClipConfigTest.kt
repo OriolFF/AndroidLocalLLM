@@ -300,6 +300,17 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `isComplete needs three ingredients and two steps, and the skip switch is off`() {
+        assertThat(config.skipModelWhenStructuredComplete).isFalse()
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix.", "Bake.")))).isTrue()
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour"), steps = listOf("Mix.", "Bake.")))).isFalse()
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix and bake.")))).isFalse()
+        // Nigella's microdata: 12 ingredients, instructions lumped into one step → the model should still run.
+        val structured = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        assertThat(config.isComplete(config.fallback(config.detect(structured).single(), structured)!!)).isTrue()
+    }
+
+    @Test
     fun `accept requires two quantity ingredients for whole-page results and nothing for detected candidates`() {
         val page = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
         val whole = config.detect(page).single()

@@ -43,6 +43,12 @@ import java.util.UUID
  * MVI ViewModel for the extraction screen: runs the four phases
  * Reading → Extracting → Pictures → Saving for one [ClipCandidate].
  *
+ *  0. **Direct path** — when `config.skipModelWhenStructuredComplete` is
+ *     on and the candidate is STRUCTURED, `config.fallback` is computed
+ *     first; if `config.isComplete` accepts it, Reading and Extracting are
+ *     marked done at once ([ExtractionState.extractedWithoutModel] drives
+ *     the "read directly from the page" detail) and the flow continues at
+ *     step 3 without touching the engine.
  *  1. **Reading** — `config.renderLlmInput` on the captured snapshot.
  *  2. **Extracting** — [GenerateLlmTaskUseCase] with a separate system
  *     instruction, `maxOutputTokens = config.maxOutputTokens` and
@@ -144,6 +150,7 @@ class ExtractionViewModel(
                 isRunning = true,
                 error = null,
                 truncated = false,
+                extractedWithoutModel = false,
                 savedId = null,
             )
         }
@@ -160,6 +167,16 @@ class ExtractionViewModel(
     }
 
     private suspend fun CoroutineScope.run(candidate: ClipCandidate, snapshot: PageSnapshot) {
+        val direct = directResult(candidate, snapshot)
+        if (direct != null) {
+            setPhase(Phase.Reading, PhaseStatus.Done)
+            _state.update { it.copy(extractedWithoutModel = true) }
+            setPhase(Phase.Extracting, PhaseStatus.Done)
+            val pictures = startPictures(candidate, snapshot)
+            finish(candidate, snapshot, direct, pictures, truncated = false)
+            return
+        }
+
         val input = withContext(dispatchers.default) {
             config.renderLlmInput(candidate, snapshot, config.budgetChars)
         }
@@ -227,6 +244,29 @@ class ExtractionViewModel(
         _state.update { it.copy(truncated = truncated) }
         setPhase(Phase.Extracting, if (truncated) PhaseStatus.Warning else PhaseStatus.Done)
 
+        finish(candidate, snapshot, requireNotNull(result), pictures, truncated)
+    }
+
+    /**
+     * The deterministic result that replaces the model run, or `null` when
+     * the switch is off, the candidate is not STRUCTURED, the mapping is
+     * missing or [WebClipConfig.isComplete] rejects it.
+     */
+    private suspend fun directResult(candidate: ClipCandidate, snapshot: PageSnapshot): Any? {
+        if (!config.skipModelWhenStructuredComplete || candidate.source != CandidateSource.STRUCTURED) return null
+        return withContext(dispatchers.default) {
+            config.fallback(candidate, snapshot)?.takeIf { config.isComplete(it) }
+        }
+    }
+
+    /** Pictures → Saving → navigate; shared by the model and the direct path. */
+    private suspend fun finish(
+        candidate: ClipCandidate,
+        snapshot: PageSnapshot,
+        result: Any,
+        pictures: Deferred<Boolean>,
+        truncated: Boolean,
+    ) {
         val anyPictureFailed = pictures.await()
         setPhase(Phase.Pictures, if (anyPictureFailed) PhaseStatus.Warning else PhaseStatus.Done)
 
@@ -234,7 +274,7 @@ class ExtractionViewModel(
         val kept = _state.value.pictures.filter { it.keep && it.status == PictureStatus.Done }
             .mapNotNull { it.localFile }
         val savedId = withContext(dispatchers.io) {
-            sink.save(requireNotNull(result), snapshot, candidate, kept, truncated)
+            sink.save(result, snapshot, candidate, kept, truncated)
         }
         deleteTempFiles(except = kept)
         setPhase(Phase.Saving, PhaseStatus.Done)
