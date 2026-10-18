@@ -102,9 +102,11 @@ fun BrowserTopBar(
                         state = state,
                         labels = labels,
                         onIntent = onIntent,
+                        // widthIn must come first: fillMaxWidth() alone would fix
+                        // the min constraint and the cap could never shrink it.
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 720.dp),
+                            .widthIn(max = 720.dp)
+                            .fillMaxWidth(),
                     )
                 }
                 OverflowMenu(state = state, labels = labels, onIntent = onIntent)
