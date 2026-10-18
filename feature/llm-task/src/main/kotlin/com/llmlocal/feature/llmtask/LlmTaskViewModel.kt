@@ -3,17 +3,14 @@ package com.llmlocal.feature.llmtask
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llmlocal.core.common.coroutines.DispatcherProvider
-import com.llmlocal.core.common.result.Outcome
 import com.llmlocal.core.domain.model.LlmTaskEvent
 import com.llmlocal.core.domain.task.LlmTaskConfig
 import com.llmlocal.core.domain.usecase.GenerateLlmTaskUseCase
-import com.llmlocal.core.llm.download.DownloadState
-import com.llmlocal.core.llm.download.LlmModelManager
-import com.llmlocal.core.llm.download.ModelDownloadProgressStore
 import com.llmlocal.core.llm.engine.LlmEngine
 import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.llm.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
-import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.feature.llmtask.mvi.LlmTaskEffect
 import com.llmlocal.feature.llmtask.mvi.LlmTaskIntent
 import com.llmlocal.feature.llmtask.mvi.LlmTaskLabels
@@ -26,7 +23,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -44,10 +40,11 @@ import kotlinx.coroutines.withContext
  *  intent -> handler -> state update (+ optional effect)
  *
  * Heavy work (LLM generation) is launched on [viewModelScope] and runs on
- * the [DispatcherProvider.io] dispatcher. Model download / remove / select
- * live in the model-management feature; this ViewModel just observes the
- * selection store + installed set and routes the user there when nothing
- * is available.
+ * the [DispatcherProvider.io] dispatcher. Model readiness — selection →
+ * download → disk → engine initialise — is owned by
+ * [ModelReadinessObserver] in `:core:llm`; this ViewModel just observes
+ * its `StateFlow` and maps the [ModelReadiness] states into the
+ * feature-facing [ModelStatus].
  *
  * The result type is stored as `Any?` in [LlmTaskState.result] — the
  * consuming screen casts it to the app-specific domain type via its
@@ -60,9 +57,8 @@ import kotlinx.coroutines.withContext
  */
 class LlmTaskViewModel(
     private val generateTask: GenerateLlmTaskUseCase,
-    private val modelManager: LlmModelManager,
     private val selectionStore: LlmModelSelectionStore,
-    private val progressStore: ModelDownloadProgressStore,
+    private val readinessObserver: ModelReadinessObserver,
     private val realEngine: LlmEngine,
     private val dispatchers: DispatcherProvider,
     private val config: LlmTaskConfig<*>,
@@ -79,7 +75,7 @@ class LlmTaskViewModel(
 
     init {
         observeSelection()
-        onIntent(LlmTaskIntent.CheckModel)
+        observeReadiness()
     }
 
     /**
@@ -97,7 +93,7 @@ class LlmTaskViewModel(
             LlmTaskIntent.Generate -> startGeneration()
             LlmTaskIntent.CancelGeneration -> cancelGeneration()
             LlmTaskIntent.DismissError -> _state.update { it.copy(errorMessage = null) }
-            LlmTaskIntent.CheckModel -> checkModel()
+            LlmTaskIntent.CheckModel -> recheck()
             LlmTaskIntent.OpenModelManagement -> openModelManagement()
         }
     }
@@ -124,56 +120,62 @@ class LlmTaskViewModel(
     }
 
     /**
-     * Resolve the currently selected model descriptor (or fall back to the
-     * default) and check whether its file is on disk. Updates the state
-     * accordingly. The engine is initialised only when the model is
-     * installed.
+     * Forwards the shared readiness state into [LlmTaskState.modelStatus].
+     *
+     * [ModelReadiness.Downloading] deliberately maps to
+     * [ModelStatus.NoModelAvailable]: the task screen only renders the
+     * no-model banner (which routes to the model screen, where the
+     * progress is shown) and the Generate button's enabled state, so this
+     * keeps the screen exactly as it behaved before the observer existed.
      */
-    private fun checkModel() {
-        viewModelScope.launch {
-            _state.update { it.copy(modelStatus = ModelStatus.Checking) }
-            val descriptor = currentDescriptor()
-            val installed = descriptor != null && withContext(dispatchers.io) {
-                modelManager.isInstalled(descriptor)
-            }
-            _state.update {
-                it.copy(
-                    selectedModel = descriptor,
-                    selectedModelInstalled = installed,
-                )
-            }
-            if (descriptor == null) {
-                _state.update { it.copy(modelStatus = ModelStatus.NoModelAvailable) }
-                return@launch
-            }
-            if (!installed) {
-                _state.update { it.copy(modelStatus = ModelStatus.NoModelAvailable) }
-                return@launch
-            }
-            ensureEngineReady()
-        }
-    }
-
-    private fun currentDescriptor(): LlmModelDescriptor? {
-        val id = selectionStore.current()
-        return LlmModelCatalog.findById(id)
-    }
-
-    private fun ensureEngineReady() {
-        if (_state.value.modelStatus == ModelStatus.Ready) return
-        viewModelScope.launch {
-            val outcome = realEngine.initialize()
-            when (outcome) {
-                is Outcome.Success -> _state.update { it.copy(modelStatus = ModelStatus.Ready) }
-                is Outcome.Failure -> _state.update {
+    private fun observeReadiness() {
+        readinessObserver.observe(viewModelScope)
+            .onEach { readiness ->
+                _state.update {
                     it.copy(
-                        modelStatus = ModelStatus.Failed(
-                            reason = outcome.error.message ?: "Engine init failed",
-                        ),
+                        modelStatus = readiness.toModelStatus(),
+                        selectedModelInstalled = readiness.isInstalled(),
                     )
                 }
             }
-        }
+            .launchIn(viewModelScope)
+    }
+
+    private fun ModelReadiness.toModelStatus(): ModelStatus = when (this) {
+        ModelReadiness.Checking -> ModelStatus.Checking
+        ModelReadiness.NoModel -> ModelStatus.NoModelAvailable
+        is ModelReadiness.Downloading -> ModelStatus.NoModelAvailable
+        ModelReadiness.Initializing -> ModelStatus.Checking
+        is ModelReadiness.Ready -> ModelStatus.Ready
+        is ModelReadiness.Failed -> ModelStatus.Failed(reason = reason)
+    }
+
+    /** The file is on disk when the engine is ready, or when it was there but failed to load. */
+    private fun ModelReadiness.isInstalled(): Boolean = when (this) {
+        is ModelReadiness.Ready -> true
+        is ModelReadiness.Failed -> descriptor != null
+        ModelReadiness.Checking,
+        ModelReadiness.NoModel,
+        ModelReadiness.Initializing,
+        is ModelReadiness.Downloading -> false
+    }
+
+    /**
+     * Keeps [LlmTaskState.selectedModel] in step with the selection store so
+     * the no-model banner can name the selected model before any download
+     * or engine work has happened.
+     */
+    private fun observeSelection() {
+        selectionStore.selectedModelId
+            .map { id -> LlmModelCatalog.findById(id ?: LlmModelCatalog.DEFAULT_MODEL.id) }
+            .distinctUntilChanged()
+            .onEach { descriptor -> _state.update { it.copy(selectedModel = descriptor) } }
+            .launchIn(viewModelScope)
+    }
+
+    /** `CheckModel` intent: ask the observer to re-run the disk + engine check. */
+    private fun recheck() {
+        viewModelScope.launch { readinessObserver.recheck() }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -232,37 +234,6 @@ class LlmTaskViewModel(
         generationJob?.cancel()
         realEngine.cancel()
         _state.update { it.copy(isGenerating = false) }
-    }
-
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private fun observeSelection() {
-        // Re-check the disk when EITHER the selected model changes OR the
-        // download state for the currently selected model transitions to
-        // SUCCEEDED. The second trigger is what fixes the
-        // "downloaded-a-model-in-model-management, came back to the
-        // screen, still says NoModelAvailable" bug: for a first-time user
-        // the default model is auto-selected, so
-        // selectionStore.selectedModelId emits exactly once at init and
-        // never re-emits when the user downloads that same default model.
-        //
-        // RUNNING / FAILED / CANCELLED transitions don't change whether
-        // the file is on disk, so we skip those — checkModel() is
-        // idempotent but it does I/O, and the screen wouldn't change its
-        // display state anyway.
-        selectionStore.selectedModelId
-            .distinctUntilChanged()
-            .flatMapLatest { id ->
-                val selectedId = id ?: LlmModelCatalog.DEFAULT_MODEL.id
-                progressStore.progressFor(selectedId)
-                    .map { selectedId to it?.state }
-            }
-            .distinctUntilChanged()
-            .onEach { (_, state) ->
-                if (state == null || state == DownloadState.SUCCEEDED) {
-                    onIntent(LlmTaskIntent.CheckModel)
-                }
-            }
-            .launchIn(viewModelScope)
     }
 
     override fun onCleared() {

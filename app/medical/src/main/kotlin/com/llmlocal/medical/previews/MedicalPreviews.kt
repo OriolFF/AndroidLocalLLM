@@ -112,6 +112,7 @@ private fun PreviewSurface(
                         streamedText = s.streamedText,
                         advice = advice,
                         isGenerating = s.isGenerating,
+                        warmingUpLabel = MedicalLabels.warmingUpLabel,
                     )
                 },
                 modifier = Modifier.fillMaxSize(),

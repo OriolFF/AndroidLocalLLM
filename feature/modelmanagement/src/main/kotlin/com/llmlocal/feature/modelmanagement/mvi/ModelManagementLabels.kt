@@ -68,6 +68,14 @@ data class ModelManagementLabels(
     // Download progress
     val secondsLeftTemplate: (Int) -> String,
     val minutesLeftTemplate: (Int) -> String,
+
+    // Snackbars
+    /** Confirms [modelName] is now the active model; say what it will be used for. */
+    val modelSelectedSnackbar: (modelName: String) -> String,
+    /** Confirms [modelName]'s file was deleted from the device. */
+    val modelRemovedSnackbar: (modelName: String) -> String,
+    /** Shown when the user selects [modelName] before downloading it. */
+    val modelNotDownloadedSnackbar: (modelName: String) -> String,
 )
 
 /**

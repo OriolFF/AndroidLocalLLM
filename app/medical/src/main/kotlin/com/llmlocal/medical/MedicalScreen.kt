@@ -38,6 +38,7 @@ fun MedicalScreen(
                 streamedText = state.streamedText,
                 advice = advice,
                 isGenerating = state.isGenerating,
+                warmingUpLabel = MedicalLabels.warmingUpLabel,
             )
         },
         modifier = modifier,

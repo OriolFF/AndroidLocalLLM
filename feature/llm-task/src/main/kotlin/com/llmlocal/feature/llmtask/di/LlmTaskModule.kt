@@ -16,14 +16,19 @@ import org.koin.dsl.module
  * (recipe vs. medical vs. …). The consuming app calls
  * `koinViewModel<LlmTaskViewModel> { parametersOf(myConfig, myLabels) }`
  * to inject the right config + labels.
+ *
+ * Readiness (selection → progress → disk → engine init) is provided by
+ * the shared [com.llmlocal.core.llm.readiness.ModelReadinessObserver],
+ * so this ViewModel no longer needs a `LlmModelManager` or
+ * `ModelDownloadProgressStore` directly — it just wires the observer
+ * into its state.
  */
 val llmTaskModule: Module = module {
     viewModel { params ->
         LlmTaskViewModel(
             generateTask = get(),
-            modelManager = get(),
             selectionStore = get(),
-            progressStore = get(),
+            readinessObserver = get(),
             realEngine = get(named(REAL_ENGINE_QUALIFIER)),
             dispatchers = get(),
             config = params.get(),
