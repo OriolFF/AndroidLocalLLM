@@ -8,8 +8,17 @@ sealed interface BrowserIntent {
     data object Reload : BrowserIntent
     data object Stop : BrowserIntent
     data object GoForward : BrowserIntent
+
+    /** WebView `onPageStarted`; also sent when the screen attaches to a WebView that already shows a page. */
+    data class PageStarted(val url: String) : BrowserIntent
     data class PageProgress(val progress: Int) : BrowserIntent
     data class PageFinished(val url: String, val title: String?) : BrowserIntent
+
+    /** WebView `doUpdateVisitedHistory`. */
+    data class HistoryChanged(val canGoBack: Boolean, val canGoForward: Boolean) : BrowserIntent
+
+    /** Main-frame load error (`WebViewClient.onReceivedError`). */
+    data object PageLoadFailed : BrowserIntent
     data class Scrolled(val deltaY: Int) : BrowserIntent
     data object Scan : BrowserIntent
     data class PickCandidate(val candidateId: String) : BrowserIntent

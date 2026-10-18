@@ -16,6 +16,8 @@ import java.io.File
  * @property truncated whether the output looked cut off at the token cap
  * @property showRaw raw-output toggle
  * @property savedId set once the sink has saved the item
+ * @property sourceHost host of the captured page, for the source strip
+ * @property pageTitle title of the captured page, for the source strip
  */
 @Immutable
 data class ExtractionState(
@@ -29,6 +31,8 @@ data class ExtractionState(
     val truncated: Boolean = false,
     val showRaw: Boolean = false,
     val savedId: String? = null,
+    val sourceHost: String? = null,
+    val pageTitle: String? = null,
 )
 
 /** The four extraction phases, in display order. */
