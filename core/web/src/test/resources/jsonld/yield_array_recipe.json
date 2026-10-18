@@ -1,0 +1,11 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Variable-Yield Recipe",
+  "recipeYield": [
+    "4 servings",
+    { "@type": "QuantitativeValue", "value": 8, "unitText": "pieces" }
+  ],
+  "recipeIngredient": ["x"],
+  "recipeInstructions": "Mix."
+}

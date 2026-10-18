@@ -1,0 +1,16 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "name": "My Cooking Blog",
+      "mainEntity": { "@type": "Recipe", "name": "Bread" }
+    },
+    {
+      "@type": "Recipe",
+      "name": "No-Knead Crusty Bread",
+      "recipeIngredient": ["500g bread flour", "10g salt", "350g water", "5g yeast"],
+      "recipeInstructions": "Mix, rise, bake."
+    }
+  ]
+}

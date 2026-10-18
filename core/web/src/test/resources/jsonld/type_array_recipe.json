@@ -1,0 +1,7 @@
+{
+  "@context": "https://schema.org",
+  "@type": ["Recipe", "Thing"],
+  "name": "Multi-Typed Recipe",
+  "recipeIngredient": ["a", "b"],
+  "recipeInstructions": "Combine."
+}

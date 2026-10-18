@@ -1,0 +1,16 @@
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "name": "Roundup Recipe One",
+    "recipeIngredient": ["x"],
+    "recipeInstructions": "Mix."
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "name": "Roundup Recipe Two",
+    "recipeIngredient": ["y"],
+    "recipeInstructions": "Stir."
+  }
+]

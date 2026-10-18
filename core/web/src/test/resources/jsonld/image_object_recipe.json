@@ -1,0 +1,12 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Photo-Rich Recipe",
+  "recipeIngredient": ["ingredient"],
+  "recipeInstructions": "Cook.",
+  "image": [
+    { "@type": "ImageObject", "url": "https://example.com/a.jpg", "width": 800, "height": 600 },
+    "https://example.com/b.jpg",
+    { "@type": "ImageObject", "contentUrl": "https://example.com/c.jpg" }
+  ]
+}
