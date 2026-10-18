@@ -80,12 +80,7 @@ object EvalFixtures {
             tier = ExpectedTier.STRUCTURED,
             minCandidates = 5,
             notes = "Round-up: five Recipe nodes in one JSON-LD array (Nigel Slater column). Top candidate = first recipe. " +
-                "The Guardian writes quantities as floats ('250.0g potatoes').",
-            knownIssues = mapOf(
-                "Jaccard ≥ 0.8 vs SchemaOrgRecipeMapper" to "production parser bug: RecipeLineGrammar.stripNumber/numbered treat " +
-                    "'250.0g potatoes' as numbered item '250.' + '0g potatoes', so every decimal quantity loses its integer part " +
-                    "(model output is verbatim; see ws7-report.md for the patch)",
-            ),
+                "The Guardian writes quantities as floats ('250.0g potatoes'); the mapper tidies them to '250g' (WS8).",
         ),
         EvalFixture(
             name = "howto_recipetineats_tikka",
