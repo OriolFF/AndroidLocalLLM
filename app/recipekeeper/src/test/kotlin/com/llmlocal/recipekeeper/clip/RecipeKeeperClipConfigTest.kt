@@ -171,6 +171,73 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `text rendering prepends the preceding prose section when the method is above the ingredients`() {
+        // Mirrors joyofbaking.com: h1 holds the intro + method prose, the ingredient list is a later h2.
+        val page = joyOfBakingLikePage()
+        val candidate = config.detect(page).single()
+        assertThat((candidate.payload as CandidatePayload.Text).section.heading).isEqualTo("Pancake Recipe:")
+
+        val rendered = config.renderLlmInput(candidate, page, config.budgetChars)
+
+        val method = rendered.indexOf("In a large bowl whisk together")
+        val ingredients = rendered.indexOf("## Pancake Recipe:\n1 cup (130 grams) all-purpose flour")
+        assertThat(method).isGreaterThan(0)
+        assertThat(ingredients).isGreaterThan(method) // prose first, then the candidate
+        assertThat(rendered).contains("## Pancakes Recipe & Video\n")
+        assertThat(rendered).doesNotContain(RecipeKeeperClipConfig.HEAD_MARKER)
+        assertThat(rendered.length).isAtMost(config.budgetChars)
+    }
+
+    @Test
+    fun `preceding prose is cut from its start to keep the candidate whole within a small budget`() {
+        val page = joyOfBakingLikePage()
+        val candidate = config.detect(page).single()
+        val candidateText = "## Pancake Recipe:\n" + PANCAKE_INGREDIENTS
+
+        val rendered = config.renderLlmInput(candidate, page, budgetChars = 1_200)
+
+        assertThat(rendered.length).isAtMost(1_200)
+        assertThat(rendered).contains(candidateText)
+        assertThat(rendered).contains("## Pancakes Recipe & Video\n" + RecipeKeeperClipConfig.HEAD_MARKER)
+        assertThat(rendered).doesNotContain("My idea of the perfect weekend breakfast") // the intro went first
+        assertThat(rendered).contains("Serve immediately with butter and maple syrup.") // the tail of the method stayed
+        assertThat(rendered).doesNotContain(RecipeKeeperClipConfig.TRUNCATION_MARKER)
+    }
+
+    @Test
+    fun `no preceding prose is pulled in when the following sections already hold the method or the budget is tiny`() {
+        val withMethod = snapshot(
+            url = "https://blog.example.com/bakes",
+            sections = listOf(
+                section("Pancakes", 1, "Long intro. ".repeat(40), top = 0),
+                section("Ingredients", 2, LEMON_INGREDIENTS, top = 500),
+                section("Method", 2, "Whisk and fry.", top = 900),
+            ),
+        )
+        val rendered = config.renderLlmInput(config.detect(withMethod).single(), withMethod, config.budgetChars)
+        assertThat(rendered).doesNotContain("Long intro.")
+
+        val page = joyOfBakingLikePage()
+        val tiny = config.renderLlmInput(config.detect(page).single(), page, budgetChars = 500)
+        assertThat(tiny).doesNotContain("## Pancakes Recipe & Video")
+        assertThat(tiny.length).isAtMost(500)
+    }
+
+    @Test
+    fun `trimHeadAtParagraph keeps the heading and the tail, cutting at the first boundary in the first 40 percent`() {
+        val marker = RecipeKeeperClipConfig.HEAD_MARKER
+        val text = "## Head\naaaa aaaa\n\nbbbb bbbb\ncccc cccc dddd eeee"
+        assertThat(config.trimHeadAtParagraph(text, text.length)).isEqualTo(text)
+        // room for the last 25 chars of the body: "bbb bbbb\ncccc cccc dddd eeee" → first newline (8) is within 40%
+        assertThat(config.trimHeadAtParagraph(text, "## Head\n".length + marker.length + 25)).isEqualTo("## Head\n${marker}cccc cccc dddd eeee")
+        // no heading: window "cc dddd" (room 7, ceiling 2) → the space at 2 is in range → "dddd"
+        assertThat(config.trimHeadAtParagraph("aaaa bbbb cccc dddd", marker.length + 7)).isEqualTo("${marker}dddd")
+        // window "cccc dddd" (room 9, ceiling 3): the space at 4 is out of range, so the whole window stays
+        assertThat(config.trimHeadAtParagraph("aaaa bbbb cccc dddd", marker.length + 9)).isEqualTo("${marker}cccc dddd")
+        assertThat(config.trimHeadAtParagraph("aaaa bbbb cccc dddd", 3).length).isAtMost(3)
+    }
+
+    @Test
     fun `whole page rendering uses readable text and is budget-trimmed at a paragraph boundary`() {
         val paragraphs = (1..60).joinToString("\n\n") { i -> "Paragraph $i. " + "lorem ipsum dolor sit amet ".repeat(8).trim() }
         val page = snapshot(url = "https://news.example.com/x", readable = readable(paragraphs, title = "Long"))
@@ -301,6 +368,18 @@ class RecipeKeeperClipConfigTest {
         ).inOrder()
     }
 
+    /** h1 intro + method prose (no instructions heading), an empty h2, then the ingredient list h2 — like joyofbaking.com. */
+    private fun joyOfBakingLikePage() = snapshot(
+        url = "https://www.joyofbaking.com/breakfast/Pancakes.html",
+        title = "Pancakes Recipe & Video - Joyofbaking.com",
+        readable = readable(PANCAKE_PROSE + "\n" + PANCAKE_INGREDIENTS, title = "Pancakes Recipe & Video"),
+        sections = listOf(
+            section("Pancakes Recipe & Video", 1, PANCAKE_PROSE, top = 0),
+            section(null, 2, "", top = 0),
+            section("Pancake Recipe:", 2, PANCAKE_INGREDIENTS, top = 100),
+        ),
+    )
+
     private fun recipe(ingredients: List<String>, steps: List<String> = listOf("Mix.", "Bake.")) = ClippedRecipe(
         id = "", title = "T", description = null, servings = null, prepMinutes = null, cookMinutes = null, totalMinutes = null,
         ingredients = ingredients, steps = steps, notes = null, sourceUrl = "", sourceHost = "", pictures = emptyList(),
@@ -313,5 +392,23 @@ class RecipeKeeperClipConfigTest {
     companion object {
         const val LEMON_INGREDIENTS = "225 g butter, softened\n225 g caster sugar\n4 eggs\n225 g self-raising flour\nZest of 2 lemons"
         const val SODA_INGREDIENTS = "450 g plain flour\n1 tsp bicarbonate of soda\n1 tsp salt\n400 ml buttermilk\nMix, shape, bake 30 minutes."
+        const val PANCAKE_INGREDIENTS = "1 cup (130 grams) all-purpose flour\n1 1/2 teaspoons baking powder\n1/4 teaspoon salt\n" +
+            "2 tablespoons (28 grams) granulated white sugar\n1 large egg, lightly beaten\n1 cup (240 ml) milk\n" +
+            "2 tablespoons (28 grams) unsalted butter, melted\nextra melted butter for greasing the pan."
+        val PANCAKE_PROSE = """
+            Printer Friendly Page
+            My idea of the perfect weekend breakfast is a stack of Pancakes with butter and maple syrup dripping down its sides. I love how Pancakes use the most basic of ingredients. Although pancakes are mainly served for breakfast they take center stage on Pancake Day, or Shrove Tuesday, when they are served for supper.
+
+            Related Recipes You May Like
+            Blueberry Pancakes
+            Buttermilk Pancakes
+
+            Pancake Recipe: In a large bowl whisk together the flour, baking powder, salt and sugar. In a separate bowl whisk together the egg, milk, and melted butter. Make a well in the center of the dry ingredients and then pour in the egg mixture, all at once, and stir just until combined. The batter should have some small lumps.
+
+            Heat a frying pan or griddle over medium high heat until a few sprinkles of water dropped on the pan or griddle splatter. Using a small ladle or scoop, pour about 1/4 cup (60 ml) of pancake batter onto the hot pan. When the bottoms of the pancakes are brown and bubbles start to appear on the top surfaces of the pancakes (2-3 minutes), turn over. Cook until lightly browned (about 1-2 minutes). Repeat with remaining batter.
+
+            Serve immediately with butter and maple syrup.
+            Makes about 8 - 4 inch (10 cm) pancakes. Serves 3-4 people.
+        """.trimIndent()
     }
 }

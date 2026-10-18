@@ -33,9 +33,13 @@ import kotlin.math.abs
  * **Render.** STRUCTURED → compact field rendering (`Name / Description /
  * Yield / Times / Ingredients / Instructions / Images: n`). TEXT → the
  * section plus the sections nested under it (so "Ingredients" h3 pulls in
- * the sibling "Method" h3). WholePage → `readable.textContent`. All three
- * start with `Page: <host> — <title>` and are trimmed to `budgetChars` at a
- * paragraph boundary with a `[…truncated]` marker.
+ * the sibling "Method" h3); when none of that mentions instructions, the
+ * nearest *preceding* section with at least [MIN_PRECEDING_PROSE_CHARS] of
+ * prose is prepended (blogs that put the method above the ingredient
+ * list), trimmed from its start so the candidate itself stays whole.
+ * WholePage → `readable.textContent`. All three start with
+ * `Page: <host> — <title>` and are trimmed to `budgetChars` at a paragraph
+ * boundary with a `[…truncated]` marker.
  *
  * @param durationParser ISO-8601/free-text → minutes; `IsoDuration.toMinutes`
  *   (WS2) in production, a lambda in tests
@@ -186,12 +190,12 @@ class RecipeKeeperClipConfig(
 
     override fun renderLlmInput(candidate: ClipCandidate, snapshot: PageSnapshot, budgetChars: Int): String {
         val header = pageHeader(snapshot)
+        val available = (budgetChars - header.length - 2).coerceAtLeast(MIN_BODY_CHARS)
         val body = when (val payload = candidate.payload) {
             is CandidatePayload.Structured -> renderStructured(payload.node.raw)
-            is CandidatePayload.Text -> renderSection(payload.section, snapshot)
+            is CandidatePayload.Text -> renderSection(payload.section, snapshot, available)
             CandidatePayload.WholePage -> renderWholePage(snapshot)
         }
-        val available = (budgetChars - header.length - 2).coerceAtLeast(MIN_BODY_CHARS)
         return header + "\n\n" + truncateAtParagraph(body, available)
     }
 
@@ -234,8 +238,15 @@ class RecipeKeeperClipConfig(
         }
     }.trim()
 
-    /** The section plus everything nested under it (deeper headings) until the next recipe. */
-    private fun renderSection(section: TextSection, snapshot: PageSnapshot): String {
+    /**
+     * The section plus everything nested under it (deeper headings) until
+     * the next recipe. When neither the section nor what follows mentions
+     * instructions, the method is probably in the prose *above* the
+     * ingredient list: the nearest preceding section with enough prose is
+     * prepended, cut from its start at a paragraph boundary so the whole
+     * thing fits [budget].
+     */
+    private fun renderSection(section: TextSection, snapshot: PageSnapshot, budget: Int): String {
         val sections = snapshot.sections
         val start = sections.indexOfFirst { it === section }.takeIf { it >= 0 } ?: sections.indexOf(section)
         val parts = mutableListOf(sectionText(section))
@@ -250,7 +261,49 @@ class RecipeKeeperClipConfig(
                 if (++added >= MAX_FOLLOWING_SECTIONS) break
             }
         }
-        return parts.filter { it.isNotBlank() }.joinToString("\n\n")
+        val body = parts.filter { it.isNotBlank() }.joinToString("\n\n")
+        if (start <= 0 || instructionsWord.containsMatchIn(body)) return body
+
+        val preceding = precedingProse(sections, start) ?: return body
+        val room = budget - body.length - 2
+        if (room < MIN_PRECEDING_PROSE_CHARS) return body
+        return trimHeadAtParagraph(preceding, room) + "\n\n" + body
+    }
+
+    /**
+     * Rendered text of the nearest section before [index] whose non-quantity
+     * lines add up to at least [MIN_PRECEDING_PROSE_CHARS]; the search stops
+     * at another recipe's ingredient heading.
+     */
+    private fun precedingProse(sections: List<TextSection>, index: Int): String? {
+        for (i in index - 1 downTo 0) {
+            val prev = sections[i]
+            val heading = prev.heading.orEmpty()
+            if (heading.isNotBlank() && ingredientsWord.containsMatchIn(heading)) return null
+            val text = TextCleaner.clean(prev.text)
+            val prose = text.lineSequence().filter { it.isNotBlank() && !quantityLine.containsMatchIn(it.trim()) }.sumOf { it.length }
+            if (prose >= MIN_PRECEDING_PROSE_CHARS) return sectionText(prev)
+        }
+        return null
+    }
+
+    /**
+     * Keeps the *end* of [text] within [limit] characters (marker included),
+     * cutting at the first blank line, then newline, then space, in the
+     * first 40% of the kept window; a `## heading` first line survives.
+     */
+    internal fun trimHeadAtParagraph(text: String, limit: Int): String {
+        if (text.length <= limit) return text
+        val heading = text.lineSequence().first().takeIf { it.startsWith("## ") }?.let { it + "\n" }.orEmpty()
+        val body = text.drop(heading.length)
+        val room = (limit - heading.length - HEAD_MARKER.length).coerceAtLeast(0)
+        if (room == 0) return (heading + HEAD_MARKER).take(limit)
+        val window = body.takeLast(room)
+        val ceiling = (room * 0.4).toInt()
+        val cut = listOf("\n\n", "\n", " ")
+            .map { window.indexOf(it) }
+            .firstOrNull { it in 0..ceiling } ?: 0
+        return heading + HEAD_MARKER + window.substring(cut).trimStart()
     }
 
     private fun sectionText(section: TextSection): String {
@@ -365,6 +418,8 @@ class RecipeKeeperClipConfig(
         const val MAX_CANDIDATES = 10
         const val WHOLE_PAGE_ID = "page"
         const val TRUNCATION_MARKER = "\n[…truncated]"
+        const val HEAD_MARKER = "[…]\n"
+        const val MIN_PRECEDING_PROSE_CHARS = 300
         const val MIN_QUANTITY_LINES = 3
         const val MIN_WHOLE_PAGE_CHARS = 500
         const val MIN_WHOLE_PAGE_QUANTITY_LINES = 2
