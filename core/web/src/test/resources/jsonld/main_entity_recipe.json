@@ -1,0 +1,11 @@
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Recipe Post",
+  "mainEntity": {
+    "@type": "Recipe",
+    "name": "Referenced Recipe",
+    "recipeIngredient": ["flour", "water", "yeast"],
+    "recipeInstructions": "Mix and bake."
+  }
+}

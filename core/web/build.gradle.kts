@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:model"))
 
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.webkit)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.core)
@@ -19,4 +20,5 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.org.json)
 }

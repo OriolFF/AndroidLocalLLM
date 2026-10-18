@@ -1,0 +1,29 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Sectioned Lasagna",
+  "recipeIngredient": [
+    "12 lasagna noodles",
+    "500g ricotta",
+    "700g tomato sauce",
+    "300g mozzarella"
+  ],
+  "recipeInstructions": [
+    {
+      "@type": "HowToSection",
+      "name": "Sauce",
+      "itemListElement": [
+        { "@type": "HowToStep", "text": "Simmer tomato sauce for 20 minutes." },
+        { "@type": "HowToStep", "text": "Season with salt and basil." }
+      ]
+    },
+    {
+      "@type": "HowToSection",
+      "name": "Assembly",
+      "itemListElement": [
+        { "@type": "HowToStep", "text": "Layer noodles, ricotta, sauce, mozzarella." },
+        { "@type": "HowToStep", "text": "Bake at 180°C for 45 minutes." }
+      ]
+    }
+  ]
+}
