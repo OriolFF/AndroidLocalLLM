@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -27,7 +29,7 @@ import androidx.compose.ui.unit.dp
  * for semantically loaded sections (the medical card tints its
  * "When to seek care" icon with `colorScheme.error`).
  *
- * @param label the section title.
+ * @param label the section title; exposed as an accessibility heading.
  * @param icon leading icon; `null` renders the label alone.
  * @param iconTint optional icon colour; defaults to `onPrimaryContainer`.
  * @param trailing optional trailing content (e.g. a "Reset" text button); when
@@ -69,7 +71,10 @@ fun SectionHeader(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold,
-            modifier = if (trailing != null) Modifier.weight(1f) else Modifier,
+            modifier = (if (trailing != null) Modifier.weight(1f) else Modifier)
+                // Section titles are headings so TalkBack heading navigation
+                // can jump between Ingredients / Steps / Notes.
+                .semantics { heading() },
         )
         trailing?.invoke()
     }
