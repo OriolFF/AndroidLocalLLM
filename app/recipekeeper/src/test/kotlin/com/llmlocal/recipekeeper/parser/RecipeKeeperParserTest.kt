@@ -181,6 +181,16 @@ class RecipeKeeperParserTest {
     }
 
     @Test
+    fun `NO RECIPE refusal returns null even when a format follows`() {
+        assertThat(parser.parse("NO RECIPE")).isNull()
+        assertThat(parser.parse("no recipe.\n")).isNull()
+        assertThat(parser.parse("**NO RECIPE**")).isNull()
+        assertThat(parser.parse("\nNO RECIPE\nTitle: Invented\nIngredients:\n- 1 egg\nSteps:\n1. Cook.")).isNull()
+        // Only the first line counts as a refusal; the words inside a recipe are fine.
+        assertThat(parser.parse("Title: No recipe left behind\nIngredients:\n- 1 egg\n")).isNotNull()
+    }
+
+    @Test
     fun `null when there are neither ingredients nor steps`() {
         assertThat(parser.parse("")).isNull()
         assertThat(parser.parse("Title: Nothing here\nDescription: just words")).isNull()

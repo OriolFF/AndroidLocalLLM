@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.llmlocal.core.web.JsonLdNode
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
+import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.testing.image
 import com.llmlocal.recipekeeper.testing.loadJsonLd
 import com.llmlocal.recipekeeper.testing.readable
@@ -232,6 +233,24 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `accept requires two quantity ingredients for whole-page results and nothing for detected candidates`() {
+        val page = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
+        val whole = config.detect(page).single()
+        val invented = recipe(ingredients = listOf("Chicken", "Breadcrumbs", "Onion", "Garlic", "Egg"))
+        val oneQuantity = recipe(ingredients = listOf("2 eggs", "flour", "milk"))
+        val real = recipe(ingredients = listOf("2 eggs", "1 cup flour", "milk"))
+
+        assertThat(config.accept(whole, invented)).isFalse()
+        assertThat(config.accept(whole, oneQuantity)).isFalse()
+        assertThat(config.accept(whole, real)).isTrue()
+
+        val text = snapshot(url = "https://x.example.com/recipes/a", sections = listOf(section("Cake", 1, SODA_INGREDIENTS, top = 0)))
+        assertThat(config.accept(config.detect(text).single(), invented)).isTrue()
+        val structured = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        assertThat(config.accept(config.detect(structured).single(), invented)).isTrue()
+    }
+
+    @Test
     fun `pickPictures ranks JSON-LD, then og, then recipe-card images by area, de-duplicated and capped`() {
         val page = snapshot(
             jsonLd = listOf(loadJsonLd("howto_sections")),
@@ -281,6 +300,12 @@ class RecipeKeeperClipConfigTest {
             "https://img.example.com/far.jpg",
         ).inOrder()
     }
+
+    private fun recipe(ingredients: List<String>, steps: List<String> = listOf("Mix.", "Bake.")) = ClippedRecipe(
+        id = "", title = "T", description = null, servings = null, prepMinutes = null, cookMinutes = null, totalMinutes = null,
+        ingredients = ingredients, steps = steps, notes = null, sourceUrl = "", sourceHost = "", pictures = emptyList(),
+        truncated = false, clippedAt = 0L,
+    )
 
     private fun website(): JsonLdNode =
         JsonLdNode(listOf("WebSite"), JSONObject().put("@type", "WebSite").put("name", "Example Kitchen"))

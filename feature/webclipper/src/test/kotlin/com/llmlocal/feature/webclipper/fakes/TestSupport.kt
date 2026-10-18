@@ -59,6 +59,10 @@ class FakeWebClipConfig(
     override val maxOutputTokens: Int = 1_024,
 ) : WebClipConfig<Parsed> {
 
+    /** Results `accept` rejects (by raw text). */
+    var rejected: Set<Parsed> = emptySet()
+    val acceptCalls = mutableListOf<Pair<ClipCandidate, Parsed>>()
+
     val renderedInputs = mutableListOf<ClipCandidate>()
 
     override val llmConfig: LlmTaskConfig<Parsed> = LlmTaskConfig(
@@ -77,6 +81,11 @@ class FakeWebClipConfig(
     }
 
     override fun fallback(candidate: ClipCandidate, snapshot: PageSnapshot): Parsed? = fallbackResult
+
+    override fun accept(candidate: ClipCandidate, item: Parsed): Boolean {
+        acceptCalls += candidate to item
+        return item !in rejected
+    }
 
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
         pictureUrls.take(max)

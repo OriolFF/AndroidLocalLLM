@@ -48,7 +48,8 @@ import java.util.UUID
  *     instruction, `maxOutputTokens = config.maxOutputTokens` and
  *     temperature [EXTRACTION_TEMPERATURE]; raw deltas are appended to
  *     [ExtractionState.streamedText] for the app's draft slot. A parser
- *     `null` on a STRUCTURED candidate falls back to `config.fallback`.
+ *     `null` — or a result `config.accept` rejects — on a STRUCTURED
+ *     candidate falls back to `config.fallback`.
  *  3. **Pictures** — `config.pickPictures` downloaded in parallel with the
  *     model (never sent to it); failures only turn the phase to `Warning`.
  *  4. **Saving** — `sink.save` with the kept picture files, then
@@ -200,9 +201,10 @@ class ExtractionViewModel(
         }
         val rawText = buffer.toString()
 
-        if (result == null) {
+        val accepted = result?.let { config.accept(candidate, it) } ?: false
+        if (!accepted) {
             val error = failure
-            val parseFailed = error == null || error is LlmTaskParseException
+            val parseFailed = result != null || error == null || error is LlmTaskParseException
             if (!parseFailed) {
                 pictures.cancel()
                 fail(classify(error))

@@ -27,6 +27,15 @@ interface WebClipConfig<T : Any> {
     /** Deterministic mapping for STRUCTURED candidates; `null` otherwise. */
     fun fallback(candidate: ClipCandidate, snapshot: PageSnapshot): T?
 
+    /**
+     * Last check on a parsed model result before it is kept. `false` is
+     * treated exactly like a parse failure: [fallback] for STRUCTURED
+     * candidates, otherwise the parse-failed state. Apps use it to reject
+     * results the grammar accepts but the page cannot have produced (e.g.
+     * a whole-page extraction with no quantities in its ingredients).
+     */
+    fun accept(candidate: ClipCandidate, item: T): Boolean = true
+
     /** Ranked picture URLs to download alongside the item, at most [max]. */
     fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String>
 

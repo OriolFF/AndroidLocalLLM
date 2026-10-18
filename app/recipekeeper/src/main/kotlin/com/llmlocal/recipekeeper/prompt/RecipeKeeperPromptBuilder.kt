@@ -39,7 +39,7 @@ class RecipeKeeperPromptBuilder : PromptBuilder {
             Notes:
             <short tips from the page, optional>
 
-            Rules: keep ingredient lines exactly as quantities appear. Do not invent ingredients or steps that are not on the page. Copy the page's total time into TotalMinutes; if the page gives only a total, do not split it into PrepMinutes and CookMinutes. Do not add commentary, headings or Markdown. If a field is unknown, omit that line entirely. If the page has several recipes, extract only the one the text focuses on.
+            Rules: keep ingredient lines exactly as quantities appear. Do not invent ingredients or steps that are not on the page. Copy the page's total time into TotalMinutes; if the page gives only a total, do not split it into PrepMinutes and CookMinutes. Do not add commentary, headings or Markdown. If a field is unknown, omit that line entirely. If the page has several recipes, extract only the one the text focuses on. If the page contains no recipe, respond with exactly: NO RECIPE
         """.trimIndent()
     }
 }

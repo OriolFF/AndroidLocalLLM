@@ -161,6 +161,26 @@ class ExtractionViewModelTest {
     }
 
     @Test
+    fun `a parsed result the config rejects is treated as a parse failure`() = runTest {
+        session.set(snapshot(), listOf(candidate("t"), candidate("s", source = CandidateSource.STRUCTURED)))
+        config.rejected = setOf(Parsed(goodOutput))
+        config.fallbackResult = Parsed("fallback")
+
+        val textVm = viewModel("t", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(textVm.state.value.error).isEqualTo(ExtractionError.ParseFailed(goodOutput))
+        assertThat(textVm.state.value.phases[Phase.Extracting]).isEqualTo(PhaseStatus.Failed)
+        assertThat(config.acceptCalls.single().second).isEqualTo(Parsed(goodOutput))
+        assertThat(sink.saved).isEmpty()
+
+        val structuredVm = viewModel("s", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(structuredVm.state.value.error).isNull()
+        assertThat(structuredVm.state.value.savedId).isEqualTo("saved-1")
+        assertThat(sink.saved.single().item).isEqualTo(Parsed("fallback"))
+    }
+
+    @Test
     fun `retry whole page after a parse failure re-runs with the synthetic candidate`() = runTest {
         session.set(snapshot(), listOf(candidate("t")))
         var calls = 0

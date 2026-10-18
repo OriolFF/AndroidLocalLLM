@@ -291,6 +291,18 @@ class RecipeKeeperClipConfig(
         return mapper.map(payload.node, sourceUrl = snapshot.url, id = idFactory(), clippedAt = clock())
     }
 
+    /**
+     * A whole-page extraction (no detected candidate, "Extract anyway") is
+     * only believed when at least [MIN_WHOLE_PAGE_QUANTITY_LINES] of its
+     * ingredients carry a quantity; otherwise the model invented a recipe
+     * from a list or category page and the result counts as "no recipe".
+     * Detected candidates are always accepted.
+     */
+    override fun accept(candidate: ClipCandidate, item: ClippedRecipe): Boolean {
+        if (candidate.payload !is CandidatePayload.WholePage) return true
+        return item.ingredients.count { quantityLine.containsMatchIn(it.trim()) } >= MIN_WHOLE_PAGE_QUANTITY_LINES
+    }
+
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> {
         if (max <= 0) return emptyList()
         val ranked = mutableListOf<String>()
@@ -355,6 +367,7 @@ class RecipeKeeperClipConfig(
         const val TRUNCATION_MARKER = "\n[…truncated]"
         const val MIN_QUANTITY_LINES = 3
         const val MIN_WHOLE_PAGE_CHARS = 500
+        const val MIN_WHOLE_PAGE_QUANTITY_LINES = 2
         private const val LOOKAHEAD_SECTIONS = 3
         private const val MAX_FOLLOWING_SECTIONS = 6
         private const val SNIPPET_CHARS = 100
