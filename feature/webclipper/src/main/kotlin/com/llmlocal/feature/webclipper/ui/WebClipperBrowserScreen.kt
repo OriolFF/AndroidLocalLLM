@@ -30,7 +30,6 @@ import com.llmlocal.feature.webclipper.hostOf
 import com.llmlocal.feature.webclipper.mvi.BrowserIntent
 import com.llmlocal.feature.webclipper.mvi.BrowserSheet
 import com.llmlocal.feature.webclipper.mvi.BrowserState
-import com.llmlocal.feature.webclipper.mvi.ClipFabState
 
 /**
  * Stateless browser screen (UX spec §2): own `Scaffold` with
@@ -85,12 +84,9 @@ fun WebClipperBrowserScreen(
                     state = state.fab,
                     expanded = state.fabExpanded,
                     labels = labels,
-                    onClick = {
-                        when (state.fab) {
-                            is ClipFabState.ModelNotReady -> onIntent(BrowserIntent.OpenModelManagement)
-                            else -> onIntent(BrowserIntent.Scan)
-                        }
-                    },
+                    // Every state goes through Scan: the ViewModel decides
+                    // (ModelNotReady -> modelNotReadySnackbar + model management).
+                    onClick = { onIntent(BrowserIntent.Scan) },
                     onHideForPage = { onIntent(BrowserIntent.HideFabForPage) },
                 )
             }

@@ -256,7 +256,13 @@ class BrowserViewModel(
         val current = _state.value
         when {
             current.readiness !is ModelReadiness.Ready -> {
-                send(BrowserEffect.ShowSnackbar(labels.modelNotReadySnackbar))
+                // Say why, then go to model management (the snackbar host is
+                // app-wide, so it survives the navigation). A running
+                // download already shows its percentage on the button, and
+                // "choose and download a model first" would be wrong there.
+                if (current.readiness !is ModelReadiness.Downloading) {
+                    send(BrowserEffect.ShowSnackbar(labels.modelNotReadySnackbar))
+                }
                 send(BrowserEffect.NavigateToModelManagement)
             }
             activeExtraction != null -> send(BrowserEffect.NavigateToExtraction(activeExtraction!!))
