@@ -25,6 +25,12 @@ sealed interface BrowserIntent {
     data object ExtractWholePage : BrowserIntent
     data object DismissSheet : BrowserIntent
     data object OpenModelManagement : BrowserIntent
+
+    /** Long-press "Hide on this page": hide the clip button on the current host. */
+    data object HideFabForPage : BrowserIntent
+
+    /** Docked "Show clip button" chip: bring the button back on the current host. */
+    data object ShowFab : BrowserIntent
     data object SharePage : BrowserIntent
     data object CopyLink : BrowserIntent
     data object OpenExternal : BrowserIntent

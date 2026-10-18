@@ -18,6 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.theme.designTokens
 
@@ -35,7 +37,7 @@ import com.llmlocal.core.designsystem.theme.designTokens
  *   - the recipe screen's "What's in your kitchen?" intro
  *   - the no-model-available banner
  *
- * @param title        Required headline.
+ * @param title        Required headline (an accessibility heading).
  * @param subtitle     Optional supporting line; pass `null` to omit.
  * @param icon         Optional leading icon (rendered in a 40dp tinted circle).
  * @param modifier     Outer modifier.
@@ -105,6 +107,7 @@ fun GradientHero(
                             text = title,
                             style = MaterialTheme.typography.headlineMedium,
                             color = onHeroColor,
+                            modifier = Modifier.semantics { heading() },
                         )
                         if (!subtitle.isNullOrBlank()) {
                             Text(

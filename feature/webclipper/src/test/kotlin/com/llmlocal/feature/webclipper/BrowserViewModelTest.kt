@@ -3,6 +3,8 @@ package com.llmlocal.feature.webclipper
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.llmlocal.core.common.result.Outcome
+import com.llmlocal.core.llm.download.DownloadState
+import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
 import com.llmlocal.feature.webclipper.fakes.FakePageScanner
@@ -109,6 +111,27 @@ class BrowserViewModelTest {
             advanceUntilIdle()
             assertThat(awaitItem()).isEqualTo(BrowserEffect.ShowSnackbar(labels.modelNotReadySnackbar))
             assertThat(awaitItem()).isEqualTo(BrowserEffect.NavigateToModelManagement)
+        }
+        assertThat(scanner.captures).isEqualTo(0)
+    }
+
+    @Test
+    fun `downloading model tap navigates to model management without the snackbar`() = runTest {
+        val progress = PerModelProgress(
+            modelId = descriptor.id, state = DownloadState.RUNNING, bytesRead = 50, totalBytes = 100,
+            speedBytesPerSec = 1, etaSeconds = 1, updatedAt = 0,
+        )
+        readiness.readiness.value = ModelReadiness.Downloading(progress)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.loadPage()
+
+        assertThat(vm.state.value.fab).isEqualTo(ClipFabState.ModelNotReady(progress))
+        vm.effects.test {
+            vm.onIntent(BrowserIntent.Scan)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(BrowserEffect.NavigateToModelManagement)
+            expectNoEvents()
         }
         assertThat(scanner.captures).isEqualTo(0)
     }
@@ -271,6 +294,40 @@ class BrowserViewModelTest {
         advanceUntilIdle()
         assertThat(vm.state.value.sheet).isEqualTo(BrowserSheet.Candidates)
         assertThat(session.reopenCandidates.value).isFalse()
+    }
+
+    @Test
+    fun `hide for page is remembered per host and restored by ShowFab`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.loadPage("https://www.cooking.example/recipes/pasta")
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+
+        vm.onIntent(BrowserIntent.HideFabForPage)
+        assertThat(vm.state.value.fabHiddenForPage).isTrue()
+        assertThat(vm.state.value.hiddenFabHosts).containsExactly("cooking.example")
+
+        // Another host: the button is back; the choice is not forgotten.
+        vm.loadPage("https://other.example/soup")
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+        assertThat(vm.state.value.hiddenFabHosts).containsExactly("cooking.example")
+
+        // Back on the same host (www-less this time): still hidden.
+        vm.loadPage("https://cooking.example/recipes/soup")
+        assertThat(vm.state.value.fabHiddenForPage).isTrue()
+
+        vm.onIntent(BrowserIntent.ShowFab)
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+        assertThat(vm.state.value.hiddenFabHosts).isEmpty()
+    }
+
+    @Test
+    fun `hide for page is a no-op without a page`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onIntent(BrowserIntent.HideFabForPage)
+        assertThat(vm.state.value.hiddenFabHosts).isEmpty()
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
     }
 
     @Test

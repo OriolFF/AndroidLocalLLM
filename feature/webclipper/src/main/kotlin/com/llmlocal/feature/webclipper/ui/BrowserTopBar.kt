@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -101,9 +102,11 @@ fun BrowserTopBar(
                         state = state,
                         labels = labels,
                         onIntent = onIntent,
+                        // widthIn must come first: fillMaxWidth() alone would fix
+                        // the min constraint and the cap could never shrink it.
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 720.dp),
+                            .widthIn(max = 720.dp)
+                            .fillMaxWidth(),
                     )
                 }
                 OverflowMenu(state = state, labels = labels, onIntent = onIntent)
@@ -195,16 +198,26 @@ private fun UrlTextField(
     val scheme = MaterialTheme.colorScheme
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    // The field is only mounted while `urlFocused`, and the ViewModel sets
+    // `draftUrl` (= the page URL, fully selected) in the same update that
+    // focuses it; afterwards it only echoes UpdateDraftUrl back. So the
+    // local value is seeded once and never re-synced: a per-frame sync from
+    // `state.draftUrl` lagged one frame behind fast typing and reset the
+    // field to a stale draft, leaving a single character (device QA).
     var value by remember {
         mutableStateOf(TextFieldValue(state.draftUrl, selection = TextRange(0, state.draftUrl.length)))
     }
-    // Keep the field in sync when the ViewModel changes the draft (e.g. focus → full URL).
-    LaunchedEffect(state.draftUrl) {
-        if (value.text != state.draftUrl) {
-            value = TextFieldValue(state.draftUrl, selection = TextRange(0, state.draftUrl.length))
-        }
+    // `onFocusChanged` also fires with the initial *Inactive* state when the
+    // field attaches; without this guard that first event would dismiss the
+    // field before `requestFocus()` below ever ran (device QA finding 1).
+    var hadFocus by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        // Focus alone does not open the IME when the window itself is still
+        // gaining focus (first frame of the screen), so ask explicitly.
+        keyboard?.show()
     }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     BasicTextField(
         value = value,
@@ -243,7 +256,11 @@ private fun UrlTextField(
             .fillMaxWidth()
             .focusRequester(focusRequester)
             .onFocusChanged { focus ->
-                if (!focus.isFocused && state.urlFocused) onIntent(BrowserIntent.UrlFocusChanged(false))
+                if (focus.isFocused) {
+                    hadFocus = true
+                } else if (hadFocus && state.urlFocused) {
+                    onIntent(BrowserIntent.UrlFocusChanged(false))
+                }
             }
             .semantics { contentDescription = labels.urlFieldDescription },
     )

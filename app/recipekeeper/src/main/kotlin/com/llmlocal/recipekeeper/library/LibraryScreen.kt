@@ -121,6 +121,9 @@ fun LibraryScreen(
                 text = { Text(text = labels.libraryFabClip) },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                // Explicit name: the extended-FAB label did not surface in the
+                // device-QA hierarchy dump (node came back NAF with no text).
+                modifier = Modifier.semantics { contentDescription = labels.libraryFabClip },
             )
         }
     }

@@ -81,8 +81,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -92,6 +94,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
@@ -116,6 +119,10 @@ import java.util.Date
 /** Window width from which the detail splits into ingredients | steps panes. */
 private val TwoPaneMinWidth = 600.dp
 private val TopBarHeight = 64.dp
+
+/** Bottom hero scrim: flat minimum behind the title band, darker at the edge. */
+private const val HERO_SCRIM_MIN_ALPHA = 0.40f
+private const val HERO_SCRIM_MAX_ALPHA = 0.82f
 
 /**
  * Stateless recipe detail screen (UX spec §5). Owns its own `Scaffold`.
@@ -488,6 +495,10 @@ private fun KeepScreenOn(enabled: Boolean) {
 /**
  * Hero photo with a top scrim (keeps the floating icons legible) and a
  * bottom scrim carrying the title in white `headlineMedium`.
+ *
+ * The bottom scrim is at least 40 % black where the title sits (ramping to
+ * 82 % at the bottom edge) and the title carries a 1 dp text shadow, so
+ * white stays legible on light photos (device-QA a11y note).
  */
 @Composable
 private fun HeroImage(
@@ -527,15 +538,28 @@ private fun HeroImage(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .fillMaxHeight(0.6f)
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)))),
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.45f to Color.Black.copy(alpha = HERO_SCRIM_MIN_ALPHA),
+                        1f to Color.Black.copy(alpha = HERO_SCRIM_MAX_ALPHA),
+                    ),
+                ),
         )
         Text(
             text = recipe.title,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.6f),
+                    offset = Offset(0f, with(LocalDensity.current) { 1.dp.toPx() }),
+                    blurRadius = with(LocalDensity.current) { 2.dp.toPx() },
+                ),
+            ),
             color = Color.White,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .semantics { heading() },
         )
     }
 }

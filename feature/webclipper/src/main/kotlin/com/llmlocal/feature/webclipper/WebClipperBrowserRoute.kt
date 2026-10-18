@@ -13,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +65,13 @@ fun <T : Any> WebClipperBrowserRoute(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val savedWebState = rememberSaveable { Bundle() }
+    // True only on a genuinely blank start: no page in the ViewModel, none
+    // requested, nothing in the shared WebView and nothing to restore. Then
+    // the screen focuses the address bar; otherwise the page below is synced.
+    val blankStart = remember(holder, viewModel) {
+        viewModel.state.value.url.isBlank() && initialUrl.isNullOrBlank() &&
+            holder.currentUrl == null && savedWebState.isEmpty
+    }
 
     DisposableEffect(holder, lifecycleOwner) {
         holder.listener = object : WebViewHolder.Listener {
@@ -129,6 +137,7 @@ fun <T : Any> WebClipperBrowserRoute(
         onBackToLibrary = onBackToLibrary,
         snackbarHostState = snackbarHostState,
         modifier = modifier,
+        autoFocusAddressBar = blankStart,
         webView = { slotModifier ->
             key(generation) {
                 AndroidView(

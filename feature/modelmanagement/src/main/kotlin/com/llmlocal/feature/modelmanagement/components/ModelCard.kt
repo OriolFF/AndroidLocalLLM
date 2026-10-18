@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.StatusDot
 import com.llmlocal.core.designsystem.component.StatusTone
@@ -66,7 +67,13 @@ fun ModelCard(
 ) {
     val labels = modelManagementLabels
     val scheme = MaterialTheme.colorScheme
-    val containerBrush: Brush? = if (isSelected) {
+    // "Active" means the engine can actually use this model: selected *and*
+    // installed. On a fresh install the catalog default is already selected,
+    // and badging it Active next to a Download button contradicted the
+    // app's own "choose a model to start" hero (device-QA finding 5). A
+    // selected-but-missing model renders as a plain card with Download.
+    val isActive = isSelected && isInstalled
+    val containerBrush: Brush? = if (isActive) {
         Brush.verticalGradient(
             colors = listOf(
                 scheme.primaryContainer,
@@ -76,14 +83,14 @@ fun ModelCard(
     } else {
         null
     }
-    val containerColor = if (isSelected) {
+    val containerColor = if (isActive) {
         scheme.primaryContainer.copy(alpha = 0.45f)
     } else if (isInstalled) {
         scheme.tertiaryContainer.copy(alpha = 0.30f)
     } else {
         scheme.surface
     }
-    val tonalElevation = if (isSelected) 3.dp else 1.dp
+    val tonalElevation = if (isActive) 3.dp else 1.dp
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -91,7 +98,7 @@ fun ModelCard(
         tonalElevation = tonalElevation,
         color = containerColor,
     ) {
-        val innerModifier = if (isSelected && containerBrush != null) {
+        val innerModifier = if (containerBrush != null) {
             Modifier
                 .fillMaxWidth()
                 .background(containerBrush)
@@ -111,20 +118,26 @@ fun ModelCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    FamilyIcon(family = descriptor.family, isActive = isSelected)
+                    FamilyIcon(family = descriptor.family, isActive = isActive)
                     Column(modifier = Modifier.weight(1f)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            // `fill = false` lets the badge keep its intrinsic width even
+                            // with a wide serif title; the title wraps to two lines instead
+                            // of squeezing the badge into one letter per line.
                             Text(
                                 text = descriptor.displayName,
                                 style = MaterialTheme.typography.titleLarge,
-                                color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = if (isActive) scheme.onPrimaryContainer else scheme.onSurface,
+                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
                             )
                             when {
-                                isSelected -> StatusDot(
+                                isActive -> StatusDot(
                                     label = labels.activeBadge,
                                     icon = Icons.Filled.Star,
                                     tone = StatusTone.Active,
@@ -140,7 +153,7 @@ fun ModelCard(
                             text = "${LlmModelManager.humanReadableBytes(descriptor.sizeBytes)} · " +
                                 "${descriptor.family.displayName} · ${descriptor.license}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isSelected) {
+                            color = if (isActive) {
                                 scheme.onPrimaryContainer.copy(alpha = 0.78f)
                             } else {
                                 scheme.onSurfaceVariant
