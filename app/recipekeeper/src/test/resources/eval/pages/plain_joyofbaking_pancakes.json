@@ -1,0 +1,77 @@
+{
+ "_meta": {
+  "fixture": "plain_joyofbaking_pancakes",
+  "sourceUrl": "https://www.joyofbaking.com/breakfast/Pancakes.html",
+  "fetchedAt": "2026-10-18",
+  "fetchedWith": "curl -L -A Mozilla/5.0 (desktop Chrome UA)",
+  "capturedWith": "core/web/tools/capture-harness/harness.mjs + jsdom (layout faked: images carry no size, so the images[] filter drops them)",
+  "htmlBytes": 59013
+ },
+ "quickScan": 0,
+ "capture": {
+  "url": "https://www.joyofbaking.com/breakfast/Pancakes.html",
+  "title": "Pancakes Recipe & Video - Joyofbaking.com *Video Recipe*",
+  "siteName": null,
+  "jsonLd": [],
+  "microdata": [],
+  "og": {
+   "og:url": "https://www.joyofbaking.com/breakfast/Pancakes.html",
+   "og:image": "https://www.joyofbaking.com/images/facebook/pancakes.jpg"
+  },
+  "readable": {
+   "title": "Pancakes Recipe & Video - Joyofbaking.com *Video Recipe*",
+   "byline": null,
+   "excerpt": "These Pancakes are light and fluffy with a soft crust and spongy texture. Delicious when served with butter and lots of pure maple syrup. With Demo Video",
+   "siteName": null,
+   "textContent": "\n\n      \n\n      \n\n      \n      \n\n      \n      Pin It\n\n\n      \n\n      \n      My idea of the perfect weekend breakfast is a\n      stack of Pancakes with\n      butter and maple syrup dripping down its sides. I love how Pancakes use the most\n      basic of ingredients. Just flour, sugar, salt, baking powder, an egg, a\n      little butter, and milk. Like a muffin batter, just two bowls are needed.\n      One for the dry ingredients, and one for the wet ingredients. Then the two are\n      simply stirred together and the pancake batter is ready to be ladled onto\n      a hot skillet.       \n      Pancakes can be\n      made in any size and shape, ranging from the size of a\n      silver dollar to a round as large as your pan. You will know it is time to\n      turn your pancake when the top surface begins to form small craters.\n      Continue to cook the pancake until both sides have turned golden\n      brown and it is cooked all the way through. Some say you should only flip\n      a pancake once, but that is an old wives' tales. If you are not\n      serving the pancakes immediately, place them in a warm\n      oven (175 degrees F (80 degrees C)) directly on the wire rack. I do not like to stack the pancakes until\n      serving as this will make them soggy, which will never do. While\n      butter and maple syrup are the proverbial favorite,  pancakes are also good with\n      jam, fresh berries and whipped cream, or with just a dusting of icing\n      sugar.  \n\n      What is interesting about a pancake batter is that by changing the\n      proportions of dry to wet ingredients you can change the thickness of the\n      batter.      Pancakes are known around the world by different names. If we make a thin pancake batter\n\n      they are known in different countries as  French crepes, blintz, Chinese pancakes (Bao bing) and\n\n      a Hungarian palacsinta. A thicker batter makes an American pancake\n\n      (also known as griddle cakes or flapjacks (meaning \"to flip\")), an Australian pikelet, a Scotch\n\n      pancake or a drop scone. Both types of batters produce a pancake\n\n      that is light and fluffy with a soft crust and\n\n      spongy texture. \n\n      \n\n      Although pancakes are mainly served for\n\n      breakfast they take center stage on Pancake Day, or Shrove Tuesday (Mardi\n\n      Gras), when they are served for supper. The ingredients used to make\n\n      pancakes (flour, sugar, butter, milk and eggs) are forbidden during Lent so this is considered a 'feast' before\n\n      a 'fast'. It is interesting to note that the word 'Shrove' comes\n\n      from the word 'shrive' which is the Tuesday before Lent and the day on\n\n      which parishioners shrive, or confess, their sins.   \n\n      \n\n    ",
+   "length": 2718
+  },
+  "sections": [
+   {
+    "heading": "Pancakes Recipe & Video",
+    "level": 1,
+    "text": "Printer Friendly Page\nPin It\nMy idea of the perfect weekend breakfast is a\nstack of Pancakes with\nbutter and maple syrup dripping down its sides. I love how Pancakes use the most\nbasic of ingredients. Just flour, sugar, salt, baking powder, an egg, a\nlittle butter, and milk. Like a muffin batter, just two bowls are needed.\nOne for the dry ingredients, and one for the wet ingredients. Then the two are\nsimply stirred together and the pancake batter is ready to be ladled onto\na hot skillet.\nPancakes can be\nmade in any size and shape, ranging from the size of a\nsilver dollar to a round as large as your pan. You will know it is time to\nturn your pancake when the top surface begins to form small craters.\nContinue to cook the pancake until both sides have turned golden\nbrown and it is cooked all the way through. Some say you should only flip\na pancake once, but that is an old wives' tales. If you are not\nserving the pancakes immediately, place them in a warm\noven (175 degrees F (80 degrees C)) directly on the wire rack. I do not like to stack the pancakes until\nserving as this will make them soggy, which will never do. While\nbutter and maple syrup are the proverbial favorite, pancakes are also good with\njam, fresh berries and whipped cream, or with just a dusting of icing\nsugar.\nWhat is interesting about a pancake batter is that by changing the\nproportions of dry to wet ingredients you can change the thickness of the\nbatter. Pancakes are known around the world by different names. If we make a thin pancake batter\nthey are known in different countries as French crepes, blintz, Chinese pancakes (Bao bing) and\na Hungarian palacsinta. A thicker batter makes an American pancake\n(also known as griddle cakes or flapjacks (meaning \"to flip\")), an Australian pikelet, a Scotch\npancake or a drop scone. Both types of batters produce a pancake\nthat is light and fluffy with a soft crust and\nspongy texture.\nAlthough pancakes are mainly served for\nbreakfast they take center stage on Pancake Day, or Shrove Tuesday (Mardi\nGras), when they are served for supper. The ingredients used to make\npancakes (flour, sugar, butter, milk and eggs) are forbidden during Lent so this is considered a 'feast' before\na 'fast'. It is interesting to note that the word 'Shrove' comes\nfrom the word 'shrive' which is the Tuesday before Lent and the day on\nwhich parishioners shrive, or confess, their sins.\nRelated\nRecipes You May Like\nBlueberry Pancakes\nButtermilk Pancakes\nFrench Toast\nApple Popover\nSavory Oven Pancakes\nBerry Pancake\nPancake Recipe: In a large bowl whisk together the\nflour, baking powder, salt and sugar. In a separate bowl whisk together the\negg, milk, and melted butter. Make a well in the center of the dry ingredients\nand then pour in the egg mixture, all at\nonce, and stir (with a rubber spatula or wooden spoon) just until combined. The batter should have some small\nlumps. (Do not over\nmix the batter or the pancakes will be tough.)\nHeat a frying pan or griddle over\nmedium high heat until a few sprinkles of water dropped on the pan or griddle splatter.\nAdjust the temperature as needed. Can also use an electric griddle with the\ntemperature set at 350 degrees F (180 degrees C). Using a piece of paper towel\nor a pastry brush, lightly brush the pan with melted butter or oil (or spray\nwith a non stick vegetable spray.)\nUsing a small ladle or\nscoop, pour about 1/4 cup (60 ml) of pancake batter onto the hot pan, spacing\nthe pancakes a few inches apart. When the bottoms of the pancakes are brown and\nbubbles start to appear on the top surfaces of the pancakes (2-3 minutes), turn\nover. Cook until lightly browned (about 1-2 minutes).\nRepeat with remaining\nbatter, brushing the pan with melted butter or oil between batches.\nServe immediately\nwith butter and maple syrup.\nMakes about 8 - 4 inch (10 cm) pancakes. Serves 3-4\npeople.\nFor Blueberry Pancakes:\nSprinkle fresh or frozen blueberries (prefer wild blueberries) on the tops of the pancakes just as bubbles\nstart to appear on the top surface of the frying batter. Preparation time 15\nminutes.\nView comments on this recipe on YouTube\nReference:\nAlbala, Ken. Pancake. A Global History. Reaktion\nBooks. London: 2008.",
+    "imageSrcs": [
+     "https://www.joyofbaking.com/images/blueberrypancakes100.jpg",
+     "https://www.joyofbaking.com/images/buttermilkpancakes100.jpg",
+     "https://www.joyofbaking.com/images/frenchtoast100.jpg",
+     "https://www.joyofbaking.com/images/applepopover100.jpg",
+     "https://www.joyofbaking.com/images/savoryovenpancake100.jpg",
+     "https://www.joyofbaking.com/images/berrypancake100.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": null,
+    "level": 2,
+    "text": "",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Pancake Recipe:",
+    "level": 2,
+    "text": "1 cup (130 grams) all-purpose\nflour\n1 1/2\nteaspoons\nbaking\npowder\n1/4 teaspoon salt\n2 tablespoons (28 grams) granulated white\nsugar\n1 large egg,\nlightly beaten\n1 cup (240 ml) milk\n2 tablespoons (28 grams) unsalted\nbutter, melted\nPlus extra melted butter for greasing the pan.\nSubscribe Now\nNew Videos\nChocolate Yogurt Pound\nCake Video\nCarrot Muffins Video\nChocolate Dipped Coconut\nMacaroons Video\nFrozen Berry Crisp Video\nBaked Rice Pudding Video\nDrop Biscuits Video\nChocolate Peanut Cookies Video\nCranberry White Chocolate\nShortbread Video\nVanilla Cupcakes Video\nYogurt Pound Cake Video\nButter Cookies Video\nChocolate Torte\nVideo\nChocolate Chip Shortbread\nCookies Video\nContact Us\nPrivacy Policy\nUse of materials on\nall pages on the domains Joyofbaking.com,\nthe Joyofbaking.com Facebook\nPage, the\nJoyofbaking1 YouTube\nChannel and any emails sent from @joyofbaking.com\nare\nentirely at the risk of the user and their owner, iFood Media LLC\nwill not be responsible for any damages directly or indirectly resulting\nfrom the use.\nReferences\ncited may include a link to purchase the referenced book or item on Amazon.com.\nJoyofbaking.com receives a commission on any purchases resulting from these\nlinks.\nThis\nwebsite and the contents are not endorsed or sponsored by the owner of the\n\"Joy of Cooking\" series of books or its publisher Simon & Schuster, Inc.\nand is not related to the \"Joy the Baker\" books and website.\nVideo icons by Asher.\nContent in any form may\nnot be copied or used without written permission of Stephanie Jaworski,\nJoyofbaking.com. Students and non profit educators may use content without\npermission with proper credit.\nA baking resource on the\nInternet since 1997\nCopyright 1997 to 2024 iFood Media LLC",
+    "imageSrcs": [
+     "https://www.joyofbaking.com/images/chocolateyogurtpoundcake100.jpg",
+     "https://www.joyofbaking.com/images/carrotmuffin100.jpg",
+     "https://www.joyofbaking.com/images/chocolatedippedcoconutmacaroons100.jpg",
+     "https://www.joyofbaking.com/images/frozenberrycrisp100.jpg",
+     "https://www.joyofbaking.com/images/bakedricepudding100.jpg",
+     "https://www.joyofbaking.com/images/dropbiscuits100.jpg",
+     "https://www.joyofbaking.com/images/chocolatepeanutcookies100.jpg",
+     "https://www.joyofbaking.com/images/cranberrywhitechocolateshortbreadcookies100.jpg",
+     "https://www.joyofbaking.com/images/vanillacupcakes100.jpg",
+     "https://www.joyofbaking.com/images/yogurtpoundcake100.jpg",
+     "https://www.joyofbaking.com/images/buttercookies100.jpg",
+     "https://www.joyofbaking.com/images/chocolatetorte100.jpg",
+     "https://www.joyofbaking.com/images/chocolatechipshortbreadcookies100.jpg",
+     "https://www.joyofbaking.com/images/spacer.gif"
+    ],
+    "topOffset": 100
+   }
+  ],
+  "images": [],
+  "truncated": false
+ }
+}
