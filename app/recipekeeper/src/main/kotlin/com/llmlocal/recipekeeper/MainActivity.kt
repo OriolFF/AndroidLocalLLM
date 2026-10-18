@@ -41,7 +41,7 @@ import com.llmlocal.recipekeeper.library.LibraryRoute
 import com.llmlocal.recipekeeper.library.PendingRecipeDeletes
 import com.llmlocal.recipekeeper.library.showRecipeDeleted
 import com.llmlocal.recipekeeper.output.ClipDraftCard
-import com.llmlocal.recipekeeper.output.StubDraftParser
+import com.llmlocal.recipekeeper.parser.RecipeKeeperDraftParser
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -62,6 +62,9 @@ import org.koin.compose.koinInject
  * model management is pushed from wherever the user was so back returns
  * there. One [SnackbarHostState] is shared by every scaffold.
  */
+/** Incremental parser feeding the streaming draft card; stateless, so one instance is enough. */
+private val draftParser = RecipeKeeperDraftParser()
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,8 +136,7 @@ private fun AppRoot() {
                     ClipDraftCard(
                         streamedText = streamedText,
                         isRunning = isRunning,
-                        // TODO(merge): swap for WS5a's RecipeKeeperDraftParser.
-                        parseDraft = StubDraftParser::parse,
+                        parseDraft = draftParser::parse,
                         labels = labels,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )

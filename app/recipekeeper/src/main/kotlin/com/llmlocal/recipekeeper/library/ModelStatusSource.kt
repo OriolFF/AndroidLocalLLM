@@ -1,27 +1,16 @@
 package com.llmlocal.recipekeeper.library
 
-import com.llmlocal.core.llm.download.DownloadState
-import com.llmlocal.core.llm.download.LlmModelManager
-import com.llmlocal.core.llm.download.ModelDownloadProgressStore
 import com.llmlocal.core.llm.download.PerModelProgress
-import com.llmlocal.core.llm.model.LlmModelCatalog
-import com.llmlocal.core.llm.selection.LlmModelSelectionStore
+import com.llmlocal.core.llm.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-// TEMP shim: replaced by WS3 at merge. WS3 lands
-// `com.llmlocal.core.llm.readiness.{ModelReadiness, ModelReadinessObserver}`;
-// the lead then binds `ModelStatusSource` to an adapter over
-// `ModelReadinessObserver.observe(scope)` (NoModel/Checking/Failed → NoModel,
-// Downloading(progress) → Downloading(progress), Initializing/Ready → Ready)
-// and deletes `StoreBackedModelStatusSource`.
 
 /**
  * The only readiness signal the library screen needs.
@@ -68,27 +57,22 @@ class FakeModelStatusSource(
  * download finishes (the same trap `LlmTaskViewModel.observeSelection`
  * guards against).
  */
-// TEMP shim: replaced by WS3 at merge (ModelReadinessObserver).
-class StoreBackedModelStatusSource(
-    private val selectionStore: LlmModelSelectionStore,
-    private val progressStore: ModelDownloadProgressStore,
-    private val modelManager: LlmModelManager,
+/**
+ * Adapts the shared [ModelReadinessObserver] (`:core:llm`) to the library's
+ * coarser [LibraryModelStatus]: anything that is not downloading or usable is
+ * "no model" from the library's point of view, because the only action it
+ * offers is "open model management".
+ */
+class ReadinessModelStatusSource(
+    observer: ModelReadinessObserver,
     scope: CoroutineScope,
 ) : ModelStatusSource {
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    override val status: StateFlow<LibraryModelStatus> = selectionStore.selectedModelId
-        .map { it ?: LlmModelCatalog.DEFAULT_MODEL.id }
-        .distinctUntilChanged()
-        .flatMapLatest { id ->
-            val descriptor = LlmModelCatalog.findById(id)
-            progressStore.progressFor(id).map { progress ->
-                when {
-                    descriptor == null -> LibraryModelStatus.NoModel
-                    progress?.state == DownloadState.RUNNING -> LibraryModelStatus.Downloading(progress)
-                    modelManager.isInstalled(descriptor) -> LibraryModelStatus.Ready
-                    else -> LibraryModelStatus.NoModel
-                }
+    override val status: StateFlow<LibraryModelStatus> = observer.observe(scope)
+        .map { readiness ->
+            when (readiness) {
+                is ModelReadiness.Downloading -> LibraryModelStatus.Downloading(readiness.progress)
+                is ModelReadiness.Ready, ModelReadiness.Initializing -> LibraryModelStatus.Ready
+                ModelReadiness.NoModel, ModelReadiness.Checking, is ModelReadiness.Failed -> LibraryModelStatus.NoModel
             }
         }
         .distinctUntilChanged()

@@ -19,17 +19,20 @@ import androidx.compose.ui.unit.dp
  * in every Material 3 scheme.
  *
  * @param n the 1-based number to show.
+ * @param selected swaps to the secondary colour slot (e.g. the current step).
  */
 @Composable
 fun NumberBadge(
     n: Int,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
 ) {
+    val scheme = MaterialTheme.colorScheme
     Box(
         modifier = modifier
             .size(28.dp)
             .background(
-                color = MaterialTheme.colorScheme.primary,
+                color = if (selected) scheme.secondary else scheme.primary,
                 shape = CircleShape,
             ),
         contentAlignment = Alignment.Center,
@@ -37,7 +40,7 @@ fun NumberBadge(
         Text(
             text = n.toString(),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = if (selected) scheme.onSecondary else scheme.onPrimary,
         )
     }
 }

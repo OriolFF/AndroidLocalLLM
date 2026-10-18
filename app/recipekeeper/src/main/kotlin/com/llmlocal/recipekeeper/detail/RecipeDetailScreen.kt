@@ -105,8 +105,8 @@ import com.llmlocal.core.designsystem.component.AppLoadingIndicator
 import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.core.designsystem.component.GradientHero
 import com.llmlocal.recipekeeper.config.RecipeKeeperLibraryLabels
-import com.llmlocal.recipekeeper.designsystem.NumberBadge
-import com.llmlocal.recipekeeper.designsystem.SectionHeader
+import com.llmlocal.core.designsystem.component.NumberBadge
+import com.llmlocal.core.designsystem.component.SectionHeader
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.library.IncompleteBadge
 import java.io.File
@@ -717,7 +717,7 @@ private fun StepRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        NumberBadge(number = number, selected = selected)
+        NumberBadge(n = number, selected = selected)
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,

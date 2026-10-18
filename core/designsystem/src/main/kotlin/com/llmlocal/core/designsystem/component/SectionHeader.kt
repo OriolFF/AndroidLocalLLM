@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
  * @param label the section title.
  * @param icon leading icon; `null` renders the label alone.
  * @param iconTint optional icon colour; defaults to `onPrimaryContainer`.
+ * @param trailing optional trailing content (e.g. a "Reset" text button); when
+ *   set, the label stretches to push it to the end of the row.
  */
 @Composable
 fun SectionHeader(
@@ -37,6 +39,7 @@ fun SectionHeader(
     icon: ImageVector?,
     modifier: Modifier = Modifier,
     iconTint: Color? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
@@ -66,6 +69,8 @@ fun SectionHeader(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold,
+            modifier = if (trailing != null) Modifier.weight(1f) else Modifier,
         )
+        trailing?.invoke()
     }
 }

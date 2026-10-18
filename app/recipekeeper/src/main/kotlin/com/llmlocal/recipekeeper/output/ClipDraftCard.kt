@@ -43,10 +43,10 @@ import com.llmlocal.feature.webclipper.WebClipperLabels
 import com.llmlocal.recipekeeper.config.DefaultRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.config.RecipeKeeperClipperLabels
 import com.llmlocal.recipekeeper.config.RecipeKeeperLibraryLabels
-import com.llmlocal.recipekeeper.designsystem.NumberBadge
-import com.llmlocal.recipekeeper.designsystem.SectionHeader
-import com.llmlocal.recipekeeper.designsystem.SkeletonLine
-import com.llmlocal.recipekeeper.designsystem.StreamingCursor
+import com.llmlocal.core.designsystem.component.NumberBadge
+import com.llmlocal.core.designsystem.component.SectionHeader
+import com.llmlocal.core.designsystem.component.SkeletonLine
+import com.llmlocal.core.designsystem.component.StreamingCursor
 import com.llmlocal.recipekeeper.domain.RecipeDraft
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -266,7 +266,7 @@ private fun StepsBlock(draft: RecipeDraft, isRunning: Boolean, labels: RecipeKee
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.Top,
                     ) {
-                        NumberBadge(number = index + 1)
+                        NumberBadge(n = index + 1)
                         Text(
                             text = step,
                             style = MaterialTheme.typography.bodyLarge,

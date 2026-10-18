@@ -5,7 +5,7 @@ import com.llmlocal.recipekeeper.detail.RecipeDetailViewModel
 import com.llmlocal.recipekeeper.library.LibraryViewModel
 import com.llmlocal.recipekeeper.library.ModelStatusSource
 import com.llmlocal.recipekeeper.library.PendingRecipeDeletes
-import com.llmlocal.recipekeeper.library.StoreBackedModelStatusSource
+import com.llmlocal.recipekeeper.library.ReadinessModelStatusSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
@@ -32,16 +32,12 @@ val recipeKeeperUiModule: Module = module {
         )
     }
 
-    // TEMP shim: replaced by WS3 at merge (bind an adapter over ModelReadinessObserver instead).
     single<ModelStatusSource> {
-        StoreBackedModelStatusSource(
-            selectionStore = get(),
-            progressStore = get(),
-            modelManager = get(),
+        ReadinessModelStatusSource(
+            observer = get(),
             scope = CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default),
         )
     }
-
     viewModel {
         LibraryViewModel(
             repository = get(),
