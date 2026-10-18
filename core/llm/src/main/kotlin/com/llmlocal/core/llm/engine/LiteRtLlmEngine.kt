@@ -54,6 +54,11 @@ class LiteRtLlmEngine(
 
     private val tag = "LiteRtLlmEngine"
     private val mutex = Mutex()
+    // Serializes initialize(). LlmTaskViewModel can trigger CheckModel twice
+    // in quick succession at startup (init block + selection observer), and
+    // without this lock both callers pass the `engineRef == null` check and
+    // build two Engine instances — one of which leaks with its weights loaded.
+    private val initMutex = Mutex()
     private val engineRef = AtomicReference<Engine?>(null)
 
     override suspend fun initialize(): Outcome<Unit> = withContext(Dispatchers.IO) {
@@ -67,7 +72,17 @@ class LiteRtLlmEngine(
         if (engineRef.get() != null) {
             return@withContext Outcome.Success(Unit)
         }
-        try {
+        initMutex.withLock {
+            // Re-check under the lock: a concurrent caller may have finished.
+            if (engineRef.get() != null) {
+                return@withLock Outcome.Success(Unit)
+            }
+            buildEngine()
+        }
+    }
+
+    private fun buildEngine(): Outcome<Unit> {
+        return try {
             val modelFile = modelPathProvider()
             require(modelFile.exists()) {
                 "Model file does not exist at ${modelFile.absolutePath}"

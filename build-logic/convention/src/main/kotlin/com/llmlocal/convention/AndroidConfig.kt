@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
  * Bump these in one place when the project is upgraded.
  */
 internal object AndroidConfig {
-    const val COMPILE_SDK = 34
+    const val COMPILE_SDK = 37
     const val MIN_SDK = 24
     const val TARGET_SDK = 34
     const val JVM_TARGET = "17"

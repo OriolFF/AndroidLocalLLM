@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application>
         <!--
@@ -10,6 +11,22 @@
         -->
         <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
+
+        <!--
+            ModelDownloadWorker promotes itself to a foreground service via
+            setForeground(...) with FOREGROUND_SERVICE_TYPE_DATA_SYNC. Android 14+
+            requires WorkManager's SystemForegroundService to declare a matching
+            foregroundServiceType, and the androidx.work lint rule
+            SpecifyForegroundServiceType enforces it in the module that calls
+            setForeground. Declaring it here means every :app:* that depends on
+            :core:llm inherits it through manifest merging. Keep in sync with
+            ModelDownloadWorker.foregroundInfo(...).
+        -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            tools:node="merge" />
     </application>
 
 </manifest>

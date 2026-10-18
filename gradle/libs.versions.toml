@@ -1,47 +1,47 @@
 [versions]
 # Build tools
-agp = "9.2.1"
-kotlin = "2.2.21"
-ksp = "2.3.2"
+agp = "9.4.1"
+kotlin = "2.4.21"
+ksp = "2.3.12"
 
 # AndroidX
-androidx-core = "1.13.1"
-androidx-activity = "1.9.3"
-androidx-lifecycle = "2.8.7"
-androidx-navigation = "2.8.5"
+androidx-core = "1.19.1"
+androidx-activity = "1.13.0"
+androidx-lifecycle = "2.11.0"
+androidx-navigation = "2.10.2"
 
 # Compose
-compose-bom = "2024.10.01"
-material3 = "1.3.1"
-material3-adaptive = "1.0.0"
+compose-bom = "2026.09.00"
+material3 = "1.4.0"
+material3-adaptive = "1.3.0"
 
 # Coroutines
-coroutines = "1.9.0"
+coroutines = "1.11.0"
 
 # Networking
-okhttp = "4.12.0"
+okhttp = "5.5.0"
 
 # Background work
-androidx-work = "2.9.1"
+androidx-work = "2.12.0"
 
 # Persistence
-androidx-datastore = "1.1.1"
+androidx-datastore = "1.2.1"
 
 # DI
-koin = "4.0.0"
+koin = "4.2.2"
 
 # MediaPipe LLM Inference (legacy, in maintenance mode)
-mediapipe-tasks-genai = "0.10.27"
+mediapipe-tasks-genai = "0.10.35"
 
 # LiteRT-LM (Google's recommended on-device LLM runtime; supports Gemma 4)
-litert-lm = "0.13.1"
+litert-lm = "0.18.0"
 
 # Testing
 junit = "4.13.2"
-truth = "1.4.4"
-turbine = "1.2.0"
-androidx-test-ext = "1.2.1"
-androidx-espresso = "3.6.1"
+truth = "1.4.5"
+turbine = "1.2.1"
+androidx-test-ext = "1.3.0"
+androidx-espresso = "3.7.0"
 
 [libraries]
 # AndroidX core

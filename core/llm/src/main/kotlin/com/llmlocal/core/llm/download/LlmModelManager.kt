@@ -168,7 +168,6 @@ class LlmModelManager(
                     throw IOException("Failed to download model: HTTP ${res.code}")
                 }
                 val body = res.body
-                    ?: throw IOException("Empty response body when downloading model")
 
                 val total = body.contentLength().takeIf { it > 0 }
                 val sink = tmp.outputStream()
