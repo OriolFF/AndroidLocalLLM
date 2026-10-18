@@ -50,9 +50,6 @@ truth = "1.4.5"
 turbine = "1.2.1"
 androidx-test-ext = "1.3.0"
 androidx-espresso = "3.7.0"
-# org.json (the stub `org.json.JSONObject` on the JVM lacks key parser features
-# used by `:core:web`'s `JsonLdExtractor`; this artifact is the real impl.)
-org-json = "20250517"
 
 [libraries]
 # AndroidX core
@@ -136,9 +133,6 @@ truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidx-espresso" }
-# Real org.json on the JVM (the Android stub shipped with AGP lacks the
-# lenient parser semantics used by `:core:web` tests).
-org-json = { group = "org.json", name = "json", version.ref = "org-json" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
