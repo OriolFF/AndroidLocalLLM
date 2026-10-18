@@ -1,0 +1,17 @@
+Title: Pancake Recipe
+Description: A simple recipe for pancakes.
+Servings:
+PrepMinutes:
+CookMinutes:
+Ingredients:
+- 1 cup (130 grams) all-purpose flour
+- 1 1/2 teaspoons baking powder
+- 1/4 teaspoon salt
+- 2 tablespoons (28 grams) granulated white sugar
+- 1 large egg, lightly beaten
+- 1 cup (240 ml) milk
+- 2 tablespoons (28 grams) unsalted butter, melted
+- extra melted butter for greasing the pan.
+Steps:
+1.
+Notes:

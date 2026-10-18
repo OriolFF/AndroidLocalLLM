@@ -1,0 +1,38 @@
+{
+  "fixture": "roundup_guardian_slater",
+  "runner": "tools/eval/run_local_model.py (litert_lm python wheel)",
+  "litertLmVersion": "0.18.0",
+  "model": "gemma-4-E2B-it.litertlm",
+  "modelBytes": 2588147712,
+  "modelSha256": "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c",
+  "backend": "CPU",
+  "threads": null,
+  "host": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "label": "Oriols-M4-Max arm64",
+  "startedAt": "2026-10-18T20:02:31+00:00",
+  "promptChars": 2563,
+  "outputChars": 1678,
+  "ttftMs": 1076,
+  "totalMs": 15459,
+  "decodeTokensPerSWall": 30.17,
+  "maxOutputTokensHit": false,
+  "conversationTokens": 1085,
+  "sampler": {
+    "temperature": 0.2,
+    "topK": 40,
+    "topP": 0.95,
+    "seed": 0,
+    "maxOutputTokens": 1024,
+    "maxNumTokens": 4096
+  },
+  "engineInitS": 1.93,
+  "benchmark": {
+    "timeToFirstTokenS": 1.04074610375,
+    "prefillTokens": 651,
+    "prefillTokensPerS": 646.1862086984798,
+    "decodeTokens": 434,
+    "decodeTokensPerS": 30.033130901648537
+  },
+  "error": null
+}

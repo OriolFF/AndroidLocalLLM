@@ -1,0 +1,221 @@
+{
+ "_meta": {
+  "fixture": "micro_nigella_banana_bread",
+  "sourceUrl": "https://www.nigella.com/recipes/banana-bread",
+  "fetchedAt": "2026-10-18",
+  "fetchedWith": "curl -L -A Mozilla/5.0 (desktop Chrome UA)",
+  "capturedWith": "core/web/tools/capture-harness/harness.mjs + jsdom 26.1.0 (layout faked: images carry no size, so the images[] filter drops them)",
+  "htmlBytes": 153274
+ },
+ "quickScan": 1,
+ "capture": {
+  "url": "https://www.nigella.com/recipes/banana-bread",
+  "title": "Banana Bread | Nigella's Recipes | Nigella Lawson",
+  "siteName": "Nigella.com",
+  "jsonLd": [],
+  "microdata": [
+   {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "keywords": "Partytime, Comfort, Fun, Sociable, Nibbly, Sweet, Baking, Birthdays, Loaf Cakes,",
+    "name": "Banana Bread",
+    "author": "Nigella",
+    "description": "I haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets. If you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.",
+    "image": "https://www.nigella.com/assets/uploads/recipes/public-thumbnail/img_9927-68f0be114f1c4.jpg",
+    "recipeYield": "Yields: 8-10 slices",
+    "recipeIngredient": [
+     "100 grams sultanas",
+     "75 millilitres dark rum (or Bourbon)",
+     "175 grams plain flour",
+     "2 teaspoons baking powder",
+     "½ teaspoon bicarbonate of soda",
+     "½ teaspoon salt",
+     "125 grams unsalted butter (melted)",
+     "150 grams caster sugar",
+     "2 large eggs",
+     "4 small very ripe bananas mashed (approx. 400g total weight with skins on)",
+     "60 grams chopped walnuts",
+     "1 teaspoon vanilla extract"
+    ],
+    "recipeInstructions": "Put the sultanas and rum or bourbon in a smallish saucepan and bring to the boil. Remove from the heat, cover and leave for an hour if you can, or until the sultanas have absorbed most of the liquid, then drain. Preheat the oven to 170ºC/150°C Fan/gas mark 3/325ºF and get started on the rest. Put the flour, baking powder, bicarb and salt in a medium-sized bowl and, using your hands or a wooden spoon, combine well. In a large bowl, mix the melted butter and sugar and beat until blended. Beat in the eggs one at a time, then the peeled and mashed bananas. Then, with your wooden spoon, stir in the walnuts, drained sultanas and vanilla extract. Add the flour mixture, a third at a time, stirring well after each bit. Scrape into a loaf tin (23 x 13 x 7cm / 9 x 5 x 3 inches) and bake in the middle of the oven for 1-1¼ hours. When it's ready, an inserted toothpick or fine skewer should come out cleanish. Leave in the tin on a rack to cool, and eat thickly or thinly sliced, as you prefer."
+   }
+  ],
+  "og": {
+   "og:site_name": "Nigella.com",
+   "og:url": "http://www.nigella.com/recipes/banana-bread",
+   "og:title": "Banana Bread",
+   "og:description": "I haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets.\n\nIf you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.",
+   "og:image": "http://www.nigella.com/assets/uploads/recipes/img_9927-68f0be114f1c4.jpg"
+  },
+  "readable": {
+   "title": "Banana Bread",
+   "byline": "Nigella",
+   "excerpt": "I haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets.\n\nIf you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.",
+   "siteName": "Nigella.com",
+   "textContent": "\n            \n                Print me\n                    \n                    \n                    \n                        Introduction\n                            \n                                    \n                                        I haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets.\n\nIf you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.\n                                    \n                                    \n                                    \n                                    \n                            \n                            \n                                    \n                                        I haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets.\n\nIf you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.\n                                    \n                                    \n                                    \n                                    \n                            \n                            For US measures and ingredient names, use the toggle at the top of the ingredients list.\n                            \n                    \n                        \n                            As featured in\n                            \n                                \n                                    \n                                         \n\n    \n    \n        \n    \n\n \n                                        \n                                            HOW TO BE A DOMESTIC GODDESS\n                                            2000\n                                        \n                                        \n                                                                    \n                                                             \n                        \n                    \n                \n                    \n                            \n                            \n                                \n                                    \n                                        Photo by Petrina Tinslay\n                                    \n                            \n                        \n                    \n                \n                    \n                        As featured in\n                        \n                            \n                                \n                                     \n\n    \n    \n        \n    \n\n \n                                    \n                                        HOW TO BE A DOMESTIC GODDESS\n                                        2000\n                                    \n                                    \n                                                            \n                                                     \n                    \n                \n                \n\n                \n                    \n\n    \n        Ingredients\n        Yields: 8-10 slices\n        Metric\n            \n            U.S.\n        \n    \n\n        \n                \n                    \n                    \n                        100 grams sultanas\n                        75 millilitres dark rum (or Bourbon)\n                        175 grams plain flour\n                        2 teaspoons baking powder\n                        ½ teaspoon bicarbonate of soda\n                        ½ teaspoon salt\n                        125 grams unsalted butter (melted)\n                        150 grams caster sugar\n                        2 large eggs\n                        4 small very ripe bananas mashed (approx. 400g total weight with skins on)\n                        60 grams chopped walnuts\n                        1 teaspoon vanilla extract\n                    \n                \n                \n                    \n                    \n                        \n                        ⅔ cup golden raisins\n                        \n                        5 tablespoons dark rum (or Bourbon)\n                        \n                        1¼ cups all-purpose flour\n                        \n                        2 teaspoons baking powder\n                        \n                        ½ teaspoon baking soda\n                        \n                        ½ teaspoon salt\n                        \n                        9 tablespoons unsalted butter (melted)\n                        \n                        ¾ cup granulated sugar\n                        \n                        2 large eggs\n                        \n                        4 small very ripe bananas mashed (approx. 400g total weight with skins on)\n                        \n                        ⅓ cup chopped walnuts\n                        \n                        1 teaspoon vanilla extract\n                    \n                \n        \n\n    \n\n    \n\n\n\n                    \n                    \n                        Method\n                            \n                                    \n                                        \nPut the sultanas and rum or bourbon in a smallish saucepan and bring to the boil.\nRemove from the heat, cover and leave for an hour if you can, or until the sultanas have absorbed most of the liquid, then drain.\nPreheat the oven to 170ºC/150°C Fan/gas mark 3/325ºF and get started on the rest. Put the flour, baking powder, bicarb and salt in a medium-sized bowl and, using your hands or a wooden spoon, combine well.\nIn a large bowl, mix the melted butter and sugar and beat until blended. Beat in the eggs one at a time, then the peeled and mashed bananas. Then, with your wooden spoon, stir in the walnuts, drained sultanas and vanilla extract. Add the flour mixture, a third at a time, stirring well after each bit. Scrape into a loaf tin (23 x 13 x 7cm / 9 x 5 x 3 inches) and bake in the middle of the oven for 1-1¼ hours. When it's ready, an inserted toothpick or fine skewer should come out cleanish. Leave in the tin on a rack to cool, and eat thickly or thinly sliced, as you prefer.\n\n                                    \n                                    \n                                    \n                                    \n                            \n                            \n                                    \n                                        \nPut the golden raisins and rum or bourbon in a smallish saucepan and bring to the boil.\nRemove from the heat, cover and leave for an hour if you can, or until the golden raisins have absorbed most of the liquid, then drain.\nPreheat the oven to 170ºC/150°C Fan/gas mark 3/325ºF and get started on the rest. Put the flour, baking powder, bicarb and salt in a medium-sized bowl and, using your hands or a wooden spoon, combine well.\nIn a large bowl, mix the melted butter and sugar and beat until blended. Beat in the eggs one at a time, then the peeled and mashed bananas. Then, with your wooden spoon, stir in the walnuts, drained golden raisins and vanilla extract. Add the flour mixture, a third at a time, stirring well after each bit. Scrape into a loaf tin (23 x 13 x 7cm / 9 x 5 x 3 inches) and bake in the middle of the oven for 1-1¼ hours. When it's ready, an inserted toothpick or fine skewer should come out cleanish. Leave in the tin on a rack to cool, and eat thickly or thinly sliced, as you prefer.\n\n                                    \n                                    \n                                    \n                                    \n                            \n                    \n                \n                \n                \n                    Additional Information\n                        \n                                \n                                    MAKE AHEAD / STORE:\n\nThe banana bread can be stored in an airtight container in a cool place for up to 5 days.\n\nCan be frozen, tightly wrapped in a double layer of food wrap and a layer of foil, for up to 3 months. Unwrap and thaw at room temperature for about 4 hours.\n                                \n                                \n                                \n                                \n                        \n                        \n                                \n                                    MAKE AHEAD / STORE:\n\nThe banana bread can be stored in an airtight container in a cool place for up to 5 days.\n\nCan be frozen, tightly wrapped in a double layer of food wrap and a layer of foil, for up to 3 months. Unwrap and thaw at room temperature for about 4 hours.\n                                \n                                \n                                \n                                \n                        \n                \n                \n                        \n                                Try This Tip\n                                Baking With Yeast\n                                \n                                    \n                                        From Edda\n                                        \n                                            \n                                                \n                                                14\n                                            \n                                            \n                                                \n                                                2\n                                            \n                                        \n                                    \n                                \n                                \n                        \n                                Asked and Answered\n                                Can I Use Different Flours For The Gluten-Free Banana Bread?\n                                \n                                    \n                                        From Bondibabe\n                                        \n                                            \n                                                \n                                                14\n                                            \n                                            \n                                                \n                                                2\n                                            \n                                        \n                                    \n                                \n                                \n                    \n                \n            \n\n            \n                Tell us what you think\n                \n                    \n                    \n                        \n                        \n                        \n                    \n                \n            \n                \n                    What 76 Others have said\n            \n                    \n                        \n                            \n                            \n                                \n                                    This is the best banana bread I have made and I’ve made very many. The recipe and cooking instructions are perfect as one has come to expect from Nigella. Wonderful!\n                                    \n                                \n                                Posted by RecipesforLongies on 15th October 2025\n                            \n                            \n                            \n                                \n                                    Moist and delicious banana bread! Easy to make. Because I am a sucker for cream cheese frosting, I covered the top of the cake with this frosting. Now I know what to make with my (very) overripe bananas.\n                                    \n                                \n                                Posted by AmsterdamGirl7 on 19th August 2023\n                            \n                            \n                            \n                                \n                                    I’ve been baking this ever since I can remember. I love that you don’t need a mixer (less washing up) and the grandchildren aged 5 and 3 can help too. I also use pecans instead of walnuts and to change it up occasionally use the choc chips.\n                                    \n                                \n                                Posted by Honney on 31st December 2022\n                            \n                            \n                            \n                                \n                                    This has become my go-to banana bread recipe since I found it during the COVID lockdown. The rum soaked golden raisins become like juicy rum flavored morsels in this bread! I usually bake this as written except I don't add the vanilla but a teaspoon of the rum, and I sometimes top with a rum turbinado sugar that I made for another recipe.\n                                    \n                                \n                                Posted by ToniCS on 22nd June 2021\n                            \n                            \n                            \n                                \n                                    The best banana bread ever. My husband won’t eat sultanas so I soaked in the rum some dried pitted dates, which I chopped roughly the same size of sultanas. Yummo, was perfect!\n                                    \n                                \n                                Posted by EmmaLouise07 on 19th May 2021\n                            \n                            \n                            \n                                \n                                    This is the best banana bread recipe.  I did make some tweaks.  I made the chocolate version (notes at the top) using green and blacks organic cocoa powder and milk chocolate chips.  I used brandy as that is all I had and didn’t drain but added the liquor in to the mix (soaked for 4 hours)  I used pecans instead of walnuts (don’t like walnuts) and added half a teaspoon of mixed spice. When cooled I drizzled caramel over the top. Served with a dollop of clotted cream. Heaven !\n                                    \n                                \n                                Posted by Planetmandy on 1st January 2021\n                            \n                            \n                            \n                                \n                                    I love making this recipe, always with cocoa added. Enjoy it with a sprinkle of extra walnuts and demerara sugar on top.\n                                    \n                                \n                                Posted by rfaulder on 6th December 2020\n                            \n                            \n                            \n                                \n                                    Five stars for this. I try new banana bread recipes all the time as I’m still on the search for the ‘perfect’ recipe. Not sure if I’ll try any other recipes after finding this one. This is moist and tasty. Thank you.\n                                    \n                                \n                                Posted by Hschwennesen on 24th November 2020\n                            \n                            \n                            \n                                \n                                    Best banana bread ever. Great texture & rise.\n                                    \n                                \n                                Posted by Lakes29 on 11th August 2020\n                            \n                            \n                            \n                                \n                                    This is superb. I add some mixed spice, and I don't stint on the decent sized chunks of chocolate - more is more! And the rum that the sultanas don't manage to absorb in the pan (\"No more, please!\") is a sublime glug.\n                                    \n                                \n                                Posted by Wes_Sexwater on 18th June 2020\n                            \n                            \n                            \n                                \n                                    Made the chocolate version mentioned in the Intro and used Cadbury's Old Jamaica chocolate rather than plain as a treat for my Dad for Father's Day, as he loves it.  OMG, it was delicious!  Followed the recipe in all other respects and it was absolutely perfect (and possibly rather addicitive!).  Think it would also be perfect slightly warm with a dollop of clotted cream for ultimate indulgence.  Yum.\n                                    \n                                \n                                Posted by JOMW1 on 17th June 2020\n                            \n                            \n                            \n                                \n                                    I've been making this cake for a while but meanwhile, have tried to quit sugar. Well, cake and no sugar doesn't work. \nSo I'm making this one with half the amount of sugar, which works just fine. Today I soaked the raisins in amaretto instead of rum and replaced one banana with an apple to make the taste more fresh. I read somebody here said they threw the liquor into the batter as well in order not to waste any of it, which I liked so I followed up on that.\n\nI just love this recipe, it's so versatile!\n                                    \n                                \n                                Posted by Byzantiah on 3rd May 2020\n                            \n                    \n            \n                    Show more comments\n                \n            \n            \n                        \n                        \n                                    Falling into Autumn\n                                    \n                                        \n                                            \n                                        \n                                        \n                                            Nigella’s Autumnal Recipes\n                                        \n                                        \n                                \n                        \n                                    Rise and Shine!\n                                    \n                                        \n                                            \n                                        \n                                        \n                                            Nigella’s Bread Recipes\n                                        \n                                        \n                                \n                                \n                Other recipes you might like\n            \n                \n                    \n                                \n                                \n                                    \n                                    \n                                        Photo by James Merrell\n                                    \n                                \n                            \n                                Quadruple Chocolate Loaf Cake\n                                \n                                    By Nigella\n                                    \n                                        \n                                            \n                                            14\n                                        \n                                        \n                                            \n                                            2\n                                        \n                                    \n                                \n                            \n                            \n                    \n                                \n                                \n                                    \n                                    \n                                        Photo by Lis Parsons\n                                    \n                                \n                            \n                                Banoffee Cheesecake\n                                \n                                    By Nigella\n                                    \n                                        \n                                            \n                                            14\n                                        \n                                        \n                                            \n                                            2\n                                        \n                                    \n                                \n                            \n                            \n                    \n                        \n                                        \n                                            Recipe by althea1951\n                                        \n                                \n                                    Banana Muffin Cake\n                                    \n                                        By althea1951\n                                        \n                                            \n                                                \n                                                14\n                                            \n                                            \n                                                \n                                                2\n                                            \n                                        \n                                    \n                                \n                                \n                        \n                                        \n                                            Recipe by Lilybell\n                                        \n                                \n                                    The Busy Woman's Banana Cake\n                                    \n                                        By Lilybell\n                                        \n                                            \n                                                \n                                                14\n                                            \n                                            \n                                                \n                                                2\n                                            \n                                        \n                                    \n                                \n                                \n                    \n                            \n                    ",
+   "length": 23225
+  },
+  "sections": [
+   {
+    "heading": null,
+    "level": 0,
+    "text": "More Nigella recipes",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Banana Bread",
+    "level": 1,
+    "text": "by Nigella. Featured in HOW TO BE A DOMESTIC GODDESS\nPrint me",
+    "imageSrcs": [],
+    "topOffset": 100
+   },
+   {
+    "heading": "Introduction",
+    "level": 2,
+    "text": "I haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets.\nIf you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.\nI haven't done a tremendous amount of fiddling with this, but I did once make it, for friends who are more chocolate-crazed than I am, by replacing 25g / 3 tablespoons of the flour with good cocoa powder (not drinking chocolate) and adding 100g / 4oz of dark chocolate, cut up into smallish chunks. And you could just as easily use the chocolate chips sold in the baking aisle of supermarkets.\nIf you're thinking about giving this cake to children, don't worry, the alcohol doesn't pervade: you just end up with stickily, aromatically swollen fruit.\nFor US measures and ingredient names, use the toggle at the top of the ingredients list.",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/img/nigella-avatar.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "As featured in",
+    "level": 3,
+    "text": "Photo by Petrina Tinslay",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/uploads/books/public-thumbnail/goddess-5672e3abc3219.jpg",
+     "https://www.nigella.com/assets/uploads/recipes/public-thumbnail/img_9927-68f0be114f1c4.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "Share or save this",
+    "level": 3,
+    "text": "Bookmarked\nRemove Bookmark\nError\nBookmark this",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "As featured in",
+    "level": 3,
+    "text": "",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/uploads/books/public-thumbnail/goddess-5672e3abc3219.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "Ingredients",
+    "level": 2,
+    "text": "Yields: 8-10 slices\nMetric\nU.S.\n100 grams sultanas\n75 millilitres dark rum (or Bourbon)\n175 grams plain flour\n2 teaspoons baking powder\n½ teaspoon bicarbonate of soda\n½ teaspoon salt\n125 grams unsalted butter (melted)\n150 grams caster sugar\n2 large eggs\n4 small very ripe bananas mashed (approx. 400g total weight with skins on)\n60 grams chopped walnuts\n1 teaspoon vanilla extract\n⅔ cup golden raisins\n5 tablespoons dark rum (or Bourbon)\n1¼ cups all-purpose flour\n2 teaspoons baking powder\n½ teaspoon baking soda\n½ teaspoon salt\n9 tablespoons unsalted butter (melted)\n¾ cup granulated sugar\n2 large eggs\n4 small very ripe bananas mashed (approx. 400g total weight with skins on)\n⅓ cup chopped walnuts\n1 teaspoon vanilla extract",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Recipes in your inbox every morning",
+    "level": 2,
+    "text": "Sign up now",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/img/recipe-of-the-day-email.png"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "Method",
+    "level": 2,
+    "text": "Put the sultanas and rum or bourbon in a smallish saucepan and bring to the boil.\nRemove from the heat, cover and leave for an hour if you can, or until the sultanas have absorbed most of the liquid, then drain.\nPreheat the oven to 170ºC/150°C Fan/gas mark 3/325ºF and get started on the rest. Put the flour, baking powder, bicarb and salt in a medium-sized bowl and, using your hands or a wooden spoon, combine well.\nIn a large bowl, mix the melted butter and sugar and beat until blended. Beat in the eggs one at a time, then the peeled and mashed bananas. Then, with your wooden spoon, stir in the walnuts, drained sultanas and vanilla extract. Add the flour mixture, a third at a time, stirring well after each bit. Scrape into a loaf tin (23 x 13 x 7cm / 9 x 5 x 3 inches) and bake in the middle of the oven for 1-1¼ hours. When it's ready, an inserted toothpick or fine skewer should come out cleanish. Leave in the tin on a rack to cool, and eat thickly or thinly sliced, as you prefer.\nPut the golden raisins and rum or bourbon in a smallish saucepan and bring to the boil.\nRemove from the heat, cover and leave for an hour if you can, or until the golden raisins have absorbed most of the liquid, then drain.\nPreheat the oven to 170ºC/150°C Fan/gas mark 3/325ºF and get started on the rest. Put the flour, baking powder, bicarb and salt in a medium-sized bowl and, using your hands or a wooden spoon, combine well.\nIn a large bowl, mix the melted butter and sugar and beat until blended. Beat in the eggs one at a time, then the peeled and mashed bananas. Then, with your wooden spoon, stir in the walnuts, drained golden raisins and vanilla extract. Add the flour mixture, a third at a time, stirring well after each bit. Scrape into a loaf tin (23 x 13 x 7cm / 9 x 5 x 3 inches) and bake in the middle of the oven for 1-1¼ hours. When it's ready, an inserted toothpick or fine skewer should come out cleanish. Leave in the tin on a rack to cool, and eat thickly or thinly sliced, as you prefer.",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Additional Information",
+    "level": 2,
+    "text": "MAKE AHEAD / STORE:\nThe banana bread can be stored in an airtight container in a cool place for up to 5 days.\nCan be frozen, tightly wrapped in a double layer of food wrap and a layer of foil, for up to 3 months. Unwrap and thaw at room temperature for about 4 hours.\nMAKE AHEAD / STORE:\nThe banana bread can be stored in an airtight container in a cool place for up to 5 days.\nCan be frozen, tightly wrapped in a double layer of food wrap and a layer of foil, for up to 3 months. Unwrap and thaw at room temperature for about 4 hours.",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Try This Tip",
+    "level": 2,
+    "text": "Baking With Yeast",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Asked and Answered",
+    "level": 2,
+    "text": "Can I Use Different Flours For The Gluten-Free Banana Bread?",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Share or save this",
+    "level": 3,
+    "text": "Bookmarked\nRemove Bookmark\nError\nBookmark this",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Tell us what you think",
+    "level": 2,
+    "text": "Thank you {% member.data['first-name'] %}.\nYour comment has been submitted.\nExplore more recipes\n{% error %}\n{% errors.comment[0] %}\nAdd your comment",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "What 76 Others have said",
+    "level": 3,
+    "text": "This is the best banana bread I have made and I’ve made very many. The recipe and cooking instructions are perfect as one has come to expect from Nigella. Wonderful!\nPosted by RecipesforLongies on 15th October 2025\nMoist and delicious banana bread! Easy to make. Because I am a sucker for cream cheese frosting, I covered the top of the cake with this frosting. Now I know what to make with my (very) overripe bananas.\nPosted by AmsterdamGirl7 on 19th August 2023\nI’ve been baking this ever since I can remember. I love that you don’t need a mixer (less washing up) and the grandchildren aged 5 and 3 can help too. I also use pecans instead of walnuts and to change it up occasionally use the choc chips.\nPosted by Honney on 31st December 2022\nThis has become my go-to banana bread recipe since I found it during the COVID lockdown. The rum soaked golden raisins become like juicy rum flavored morsels in this bread! I usually bake this as written except I don't add the vanilla but a teaspoon of the rum, and I sometimes top with a rum turbinado sugar that I made for another recipe.\nPosted by ToniCS on 22nd June 2021\nThe best banana bread ever. My husband won’t eat sultanas so I soaked in the rum some dried pitted dates, which I chopped roughly the same size of sultanas. Yummo, was perfect!\nPosted by EmmaLouise07 on 19th May 2021\nThis is the best banana bread recipe. I did make some tweaks. I made the chocolate version (notes at the top) using green and blacks organic cocoa powder and milk chocolate chips. I used brandy as that is all I had and didn’t drain but added the liquor in to the mix (soaked for 4 hours) I used pecans instead of walnuts (don’t like walnuts) and added half a teaspoon of mixed spice. When cooled I drizzled caramel over the top. Served with a dollop of clotted cream. Heaven !\nPosted by Planetmandy on 1st January 2021\nI love making this recipe, always with cocoa added. Enjoy it with a sprinkle of extra walnuts and demerara sugar on top.\nPosted by rfaulder on 6th December 2020\nFive stars for this. I try new banana bread recipes all the time as I’m still on the search for the ‘perfect’ recipe. Not sure if I’ll try any other recipes after finding this one. This is moist and tasty. Thank you.\nPosted by Hschwennesen on 24th November 2020\nBest banana bread ever. Great texture & rise.\nPosted by Lakes29 on 11th August 2020\nThis is superb. I add some mixed spice, and I don't stint on the decent sized chunks of chocolate - more is more! And the rum that the sultanas don't manage to absorb in the pan (\"No more, please!\") is a sublime glug.\nPosted by Wes_Sexwater on 18th June 2020\nMade the chocolate version mentioned in the Intro and used Cadbury's Old Jamaica chocolate rather than plain as a treat for my Dad for Father's Day, as he loves it. OMG, it was delicious! Followed the recipe in all other respects and it was absolutely perfect (and possibly rather addicitive!). Think it would also be perfect slightly warm with a dollop of clotted cream for ultimate indulgence. Yum.\nPosted by JOMW1 on 17th June 2020\nI've been making this cake for a while but meanwhile, have tried to quit sugar. Well, cake and no sugar doesn't work.\nSo I'm making this one with half the amount of sugar, which works just fine. Today I soaked the raisins in amaretto instead of rum and replaced one banana with an apple to make the taste more fresh. I read somebody here said they threw the liquor into the batter as well in order not to waste any of it, which I liked so I followed up on that.\nI just love this recipe, it's so versatile!\nPosted by Byzantiah on 3rd May 2020\nShow more comments",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Falling into Autumn",
+    "level": 2,
+    "text": "",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/uploads/adverts/autumn-6abbd0d63eb5c-6ace3848bfd45.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "Rise and Shine!",
+    "level": 2,
+    "text": "",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/uploads/adverts/bread-6acdf386cb69b-6ace38ad051e0.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "Other recipes you might like",
+    "level": 2,
+    "text": "Photo by James Merrell\nPhoto by Lis Parsons\nRecipe by althea1951\nRecipe by Lilybell",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/uploads/recipes/public-thumbnail/quadruple-chocolate-loaf-cake-563b28001eabc.jpg",
+     "https://www.nigella.com/assets/uploads/recipes/public-thumbnail/banoffeecheesecake-5e2ef268dc234.jpg"
+    ],
+    "topOffset": 0
+   },
+   {
+    "heading": "Join in",
+    "level": 3,
+    "text": "Send us your recipe\nAsk us a question\nShare a tip with us",
+    "imageSrcs": [],
+    "topOffset": 0
+   },
+   {
+    "heading": "Falling into Autumn",
+    "level": 2,
+    "text": "",
+    "imageSrcs": [
+     "https://www.nigella.com/assets/uploads/adverts/autumn-6abbd0d63eb5c-6ace3848bfd45.jpg"
+    ],
+    "topOffset": 0
+   }
+  ],
+  "images": [],
+  "truncated": false
+ }
+}

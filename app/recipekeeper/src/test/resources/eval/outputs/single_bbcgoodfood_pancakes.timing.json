@@ -1,0 +1,38 @@
+{
+  "fixture": "single_bbcgoodfood_pancakes",
+  "runner": "tools/eval/run_local_model.py (litert_lm python wheel)",
+  "litertLmVersion": "0.18.0",
+  "model": "gemma-4-E2B-it.litertlm",
+  "modelBytes": 2588147712,
+  "modelSha256": "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c",
+  "backend": "CPU",
+  "threads": null,
+  "host": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "label": "Oriols-M4-Max arm64",
+  "startedAt": "2026-10-18T20:02:44+00:00",
+  "promptChars": 2209,
+  "outputChars": 1394,
+  "ttftMs": 919,
+  "totalMs": 12692,
+  "decodeTokensPerSWall": 30.49,
+  "maxOutputTokensHit": false,
+  "conversationTokens": 918,
+  "sampler": {
+    "temperature": 0.2,
+    "topK": 40,
+    "topP": 0.95,
+    "seed": 0,
+    "maxOutputTokens": 1024,
+    "maxNumTokens": 4096
+  },
+  "engineInitS": 1.93,
+  "benchmark": {
+    "timeToFirstTokenS": 0.88486125675,
+    "prefillTokens": 559,
+    "prefillTokensPerS": 656.1933335164023,
+    "decodeTokens": 359,
+    "decodeTokensPerS": 30.323085936270186
+  },
+  "error": null
+}
