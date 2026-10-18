@@ -133,6 +133,8 @@ class BrowserViewModel(
             BrowserIntent.ExtractWholePage -> extractWholePage()
             BrowserIntent.DismissSheet -> _state.update { it.copy(sheet = BrowserSheet.None) }
             BrowserIntent.OpenModelManagement -> send(BrowserEffect.NavigateToModelManagement)
+            BrowserIntent.HideFabForPage -> setFabHidden(hidden = true)
+            BrowserIntent.ShowFab -> setFabHidden(hidden = false)
             BrowserIntent.SharePage -> currentUrl()?.let { url ->
                 val title = _state.value.pageTitle?.takeIf { it.isNotBlank() }
                 send(BrowserEffect.ShareText(listOfNotNull(title, url).joinToString("\n")))
@@ -237,6 +239,18 @@ class BrowserViewModel(
     }
 
     // -- clip button ---------------------------------------------------------
+
+    /**
+     * Remembers the hide choice per host for the life of this ViewModel:
+     * another host shows the button again, coming back to this one keeps
+     * it hidden until the user taps the docked "Show clip button" chip.
+     */
+    private fun setFabHidden(hidden: Boolean) {
+        val host = hostOf(_state.value.url) ?: return
+        _state.update {
+            it.copy(hiddenFabHosts = if (hidden) it.hiddenFabHosts + host else it.hiddenFabHosts - host)
+        }
+    }
 
     private fun onScan() {
         val current = _state.value

@@ -274,6 +274,40 @@ class BrowserViewModelTest {
     }
 
     @Test
+    fun `hide for page is remembered per host and restored by ShowFab`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.loadPage("https://www.cooking.example/recipes/pasta")
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+
+        vm.onIntent(BrowserIntent.HideFabForPage)
+        assertThat(vm.state.value.fabHiddenForPage).isTrue()
+        assertThat(vm.state.value.hiddenFabHosts).containsExactly("cooking.example")
+
+        // Another host: the button is back; the choice is not forgotten.
+        vm.loadPage("https://other.example/soup")
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+        assertThat(vm.state.value.hiddenFabHosts).containsExactly("cooking.example")
+
+        // Back on the same host (www-less this time): still hidden.
+        vm.loadPage("https://cooking.example/recipes/soup")
+        assertThat(vm.state.value.fabHiddenForPage).isTrue()
+
+        vm.onIntent(BrowserIntent.ShowFab)
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+        assertThat(vm.state.value.hiddenFabHosts).isEmpty()
+    }
+
+    @Test
+    fun `hide for page is a no-op without a page`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onIntent(BrowserIntent.HideFabForPage)
+        assertThat(vm.state.value.hiddenFabHosts).isEmpty()
+        assertThat(vm.state.value.fabHiddenForPage).isFalse()
+    }
+
+    @Test
     fun `resolveInput rules`() {
         val search: (String) -> String = { "S:$it" }
         assertThat(BrowserViewModel.resolveInput("", search)).isNull()

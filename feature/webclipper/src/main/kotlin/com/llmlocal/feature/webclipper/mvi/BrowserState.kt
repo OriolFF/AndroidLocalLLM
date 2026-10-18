@@ -3,6 +3,7 @@ package com.llmlocal.feature.webclipper.mvi
 import androidx.compose.runtime.Immutable
 import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.hostOf
 import com.llmlocal.core.llm.readiness.ModelReadiness
 
 /**
@@ -18,6 +19,9 @@ import com.llmlocal.core.llm.readiness.ModelReadiness
  * @property candidates what the last scan found on this page
  * @property sheet which bottom sheet is open
  * @property readiness model readiness (drives [ClipFabState.ModelNotReady])
+ * @property hiddenFabHosts hosts (see `hostOf`) on which the user long-pressed
+ *   "Hide on this page"; the button comes back on any other host and a docked
+ *   "Show clip button" chip restores it here
  */
 @Immutable
 data class BrowserState(
@@ -35,7 +39,12 @@ data class BrowserState(
     val sheet: BrowserSheet = BrowserSheet.None,
     /** Shared model readiness from `:core:llm`; drives [fab] when no model is usable. */
     val readiness: ModelReadiness = ModelReadiness.Checking,
-)
+    val hiddenFabHosts: Set<String> = emptySet(),
+) {
+    /** `true` when the clip button is hidden on the current page's host. */
+    val fabHiddenForPage: Boolean
+        get() = hostOf(url)?.let { it in hiddenFabHosts } ?: false
+}
 
 /** What the clip button renders; see UX spec §2 for icon / label / tap per state. */
 sealed interface ClipFabState {

@@ -4,17 +4,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCut
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ElevatedAssistChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.llmlocal.feature.webclipper.WebClipperLabels
 import com.llmlocal.feature.webclipper.hostOf
 import com.llmlocal.feature.webclipper.mvi.BrowserIntent
@@ -28,8 +38,10 @@ import com.llmlocal.feature.webclipper.mvi.ClipFabState
  *
  * Insets: `contentWindowInsets = safeDrawing` so the WebView never renders
  * under the gesture bar or the keyboard; only the FAB floats, and it is
- * hidden while the IME is visible. The WebView slot is a traversal group
- * so TalkBack reads the page as one region after the clip button.
+ * hidden while the IME is visible. Long-pressing the FAB offers "Hide on
+ * this page"; while hidden for the current host a docked "Show clip button"
+ * chip sits bottom-start instead. The WebView slot is a traversal group so
+ * TalkBack reads the page as one region after the clip button.
  *
  * @param webView the `AndroidView` slot; receives the modifier to fill the
  *   content area
@@ -46,7 +58,9 @@ fun WebClipperBrowserScreen(
     modifier: Modifier = Modifier,
 ) {
     val imeVisible = WindowInsets.isImeVisible
-    val showFab = state.url.isNotBlank() && !imeVisible
+    val hasPage = state.url.isNotBlank()
+    val showFab = hasPage && !imeVisible && !state.fabHiddenForPage
+    val showRestoreChip = hasPage && !imeVisible && state.fabHiddenForPage
 
     // Blank start: put the caret in the address bar straight away.
     LaunchedEffect(Unit) {
@@ -77,6 +91,7 @@ fun WebClipperBrowserScreen(
                             else -> onIntent(BrowserIntent.Scan)
                         }
                     },
+                    onHideForPage = { onIntent(BrowserIntent.HideFabForPage) },
                 )
             }
         },
@@ -84,10 +99,35 @@ fun WebClipperBrowserScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .semantics { isTraversalGroup = true },
+                .padding(innerPadding),
         ) {
-            webView(Modifier.fillMaxSize())
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .semantics { isTraversalGroup = true },
+            ) {
+                webView(Modifier.fillMaxSize())
+            }
+            // Docked replacement for a hidden clip button (UX spec §2): a
+            // 48 dp chip bottom-start, out of the way of site chrome that
+            // usually sits bottom-end (cookie dialogs, sticky footers).
+            if (showRestoreChip) {
+                ElevatedAssistChip(
+                    onClick = { onIntent(BrowserIntent.ShowFab) },
+                    label = { Text(labels.showClipButton) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.ContentCut,
+                            contentDescription = null,
+                            modifier = Modifier.size(AssistChipDefaults.IconSize),
+                        )
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                        .height(48.dp),
+                )
+            }
         }
     }
 
