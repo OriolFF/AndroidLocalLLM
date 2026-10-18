@@ -199,6 +199,12 @@ private fun UrlTextField(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    // The field is only mounted while `urlFocused`, and the ViewModel sets
+    // `draftUrl` (= the page URL, fully selected) in the same update that
+    // focuses it; afterwards it only echoes UpdateDraftUrl back. So the
+    // local value is seeded once and never re-synced: a per-frame sync from
+    // `state.draftUrl` lagged one frame behind fast typing and reset the
+    // field to a stale draft, leaving a single character (device QA).
     var value by remember {
         mutableStateOf(TextFieldValue(state.draftUrl, selection = TextRange(0, state.draftUrl.length)))
     }
@@ -206,12 +212,6 @@ private fun UrlTextField(
     // field attaches; without this guard that first event would dismiss the
     // field before `requestFocus()` below ever ran (device QA finding 1).
     var hadFocus by remember { mutableStateOf(false) }
-    // Keep the field in sync when the ViewModel changes the draft (e.g. focus → full URL).
-    LaunchedEffect(state.draftUrl) {
-        if (value.text != state.draftUrl) {
-            value = TextFieldValue(state.draftUrl, selection = TextRange(0, state.draftUrl.length))
-        }
-    }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
         // Focus alone does not open the IME when the window itself is still

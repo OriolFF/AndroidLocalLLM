@@ -1,5 +1,6 @@
 package com.llmlocal.feature.webclipper.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,10 @@ import com.llmlocal.feature.webclipper.mvi.BrowserState
  *
  * @param webView the `AndroidView` slot; receives the modifier to fill the
  *   content area
+ * @param autoFocusAddressBar focus the address bar (and open the IME) on
+ *   first composition when there is no page. The route passes `false` when
+ *   the shared WebView already shows a page it is about to sync, since that
+ *   sync lands a frame after this screen's first composition.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -55,15 +61,26 @@ fun WebClipperBrowserScreen(
     snackbarHostState: SnackbarHostState,
     webView: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
+    autoFocusAddressBar: Boolean = true,
 ) {
     val imeVisible = WindowInsets.isImeVisible
     val hasPage = state.url.isNotBlank()
     val showFab = hasPage && !imeVisible && !state.fabHiddenForPage
     val showRestoreChip = hasPage && !imeVisible && state.fabHiddenForPage
+    val focusManager = LocalFocusManager.current
 
     // Blank start: put the caret in the address bar straight away.
     LaunchedEffect(Unit) {
-        if (state.url.isBlank() && !state.urlFocused) onIntent(BrowserIntent.UrlFocusChanged(true))
+        if (autoFocusAddressBar && state.url.isBlank() && !state.urlFocused) {
+            onIntent(BrowserIntent.UrlFocusChanged(true))
+        }
+    }
+    // Back while editing leaves edit mode (the IME consumes the first back
+    // itself); registered after the route's WebView-history handler so it
+    // takes priority while the address bar has focus.
+    BackHandler(enabled = state.urlFocused) {
+        focusManager.clearFocus()
+        onIntent(BrowserIntent.UrlFocusChanged(false))
     }
 
     Scaffold(
