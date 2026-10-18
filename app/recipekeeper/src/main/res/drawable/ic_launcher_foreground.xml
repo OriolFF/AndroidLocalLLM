@@ -1,17 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Recipe Keeper launcher mark: a parchment bookmark/clip with a plum fork
+    cut into it, centred in the 66dp adaptive-icon safe zone on the plum
+    background (@color/ic_launcher_background = #7A3B5E).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Bookmark / clip body -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,30 m-18,0 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0z" />
+        android:fillColor="#FFFBF7"
+        android:pathData="M38,26 h32 a5,5 0 0 1 5,5 v51 l-21,-12 l-21,12 v-51 a5,5 0 0 1 5,-5 z" />
+
+    <!-- Fork tines -->
     <path
-        android:fillColor="#E26A2C"
-        android:pathData="M30,72 L78,72 L72,84 L36,84 z" />
+        android:fillColor="#7A3B5E"
+        android:pathData="M47,35 h3 v10 h-3 z M52.5,35 h3 v10 h-3 z M58,35 h3 v10 h-3 z" />
+    <!-- Fork head (joins the tines) -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M44,78 L64,78 L64,82 L44,82 z" />
+        android:fillColor="#7A3B5E"
+        android:pathData="M47,44 h14 v4 a7,7 0 0 1 -7,6 a7,7 0 0 1 -7,-6 z" />
+    <!-- Fork handle -->
+    <path
+        android:fillColor="#7A3B5E"
+        android:pathData="M52.5,53 h3 v18 a1.5,1.5 0 0 1 -3,0 z" />
 </vector>
