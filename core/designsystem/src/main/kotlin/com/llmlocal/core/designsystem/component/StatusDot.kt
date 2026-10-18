@@ -86,6 +86,10 @@ fun StatusDot(
             style = MaterialTheme.typography.labelMedium,
             color = onContainer,
             fontWeight = FontWeight.SemiBold,
+            // A status word must never wrap; when squeezed, the caller's row
+            // should give way (see ModelCard's title) rather than this pill.
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }

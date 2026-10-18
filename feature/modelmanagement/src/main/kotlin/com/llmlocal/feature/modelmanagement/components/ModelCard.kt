@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.StatusDot
 import com.llmlocal.core.designsystem.component.StatusTone
@@ -117,11 +118,17 @@ fun ModelCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            // `fill = false` lets the badge keep its intrinsic width even
+                            // with a wide serif title; the title wraps to two lines instead
+                            // of squeezing the badge into one letter per line.
                             Text(
                                 text = descriptor.displayName,
                                 style = MaterialTheme.typography.titleLarge,
                                 color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
                             )
                             when {
                                 isSelected -> StatusDot(
