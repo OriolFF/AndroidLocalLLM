@@ -96,11 +96,7 @@ object EvalFixtures {
             minCandidates = 1,
             maxCandidates = 3,
             notes = "Plain-text blog, no structured data (quickScan 0). Ingredients live under a 'Pancake Recipe:' h2 with " +
-                "quantity lines; the method is prose in the h1 section. Tier B by quantity lines.",
-            knownIssues = mapOf(
-                "steps ≥ 2" to "pipeline gap: renderSection only pulls sections *after* the candidate, so the method prose in the " +
-                    "preceding h1 section never reaches the model and it emits an empty 'Steps:' (see ws7-report.md)",
-            ),
+                "quantity lines; the method is prose in the h1 section, which renderSection prepends since WS8. Tier B by quantity lines.",
         ),
         EvalFixture(
             name = "plain_cfe_banana_bread",
@@ -124,7 +120,8 @@ object EvalFixtures {
             tier = ExpectedTier.WHOLE_PAGE,
             minCandidates = 1,
             expectRecipe = false,
-            notes = "Category/list page with no recipe. Readable text ≥ 500 chars so a single WholePage candidate is offered.",
+            notes = "Category/list page with no recipe. Readable text ≥ 500 chars so a single WholePage candidate is offered. " +
+                "The prompt asks for 'NO RECIPE' here; a parsed result must also pass RecipeKeeperClipConfig.accept (≥ 2 quantity ingredients).",
         ),
         EvalFixture(
             name = "long_theperfectloaf_sourdough",

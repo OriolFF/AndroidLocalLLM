@@ -1,19 +1,20 @@
 Title: Banana Nut Bread
 Description: This recipe results in what I feel is the perfect combination of flavor and texture in banana nut bread.
 Servings: about 10 servings
-PrepMinutes: 0
+PrepMinutes: 15
 CookMinutes: 55
+TotalMinutes: 70
 Ingredients:
 - 2 large (250 g) ripe bananas
 - 6 Tbs. melted butter
 - 1 tsp. vanilla extract
 - 2 large egg
-- 1-1/3 cups (167 g) all-purpose flour
-- 2/3 cup (130 g) sugar
-- 1/2 tsp. (2.3 g) baking soda
-- 1/4 tsp. (1.2 g) baking powder
-- 1/2 tsp. (3 g) salt
-- 1/2 cup (70 g) chopped walnuts
+- 1-1/3 cup flour
+- 1/2 tsp. baking soda
+- 1/4 tsp. baking powder
+- 2/3 cup sugar
+- 1/2 tsp. salt
+- 1/2 cup chopped walnuts
 Steps:
 1. Butter and flour a loaf pan
 2. Preheat oven to 350°F (170°C)
@@ -26,12 +27,7 @@ Steps:
 9. Pour the batter into the prepared loaf pan and bake for 55 minutes at 350°F.
 10. After 55 minutes, the loaf of banana bread should be done.
 11. Set the pan on a wire rack to cool for ten minutes.
-12. Remove the loaf from the pan and let cool on the wire rack.
 Notes:
-- Banana nut breads should always start with fully ripe bananas.
-- Allow green or yellow bananas to ripen at room temperature until the skin is liberally covered with brown spots.
-- When ready to use, simply thaw the bananas by letting them sit (unpeeled) on the counter until they warm up.
+- Banana nut breads come in all varieties.
 - The use of both baking soda and powder are necessary to provide enough leavening for the proper consistency of the bread.
-- The baking soda is just enough to utilize the slight acidity of the bananas to create the desired carbon dioxide bubbles.
-- Baking powder (which is a mix of baking soda, a base, and cream of tartar, an acid) provides even more leavening power.
-- The loaf of banana bread should be done when a wooden toothpick inserted into the center comes out clean.
+- A wooden toothpick inserted into the center should come out clean.

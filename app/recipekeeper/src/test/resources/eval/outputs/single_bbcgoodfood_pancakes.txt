@@ -1,8 +1,7 @@
 Title: Classic pancakes
 Description: You can use this foolproof classic batter recipe to create a base for sweet or savoury pancakes
-Servings: Makes 8 pancakes
-PrepMinutes: 30
-CookMinutes: 30
+Servings: 8 pancakes
+TotalMinutes: 30
 Ingredients:
 - 100g plain flour
 - 1 large egg
@@ -14,3 +13,6 @@ Steps:
 3. Flip over the pancake with a palette knife, and cook the other side until it is golden brown. Slide the pancake out of the pan on to a plate, heat a little more oil or butter and cook the remaining pancakes one at a time in the same way.
 4. If preparing in advance, cook and stack the pancakes. Reheat in the microwave on Medium (750W) for about 2 minutes. Alternatively, heat the oven to 180C/gas 4/fan 160C. Wrap the pancakes in foil and warm them through in the oven for 10 minutes.
 Notes:
+- You can use this foolproof classic batter recipe to create a base for sweet or savoury pancakes
+- Cook over a moderate heat for 30 seconds to one minute until golden brown on the underside
+- Alternatively, heat the oven to 180C/gas 4/fan 160C. Wrap the pancakes in foil and warm them through in the oven for 10 minutes.
