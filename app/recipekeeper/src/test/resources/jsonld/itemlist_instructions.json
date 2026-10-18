@@ -1,0 +1,14 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Overnight Oats",
+  "image": { "@type": "ImageObject", "url": "data:image/png;base64,AAAA" },
+  "recipeIngredient": "1/2 cup rolled oats\n1/2 cup milk\n1 tbsp chia seeds\n1 tsp honey",
+  "recipeInstructions": {
+    "@type": "ItemList",
+    "itemListElement": [
+      { "@type": "HowToStep", "name": "Combine everything in a jar.", "text": "Combine everything in a jar." },
+      { "@type": "HowToStep", "name": "Chill overnight." }
+    ]
+  }
+}

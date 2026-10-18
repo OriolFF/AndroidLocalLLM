@@ -1,0 +1,13 @@
+{
+  "@context": "http://schema.org",
+  "@type": "Recipe",
+  "name": "Quick Guacamole",
+  "recipeYield": 4,
+  "totalTime": "PT10M",
+  "recipeIngredient": ["2 avocados", "1 lime, juiced", "1/4 red onion, minced", "Salt to taste"],
+  "recipeInstructions": [
+    "1. Halve and pit the avocados; scoop into a bowl.",
+    "2. Mash with the lime juice.",
+    "3. Fold in the onion and season."
+  ]
+}
