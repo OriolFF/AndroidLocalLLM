@@ -1,0 +1,6 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Teaser only",
+  "description": "Full recipe behind the paywall."
+}

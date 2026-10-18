@@ -1,0 +1,11 @@
+{
+  "@context": "http://schema.org",
+  "@type": "Recipe",
+  "name": "Tortilla de patatas",
+  "image": "https://cdn.example.com/tortilla.jpg",
+  "recipeYield": { "@type": "QuantitativeValue", "value": 4, "unitText": "raciones" },
+  "prepTime": "P0DT0H20M",
+  "cookTime": "PT0H25M0S",
+  "ingredients": ["6 huevos", "4 patatas medianas", "1 cebolla", "Aceite de oliva", "Sal"],
+  "recipeInstructions": "Pelar y cortar las patatas en láminas finas.\nFreír a fuego medio con la cebolla hasta que estén tiernas.\nBatir los huevos, mezclar con las patatas escurridas y cuajar en la sartén por ambos lados."
+}

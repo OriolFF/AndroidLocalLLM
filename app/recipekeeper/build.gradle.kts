@@ -26,3 +26,14 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 }
+
+dependencies {
+    // Unit tests (WS5a): parsers, mapper, clip config, sink + a FakeLlmEngine
+    // round trip. `org.json` is a stub in android.jar, so the real artifact
+    // goes on the test classpath.
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.org.json)
+}
