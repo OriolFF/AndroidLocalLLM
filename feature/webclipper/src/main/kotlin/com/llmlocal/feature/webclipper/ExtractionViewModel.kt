@@ -43,12 +43,19 @@ import java.util.UUID
  * MVI ViewModel for the extraction screen: runs the four phases
  * Reading → Extracting → Pictures → Saving for one [ClipCandidate].
  *
+ *  0. **Direct path** — when `config.skipModelWhenStructuredComplete` is
+ *     on and the candidate is STRUCTURED, `config.fallback` is computed
+ *     first; if `config.isComplete` accepts it, Reading and Extracting are
+ *     marked done at once ([ExtractionState.extractedWithoutModel] drives
+ *     the "read directly from the page" detail) and the flow continues at
+ *     step 3 without touching the engine.
  *  1. **Reading** — `config.renderLlmInput` on the captured snapshot.
  *  2. **Extracting** — [GenerateLlmTaskUseCase] with a separate system
  *     instruction, `maxOutputTokens = config.maxOutputTokens` and
  *     temperature [EXTRACTION_TEMPERATURE]; raw deltas are appended to
  *     [ExtractionState.streamedText] for the app's draft slot. A parser
- *     `null` on a STRUCTURED candidate falls back to `config.fallback`.
+ *     `null` — or a result `config.accept` rejects — on a STRUCTURED
+ *     candidate falls back to `config.fallback`.
  *  3. **Pictures** — `config.pickPictures` downloaded in parallel with the
  *     model (never sent to it); failures only turn the phase to `Warning`.
  *  4. **Saving** — `sink.save` with the kept picture files, then
@@ -143,6 +150,7 @@ class ExtractionViewModel(
                 isRunning = true,
                 error = null,
                 truncated = false,
+                extractedWithoutModel = false,
                 savedId = null,
             )
         }
@@ -159,6 +167,16 @@ class ExtractionViewModel(
     }
 
     private suspend fun CoroutineScope.run(candidate: ClipCandidate, snapshot: PageSnapshot) {
+        val direct = directResult(candidate, snapshot)
+        if (direct != null) {
+            setPhase(Phase.Reading, PhaseStatus.Done)
+            _state.update { it.copy(extractedWithoutModel = true) }
+            setPhase(Phase.Extracting, PhaseStatus.Done)
+            val pictures = startPictures(candidate, snapshot)
+            finish(candidate, snapshot, direct, pictures, truncated = false)
+            return
+        }
+
         val input = withContext(dispatchers.default) {
             config.renderLlmInput(candidate, snapshot, config.budgetChars)
         }
@@ -200,9 +218,10 @@ class ExtractionViewModel(
         }
         val rawText = buffer.toString()
 
-        if (result == null) {
+        val accepted = result?.let { config.accept(candidate, it) } ?: false
+        if (!accepted) {
             val error = failure
-            val parseFailed = error == null || error is LlmTaskParseException
+            val parseFailed = result != null || error == null || error is LlmTaskParseException
             if (!parseFailed) {
                 pictures.cancel()
                 fail(classify(error))
@@ -225,6 +244,29 @@ class ExtractionViewModel(
         _state.update { it.copy(truncated = truncated) }
         setPhase(Phase.Extracting, if (truncated) PhaseStatus.Warning else PhaseStatus.Done)
 
+        finish(candidate, snapshot, requireNotNull(result), pictures, truncated)
+    }
+
+    /**
+     * The deterministic result that replaces the model run, or `null` when
+     * the switch is off, the candidate is not STRUCTURED, the mapping is
+     * missing or [WebClipConfig.isComplete] rejects it.
+     */
+    private suspend fun directResult(candidate: ClipCandidate, snapshot: PageSnapshot): Any? {
+        if (!config.skipModelWhenStructuredComplete || candidate.source != CandidateSource.STRUCTURED) return null
+        return withContext(dispatchers.default) {
+            config.fallback(candidate, snapshot)?.takeIf { config.isComplete(it) }
+        }
+    }
+
+    /** Pictures → Saving → navigate; shared by the model and the direct path. */
+    private suspend fun finish(
+        candidate: ClipCandidate,
+        snapshot: PageSnapshot,
+        result: Any,
+        pictures: Deferred<Boolean>,
+        truncated: Boolean,
+    ) {
         val anyPictureFailed = pictures.await()
         setPhase(Phase.Pictures, if (anyPictureFailed) PhaseStatus.Warning else PhaseStatus.Done)
 
@@ -232,7 +274,7 @@ class ExtractionViewModel(
         val kept = _state.value.pictures.filter { it.keep && it.status == PictureStatus.Done }
             .mapNotNull { it.localFile }
         val savedId = withContext(dispatchers.io) {
-            sink.save(requireNotNull(result), snapshot, candidate, kept, truncated)
+            sink.save(result, snapshot, candidate, kept, truncated)
         }
         deleteTempFiles(except = kept)
         setPhase(Phase.Saving, PhaseStatus.Done)

@@ -94,7 +94,7 @@ if [[ "$mode" == "device" ]]; then
   "${adb_cmd[@]}" shell am instrument -w -r \
     -e class "$APP_ID.eval.EvalRunnerTest" \
     -e promptsDir /data/local/tmp/eval/prompts \
-    "${extra[@]}" \
+    ${extra[@]+"${extra[@]}"} \
     "$APP_ID.test/androidx.test.runner.AndroidJUnitRunner" | tee /tmp/llmlocal-eval-instrument.log
   # Outputs land in the app's private files/eval/outputs; pull via run-as + tar.
   "${adb_cmd[@]}" exec-out run-as "$APP_ID" tar -C files/eval -cf - outputs | tar -C "$OUT/.." -xf -
@@ -136,4 +136,5 @@ fi
 
 exec "$VENV/bin/python" -I "$here/run_local_model.py" \
   --model "$model" --prompts "$PROMPTS" --out "$OUT" \
-  --label "$(hostname -s 2>/dev/null || echo host) $(uname -m)" "${py_args[@]}"
+  --label "$(hostname -s 2>/dev/null || echo host) $(uname -m)" ${py_args[@]+"${py_args[@]}"}
+# (${arr[@]+"${arr[@]}"}: macOS ships bash 3.2, where "${arr[@]}" on an empty array trips `set -u`.)

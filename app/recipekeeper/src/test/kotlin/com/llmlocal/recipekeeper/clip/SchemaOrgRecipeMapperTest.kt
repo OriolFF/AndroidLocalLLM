@@ -1,14 +1,33 @@
 package com.llmlocal.recipekeeper.clip
 
 import com.google.common.truth.Truth.assertThat
+import com.llmlocal.core.web.JsonLdNode
 import com.llmlocal.recipekeeper.testing.loadJsonLd
 import com.llmlocal.recipekeeper.testing.testDurationParser
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Test
 
 class SchemaOrgRecipeMapperTest {
 
     private val mapper = SchemaOrgRecipeMapper(testDurationParser)
     private val url = "https://www.example.com/recipes/banana-bread"
+
+    @Test
+    fun `float quantities and yields are tidied, real decimals are kept`() {
+        val raw = JSONObject()
+            .put("@type", "Recipe")
+            .put("name", "Feta and potato pancakes")
+            .put("recipeYield", "Makes 10.0 items")
+            .put("recipeIngredient", JSONArray(listOf("250.0g potatoes", "6.0tbsp olive oil", "2.0 eggs", "6.75 ounces flour", "0.05 g saffron", "1.50 cups milk")))
+            .put("recipeInstructions", "Mix.")
+        val recipe = mapper.map(JsonLdNode(listOf("Recipe"), raw), url)!!
+
+        assertThat(recipe.ingredients).containsExactly("250g potatoes", "6tbsp olive oil", "2 eggs", "6.75 ounces flour", "0.05 g saffron", "1.50 cups milk").inOrder()
+        assertThat(recipe.servings).isEqualTo("Makes 10 items")
+        assertThat(TextCleaner.tidyNumbers("10.0")).isEqualTo("10")
+        assertThat(TextCleaner.tidyNumbers("Serves 4.0–6.0, 3.05 kg")).isEqualTo("Serves 4–6, 3.05 kg")
+    }
 
     @Test
     fun `single recipe with ImageObject and HowToSteps maps every field`() {

@@ -19,8 +19,10 @@ import org.junit.runners.Parameterized
  * Step 4 + 5 of the eval loop. For every fixture with a committed golden
  * under `eval/outputs/<fixture>.txt` (raw model output produced by
  * `tools/eval/run_local_model.sh`), parse it with the production
- * [RecipeKeeperParser] and [RecipeKeeperDraftParser] and check the quality
- * bar from the WS7 brief. Fixtures without a golden are *skipped* via an
+ * [RecipeKeeperParser] and [RecipeKeeperDraftParser], apply
+ * `RecipeKeeperClipConfig.accept` exactly as `ExtractionViewModel` does (a
+ * rejected result counts as "no recipe"), and check the quality bar from
+ * the WS7 brief. Fixtures without a golden are *skipped* via an
  * explicit JUnit assumption, so the class is green in CI without the model.
  *
  * Every row — passed, failed or skipped — also lands in
@@ -64,8 +66,12 @@ class EvalParserTest(private val fixture: EvalFixture) {
         row.goldenChars = golden.length
         row.timing = timing()
 
-        val recipe = parser.parse(golden)
+        val parsedOnly = parser.parse(golden)
+        val top = row.topCandidate
+        row.rejectedByAccept = parsedOnly != null && top != null && !EvalFixtures.clipConfig.accept(top, parsedOnly)
+        val recipe = parsedOnly?.takeUnless { row.rejectedByAccept }
         row.parsed = recipe
+        row.refused = parsedOnly == null && golden.trim().startsWith(RecipeKeeperParser.NO_RECIPE_TEXT, ignoreCase = true)
         row.outputStartsWithTitle = golden.lineSequence().firstOrNull { it.isNotBlank() }?.let(RecipeLineGrammar::isHeader) == true
         row.unexpectedHeaders = unexpectedHeaders(golden)
 
@@ -82,14 +88,28 @@ class EvalParserTest(private val fixture: EvalFixture) {
 
         // Negative fixtures (list pages): record what the model did, assert nothing.
         if (!fixture.expectRecipe) {
-            row.status = if (recipe == null) "INFO (no recipe, as expected)" else "INFO (model produced a recipe from a non-recipe page)"
+            row.status = when {
+                row.refused -> "INFO (model answered NO RECIPE, as expected)"
+                row.rejectedByAccept -> "INFO (model produced a recipe; rejected by accept: < 2 quantity ingredients)"
+                recipe == null -> "INFO (no recipe, as expected)"
+                else -> "INFO (model produced a recipe from a non-recipe page)"
+            }
             return
         }
 
         val checks = mutableListOf<EvalReport.Check>()
         fun check(name: String, pass: Boolean, detail: String) { checks += EvalReport.Check(name, pass, detail) }
 
-        check("parses", recipe != null, if (recipe == null) "RecipeKeeperParser returned null" else "ok")
+        check(
+            "parses",
+            recipe != null,
+            when {
+                recipe != null -> "ok"
+                row.rejectedByAccept -> "parsed but rejected by RecipeKeeperClipConfig.accept"
+                row.refused -> "model answered NO RECIPE"
+                else -> "RecipeKeeperParser returned null"
+            },
+        )
         if (recipe != null) {
             check("title", recipe.title.isNotBlank(), "'${recipe.title}'")
             check("ingredients ≥ 3", recipe.ingredients.size >= 3, "${recipe.ingredients.size}")
@@ -208,6 +228,8 @@ object EvalReport {
         var goldenChars: Int? = null
         var timing: JSONObject? = null
         var parsed: ClippedRecipe? = null
+        var rejectedByAccept: Boolean = false
+        var refused: Boolean = false
         var outputStartsWithTitle: Boolean? = null
         var unexpectedHeaders: List<String> = emptyList()
         var sourceIngredientCount: Int? = null

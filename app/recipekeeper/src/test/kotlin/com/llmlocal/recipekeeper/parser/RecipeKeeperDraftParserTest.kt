@@ -29,6 +29,15 @@ class RecipeKeeperDraftParserTest {
     }
 
     @Test
+    fun `decimal quantities are promoted intact and dotted step numbers are stripped`() {
+        val draft = parser.parse("Ingredients:\n- 250.0g potatoes\n- 2.5 cups flour\nSteps:\n2. Preheat.\n2.Grate.\n1.5 cups wat")
+
+        assertThat(draft.ingredients).containsExactly("250.0g potatoes", "2.5 cups flour").inOrder()
+        assertThat(draft.steps).containsExactly("Preheat.", "Grate.").inOrder()
+        assertThat(draft.tail).isEqualTo("1.5 cups wat")
+    }
+
+    @Test
     fun `every prefix of a full output yields a monotonically growing draft`() {
         var previous = parser.parse("")
         for (end in 1..full.length) {

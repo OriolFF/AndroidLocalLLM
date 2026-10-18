@@ -10,14 +10,14 @@
   "host": "macOS-26.6.2-arm64-arm-64bit",
   "machine": "arm64",
   "label": "Oriols-M4-Max arm64",
-  "startedAt": "2026-10-18T20:01:49+00:00",
-  "promptChars": 2279,
-  "outputChars": 1350,
-  "ttftMs": 890,
-  "totalMs": 11105,
-  "decodeTokensPerSWall": 39.36,
+  "startedAt": "2026-10-18T20:37:58+00:00",
+  "promptChars": 2704,
+  "outputChars": 1376,
+  "ttftMs": 1081,
+  "totalMs": 14601,
+  "decodeTokensPerSWall": 30.4,
   "maxOutputTokensHit": false,
-  "conversationTokens": 1031,
+  "conversationTokens": 1137,
   "sampler": {
     "temperature": 0.2,
     "topK": 40,
@@ -26,13 +26,13 @@
     "maxOutputTokens": 1024,
     "maxNumTokens": 4096
   },
-  "engineInitS": 1.93,
+  "engineInitS": 0.15,
   "benchmark": {
-    "timeToFirstTokenS": 0.863521429,
-    "prefillTokens": 629,
-    "prefillTokensPerS": 750.6101687985393,
-    "decodeTokens": 402,
-    "decodeTokensPerS": 39.15961565275591
+    "timeToFirstTokenS": 1.0450976437500001,
+    "prefillTokens": 726,
+    "prefillTokensPerS": 717.3648695941532,
+    "decodeTokens": 411,
+    "decodeTokensPerS": 30.2477120192184
   },
   "error": null
 }

@@ -1,6 +1,7 @@
 package com.llmlocal.recipekeeper.parser
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 class RecipeKeeperParserTest {
@@ -71,6 +72,22 @@ class RecipeKeeperParserTest {
     }
 
     @Test
+    fun `explicit TotalMinutes wins over prep plus cook, and alone it is kept`() {
+        val explicit = parser.parse("Title: X\nPrepMinutes: 10\nCookMinutes: 20\nTotalMinutes: 45\nIngredients:\n- a\n")!!
+        assertThat(explicit.prepMinutes).isEqualTo(10)
+        assertThat(explicit.cookMinutes).isEqualTo(20)
+        assertThat(explicit.totalMinutes).isEqualTo(45)
+
+        val totalOnly = parser.parse("Title: X\nTotalMinutes: 30\nIngredients:\n- a\n")!!
+        assertThat(totalOnly.prepMinutes).isNull()
+        assertThat(totalOnly.cookMinutes).isNull()
+        assertThat(totalOnly.totalMinutes).isEqualTo(30)
+
+        val emptyTotal = parser.parse("Title: X\nPrepMinutes: 10\nCookMinutes: 20\nTotalMinutes:\nIngredients:\n- a\n")!!
+        assertThat(emptyTotal.totalMinutes).isEqualTo(30)
+    }
+
+    @Test
     fun `truncated mid-step is flagged and still parses`() {
         val text = FULL_OUTPUT.substringBefore("3. Add the flour") + "3. Add the flour and mix unt"
         val recipe = parser.parse(text)!!
@@ -135,10 +152,70 @@ class RecipeKeeperParserTest {
     }
 
     @Test
+    fun `decimal quantities keep their integer part while dotted step numbers still parse`() {
+        val recipe = parser.parse(
+            """
+            Title: Rösti
+            Ingredients:
+            - 250.0g potatoes
+            - 2.5 cups flour
+            - 1.5 tsp salt
+            - 6.0tbsp olive oil
+            - 10 eggs
+            Steps:
+            2. Preheat the oven.
+            2.Grate the potatoes.
+            3) Fry 2.5 minutes per side.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.ingredients).containsExactly("250.0g potatoes", "2.5 cups flour", "1.5 tsp salt", "6.0tbsp olive oil", "10 eggs").inOrder()
+        assertThat(recipe.steps).containsExactly("Preheat the oven.", "Grate the potatoes.", "Fry 2.5 minutes per side.").inOrder()
+    }
+
+    @Test
     fun `preamble chatter before the first header is ignored`() {
         val recipe = parser.parse("Sure! Here is the recipe:\n\nTitle: Toast\nIngredients:\n- bread\nSteps:\n1. Toast it.\n")!!
         assertThat(recipe.title).isEqualTo("Toast")
         assertThat(recipe.ingredients).containsExactly("bread")
+    }
+
+    @Test
+    fun `notes that repeat a step sentence are dropped, genuine notes stay`() {
+        val recipe = parser.parse(
+            """
+            Title: Cookies
+            Ingredients:
+            - 1 egg
+            Steps:
+            1. Bake for 9-11 minutes. Warning: DO NOT OVERBAKE. They'll be pale and puffy.
+            2. Let them cool. These should stay soft for many days if kept in an airtight container. I also like to freeze them.
+            Notes:
+            - These should stay soft for many days if kept in an airtight container.
+            - I also like to freeze them!
+            - Do not overbake to keep them soft.
+            Use salted butter.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.steps).hasSize(2)
+        assertThat(recipe.notes).isEqualTo("- Do not overbake to keep them soft. Use salted butter.")
+
+        val inline = parser.parse("Ingredients:\n- 1 egg\nSteps:\n1. Serve warm with cream.\nNotes: Serve warm with cream.\n")!!
+        assertThat(inline.notes).isNull()
+        // Short notes are never treated as duplicates of a step that happens to contain the words.
+        val short = parser.parse("Ingredients:\n- 1 egg\nSteps:\n1. Serve warm.\nNotes:\nServe warm.\n")!!
+        assertThat(short.notes).isEqualTo("Serve warm.")
+    }
+
+    @Test
+    fun `NO RECIPE refusal returns null even when a format follows`() {
+        assertThat(parser.parse("NO RECIPE")).isNull()
+        assertThat(parser.parse("no recipe.\n")).isNull()
+        assertThat(parser.parse("**NO RECIPE**")).isNull()
+        assertThat(parser.parse("\nNO RECIPE\nTitle: Invented\nIngredients:\n- 1 egg\nSteps:\n1. Cook.")).isNull()
+        // Only the first line counts as a refusal; the words inside a recipe are fine.
+        assertThat(parser.parse("Title: No recipe left behind\nIngredients:\n- 1 egg\n")).isNotNull()
     }
 
     @Test
@@ -153,9 +230,12 @@ class RecipeKeeperParserTest {
         val cases = mapOf(
             "45" to 45, "45 minutes" to 45, "1 hour" to 60, "1 hour 15 min" to 75, "1h30" to 90, "2 hrs" to 120,
             "PT1H30M" to 90, "P0DT0H20M" to 20, "20-25 min" to 25, "about 10 mins" to 10, "unknown" to null, "" to null,
+            // vulgar fractions, mixed numbers and ranges containing them
+            "1-1¼ hours" to 75, "1½ h" to 90, "1 ½ hours" to 90, "½ hour" to 30, "¾ h" to 45, "1 1/4 hours" to 75,
+            "1/2 hour" to 30, "1 - 1 1/2 hours" to 90, "2⅓ hours" to 140, "1,5 h" to 90, "1½" to 2,
         )
         for ((input, expected) in cases) {
-            assertThat(RecipeLineGrammar.parseMinutes(input)).isEqualTo(expected)
+            assertWithMessage(input).that(RecipeLineGrammar.parseMinutes(input)).isEqualTo(expected)
         }
     }
 

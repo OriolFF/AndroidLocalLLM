@@ -13,6 +13,7 @@ package com.llmlocal.recipekeeper.parser
  * Servings: …
  * PrepMinutes: <int>
  * CookMinutes: <int>
+ * TotalMinutes: <int>
  * Ingredients:
  * - …
  * Steps:
@@ -24,8 +25,10 @@ package com.llmlocal.recipekeeper.parser
  * Tolerances: header synonyms in several languages, optional Markdown
  * `#`/`**` decoration, bullets `-`, `*`, `•`, `–`, steps as `1.`, `1)`,
  * `Step 1:` or bullets, continuation lines appended to the previous item,
- * `PrepMinutes: 1 h 15 min` style durations, a `TotalMinutes:` header the
- * prompt does not ask for but models sometimes add.
+ * `PrepMinutes: 1 h 15 min` style durations. An explicit `TotalMinutes:`
+ * wins over `prep + cook` in [RecipeKeeperParser]. A `Notes:` line that
+ * merely repeats a sentence already present in a step is dropped (models
+ * like to echo "do not overbake" style advice).
  */
 internal object RecipeLineGrammar {
 
@@ -70,7 +73,13 @@ internal object RecipeLineGrammar {
     }
 
     private val bullet = Regex("^\\s*[-*•–·]\\s+(.*?)\\s*$")
-    private val numbered = Regex("^\\s*(?:Step\\s*)?\\d{1,3}\\s*[.):]\\s*(.*?)\\s*$", RegexOption.IGNORE_CASE)
+
+    /**
+     * `1.`, `1)`, `1:`, `Step 1:` list markers. A dot that is directly
+     * followed by a digit is a decimal point, not a marker: `250.0g potatoes`
+     * and `2.5 cups flour` are quantities, `2.Preheat…` is still step 2.
+     */
+    private val numbered = Regex("^\\s*(?:Step\\s*)?\\d{1,3}\\s*(?:[):]|\\.(?!\\d))\\s*(.*?)\\s*$", RegexOption.IGNORE_CASE)
     private val bareNumber = Regex("^\\s*(?:Step\\s*)?\\d{1,3}\\s*[.):]?\\s*$", RegexOption.IGNORE_CASE)
     private val markdownDecor = Regex("^[*_`]+|[*_`]+$")
 
@@ -115,7 +124,7 @@ internal object RecipeLineGrammar {
                             target += value
                         }
                     }
-                    Section.NOTES -> if (value.isNotBlank()) notes.append(value)
+                    Section.NOTES -> if (value.isNotBlank() && !duplicatesStep(value, steps)) notes.append(value)
                     Section.NONE -> Unit
                 }
                 continue
@@ -125,7 +134,7 @@ internal object RecipeLineGrammar {
                 Section.INGREDIENTS -> addListItem(line, ingredients, allowNumbered = true)
                 Section.STEPS -> addListItem(line, steps, allowNumbered = true)
                 Section.DESCRIPTION -> appendText(description, line)
-                Section.NOTES -> appendText(notes, undecorate(line))
+                Section.NOTES -> undecorate(line).let { note -> if (!duplicatesStep(note, steps)) appendText(notes, note) }
                 Section.TITLE -> if (title.isNullOrBlank()) title = undecorate(line)
                 Section.SERVINGS -> if (servings.isNullOrBlank()) servings = undecorate(line)
                 Section.PREP -> if (prep == null) prep = parseMinutes(line)
@@ -185,6 +194,21 @@ internal object RecipeLineGrammar {
     private fun stripNumber(text: String): String =
         numbered.matchEntire(text)?.groupValues?.get(1) ?: text
 
+    /**
+     * `true` when [note] (bullet/number stripped, punctuation and case
+     * ignored, at least three words) is contained in one of [steps].
+     */
+    private fun duplicatesStep(note: String, steps: List<String>): Boolean {
+        val needle = normaliseForCompare(note.replace(listMarker, ""))
+        if (needle.isEmpty() || needle.count { it == ' ' } < 2) return false
+        return steps.any { normaliseForCompare(it).contains(needle) }
+    }
+
+    private val listMarker = Regex("^\\s*(?:[-*•–·]|(?:Step\\s*)?\\d{1,3}\\s*(?:[):]|\\.(?!\\d)))\\s*", RegexOption.IGNORE_CASE)
+    private val nonWord = Regex("[^\\p{L}\\p{N}]+")
+
+    private fun normaliseForCompare(text: String): String = text.lowercase().replace(nonWord, " ").trim()
+
     private fun appendText(builder: StringBuilder, line: String) {
         val text = line.trim()
         if (text.isBlank()) return
@@ -196,30 +220,62 @@ internal object RecipeLineGrammar {
 
     /**
      * "45" → 45, "45 minutes" → 45, "1 hour 15 min" → 75, "1h30" → 90,
-     * "PT1H30M" → 90, "about 20-25 min" → 25 (ranges → max). `null` when no
-     * number is present or the value is "unknown"/"N/A".
+     * "PT1H30M" → 90, "about 20-25 min" → 25, "1-1¼ hours" → 75, "1½ h" → 90
+     * (ranges → max; vulgar fractions and `1 1/4` mixed numbers are
+     * normalised to decimals first). `null` when no number is present or
+     * the value is "unknown"/"N/A".
      */
     fun parseMinutes(value: String): Int? {
-        val text = value.trim().lowercase()
-        if (text.isEmpty()) return null
-        if (text.startsWith("pt") || text.startsWith("p0d") || text.startsWith("p") && text.contains('t')) {
-            val h = Regex("(\\d+)h").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-            val m = Regex("(\\d+)m").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-            val d = Regex("p(\\d+)d").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val raw = value.trim().lowercase()
+        if (raw.isEmpty()) return null
+        if (raw.startsWith("pt") || raw.startsWith("p0d") || raw.startsWith("p") && raw.contains('t')) {
+            val h = Regex("(\\d+)h").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val m = Regex("(\\d+)m").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val d = Regex("p(\\d+)d").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: 0
             return (d * 24 * 60 + h * 60 + m).takeIf { it > 0 }
         }
-        val hours = Regex("(\\d+(?:[.,]\\d+)?)\\s*(?:hours?|hrs?|h(?=\\s|\\d|$)|std|stunden?|horas?|heures?|ora|ore)").find(text)
-        val mins = Regex("(\\d+)\\s*(?:m\\b|min|mins|minute|minutes|minuto|minutos|minuti)").find(text)
+        val text = normaliseFractions(raw)
+        val hourUnit = "(?:hours?|hrs?|h(?=\\s|\\d|$)|std|stunden?|horas?|heures?|ora|ore)"
+        val minuteUnit = "(?:m\\b|min|mins|minute|minutes|minuto|minutos|minuti)"
+        // Every "<number> <unit>" occurrence; a range ("1-1.25 hours", "20-25 min") keeps the largest.
+        val hours = Regex("(\\d+(?:[.,]\\d+)?)\\s*$hourUnit").findAll(text)
+            .mapNotNull { it.groupValues[1].replace(',', '.').toDoubleOrNull() }.maxOrNull()
+        val mins = Regex("(\\d+)\\s*$minuteUnit").findAll(text)
+            .mapNotNull { it.groupValues[1].toIntOrNull() }.maxOrNull()
         if (hours != null || mins != null) {
-            val h = hours?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull() ?: 0.0
-            val m = mins?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val h = hours ?: 0.0
+            val m = mins ?: 0
             // "1h30" with no unit on the minutes part
             val compact = Regex("(\\d+)\\s*h\\s*(\\d{1,2})\\b").find(text)
             val m2 = if (mins == null && compact != null) compact.groupValues[2].toInt() else 0
             return Math.round(h * 60).toInt().plus(m).plus(m2).takeIf { it > 0 }
         }
         // Bare numbers (possibly a range): take the largest.
-        val numbers = Regex("\\d+").findAll(text).mapNotNull { it.value.toIntOrNull() }.toList()
-        return numbers.maxOrNull()?.takeIf { it > 0 }
+        val numbers = Regex("\\d+(?:\\.\\d+)?").findAll(text).mapNotNull { it.value.toDoubleOrNull() }.toList()
+        return numbers.maxOrNull()?.let { Math.round(it).toInt() }?.takeIf { it > 0 }
     }
+
+    private val vulgarFractions = mapOf('¼' to 0.25, '½' to 0.5, '¾' to 0.75, '⅓' to 1.0 / 3, '⅔' to 2.0 / 3, '⅛' to 0.125)
+
+    /**
+     * `1¼` / `1 ½` → `1.25` / `1.5`, `½` → `0.5`, `1 1/4` → `1.25`, `1/2` → `0.5`,
+     * so the unit regexes only ever see decimals.
+     */
+    internal fun normaliseFractions(text: String): String {
+        var t = Regex("(\\d+)\\s*([¼½¾⅓⅔⅛])").replace(text) { m ->
+            decimal(m.groupValues[1].toInt() + vulgarFractions.getValue(m.groupValues[2][0]))
+        }
+        t = Regex("[¼½¾⅓⅔⅛]").replace(t) { m -> decimal(vulgarFractions.getValue(m.value[0])) }
+        t = Regex("(\\d+)\\s+(\\d+)/(\\d+)").replace(t) { m ->
+            val den = m.groupValues[3].toInt()
+            if (den == 0) m.value else decimal(m.groupValues[1].toInt() + m.groupValues[2].toInt().toDouble() / den)
+        }
+        t = Regex("(?<![\\d.])(\\d+)/(\\d+)").replace(t) { m ->
+            val den = m.groupValues[2].toInt()
+            if (den == 0) m.value else decimal(m.groupValues[1].toInt().toDouble() / den)
+        }
+        return t
+    }
+
+    private fun decimal(value: Double): String = "%.3f".format(java.util.Locale.ROOT, value).trimEnd('0').trimEnd('.')
 }

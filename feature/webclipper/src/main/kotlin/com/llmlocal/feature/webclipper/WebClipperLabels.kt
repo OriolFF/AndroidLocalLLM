@@ -68,6 +68,7 @@ data class WebClipperLabels(
     val phasePictures: String = "Saving pictures",
     val phaseSaving: String = "Saving to library",
     val extractingHint: String = "Running on your phone — this takes a moment",
+    val extractedWithoutModel: String = "Read directly from the page's recipe data",
     val elapsedTemplate: (Int) -> String = { s -> "${s}s" },
     val keepAppOpenHint: String = "Keep the app open until it finishes",
     val keepPicture: String = "Keep this picture",

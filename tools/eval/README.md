@@ -52,7 +52,9 @@ Run it whenever the prompt, the renderer, the parser, a fixture or the model cha
    to `src/test/resources/eval/outputs/`. Commit them.
 3. **Parser test** (no model, runs in CI): parses every committed golden with
    `RecipeKeeperParser` + `RecipeKeeperDraftParser` (every prefix monotonic),
-   applies the quality bar (title, ≥ 3 ingredients, ≥ 2 steps, ingredient count
+   applies `RecipeKeeperClipConfig.accept` like the ViewModel does (a
+   whole-page result needs ≥ 2 quantity ingredients; `NO RECIPE` parses to
+   null), applies the quality bar (title, ≥ 3 ingredients, ≥ 2 steps, ingredient count
    within ±20 % of JSON-LD, servings/time present when the source has them,
    no unexpected section headers, Jaccard ≥ 0.8 vs `SchemaOrgRecipeMapper`
    for STRUCTURED fixtures) and writes `app/recipekeeper/build/eval/report.md`.
