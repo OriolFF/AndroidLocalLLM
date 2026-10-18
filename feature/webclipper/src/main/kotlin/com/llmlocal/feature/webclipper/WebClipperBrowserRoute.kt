@@ -4,7 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.SnackbarHostState
@@ -149,7 +149,7 @@ private fun shareText(context: Context, text: String) {
 }
 
 private fun openExternal(context: Context, url: String) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    val intent = Intent(Intent.ACTION_VIEW, url.toUri())
     runCatching { context.startActivity(Intent.createChooser(intent, null)) }
 }
 

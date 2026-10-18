@@ -388,7 +388,6 @@ class ExtractionViewModel(
         if (session.activeExtraction.value == _state.value.candidate.id && _state.value.isRunning) {
             session.setActiveExtraction(null)
         }
-        super.onCleared()
     }
 
     companion object {

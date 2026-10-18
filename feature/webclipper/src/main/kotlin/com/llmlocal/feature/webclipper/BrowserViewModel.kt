@@ -336,7 +336,6 @@ class BrowserViewModel(
     override fun onCleared() {
         quickScanJob?.cancel()
         scanJob?.cancel()
-        super.onCleared()
     }
 
     companion object {

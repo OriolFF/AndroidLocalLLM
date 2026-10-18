@@ -43,8 +43,8 @@ fun <T : Any> WebClipperExtractionRoute(
     onSaved: (id: String) -> Unit,
     onCancelled: () -> Unit,
     onNavigateToModelManagement: () -> Unit,
-    snackbarHostState: SnackbarHostState? = null,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     val viewModel: ExtractionViewModel = koinViewModel(key = candidateId) {
         parametersOf(candidateId, config, sink, labels)

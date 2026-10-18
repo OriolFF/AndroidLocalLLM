@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
@@ -15,6 +16,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -141,7 +144,12 @@ class WebViewHolder(private val appContext: Context) {
             domStorageEnabled = true
             allowFileAccess = false
             allowContentAccess = false
-            safeBrowsingEnabled = true
+        }
+        // Safe Browsing is API 26+ on the platform; androidx.webkit gates it by WebView feature instead.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) {
+            WebSettingsCompat.setSafeBrowsingEnabled(settings, true)
+        }
+        settings.apply {
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             loadWithOverviewMode = true
             useWideViewPort = true
@@ -181,7 +189,8 @@ class WebViewHolder(private val appContext: Context) {
         }
 
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-            Log.w(TAG, "WebView renderer gone (crash=${detail.didCrash()}); recreating")
+            val crashed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) detail.didCrash() else null
+            Log.w(TAG, "WebView renderer gone (crash=$crashed); recreating")
             if (view === webView) recreate()
             return true
         }
