@@ -26,7 +26,9 @@ package com.llmlocal.recipekeeper.parser
  * `#`/`**` decoration, bullets `-`, `*`, `•`, `–`, steps as `1.`, `1)`,
  * `Step 1:` or bullets, continuation lines appended to the previous item,
  * `PrepMinutes: 1 h 15 min` style durations. An explicit `TotalMinutes:`
- * wins over `prep + cook` in [RecipeKeeperParser].
+ * wins over `prep + cook` in [RecipeKeeperParser]. A `Notes:` line that
+ * merely repeats a sentence already present in a step is dropped (models
+ * like to echo "do not overbake" style advice).
  */
 internal object RecipeLineGrammar {
 
@@ -122,7 +124,7 @@ internal object RecipeLineGrammar {
                             target += value
                         }
                     }
-                    Section.NOTES -> if (value.isNotBlank()) notes.append(value)
+                    Section.NOTES -> if (value.isNotBlank() && !duplicatesStep(value, steps)) notes.append(value)
                     Section.NONE -> Unit
                 }
                 continue
@@ -132,7 +134,7 @@ internal object RecipeLineGrammar {
                 Section.INGREDIENTS -> addListItem(line, ingredients, allowNumbered = true)
                 Section.STEPS -> addListItem(line, steps, allowNumbered = true)
                 Section.DESCRIPTION -> appendText(description, line)
-                Section.NOTES -> appendText(notes, undecorate(line))
+                Section.NOTES -> undecorate(line).let { note -> if (!duplicatesStep(note, steps)) appendText(notes, note) }
                 Section.TITLE -> if (title.isNullOrBlank()) title = undecorate(line)
                 Section.SERVINGS -> if (servings.isNullOrBlank()) servings = undecorate(line)
                 Section.PREP -> if (prep == null) prep = parseMinutes(line)
@@ -191,6 +193,21 @@ internal object RecipeLineGrammar {
 
     private fun stripNumber(text: String): String =
         numbered.matchEntire(text)?.groupValues?.get(1) ?: text
+
+    /**
+     * `true` when [note] (bullet/number stripped, punctuation and case
+     * ignored, at least three words) is contained in one of [steps].
+     */
+    private fun duplicatesStep(note: String, steps: List<String>): Boolean {
+        val needle = normaliseForCompare(note.replace(listMarker, ""))
+        if (needle.isEmpty() || needle.count { it == ' ' } < 2) return false
+        return steps.any { normaliseForCompare(it).contains(needle) }
+    }
+
+    private val listMarker = Regex("^\\s*(?:[-*•–·]|(?:Step\\s*)?\\d{1,3}\\s*(?:[):]|\\.(?!\\d)))\\s*", RegexOption.IGNORE_CASE)
+    private val nonWord = Regex("[^\\p{L}\\p{N}]+")
+
+    private fun normaliseForCompare(text: String): String = text.lowercase().replace(nonWord, " ").trim()
 
     private fun appendText(builder: StringBuilder, line: String) {
         val text = line.trim()

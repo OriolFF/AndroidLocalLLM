@@ -181,6 +181,34 @@ class RecipeKeeperParserTest {
     }
 
     @Test
+    fun `notes that repeat a step sentence are dropped, genuine notes stay`() {
+        val recipe = parser.parse(
+            """
+            Title: Cookies
+            Ingredients:
+            - 1 egg
+            Steps:
+            1. Bake for 9-11 minutes. Warning: DO NOT OVERBAKE. They'll be pale and puffy.
+            2. Let them cool. These should stay soft for many days if kept in an airtight container. I also like to freeze them.
+            Notes:
+            - These should stay soft for many days if kept in an airtight container.
+            - I also like to freeze them!
+            - Do not overbake to keep them soft.
+            Use salted butter.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.steps).hasSize(2)
+        assertThat(recipe.notes).isEqualTo("- Do not overbake to keep them soft. Use salted butter.")
+
+        val inline = parser.parse("Ingredients:\n- 1 egg\nSteps:\n1. Serve warm with cream.\nNotes: Serve warm with cream.\n")!!
+        assertThat(inline.notes).isNull()
+        // Short notes are never treated as duplicates of a step that happens to contain the words.
+        val short = parser.parse("Ingredients:\n- 1 egg\nSteps:\n1. Serve warm.\nNotes:\nServe warm.\n")!!
+        assertThat(short.notes).isEqualTo("Serve warm.")
+    }
+
+    @Test
     fun `NO RECIPE refusal returns null even when a format follows`() {
         assertThat(parser.parse("NO RECIPE")).isNull()
         assertThat(parser.parse("no recipe.\n")).isNull()

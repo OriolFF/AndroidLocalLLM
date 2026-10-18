@@ -41,6 +41,11 @@ internal object TextCleaner {
     /** [clean] and then flatten to one line. */
     fun oneLine(raw: String?): String = clean(raw).replace(Regex("\\s*\\n\\s*"), " ").trim()
 
+    private val trailingZero = Regex("(\\d+)\\.0(?!\\d)")
+
+    /** `250.0g` → `250g`, `Makes 10.0 items` → `Makes 10 items`; `0.05` and `6.75` are untouched. */
+    fun tidyNumbers(text: String): String = trailingZero.replace(text, "$1")
+
     /** URL without query / fragment, for de-duplication. */
     fun urlKey(url: String): String = url.substringBefore('#').substringBefore('?').trimEnd('/')
 

@@ -76,10 +76,10 @@ class SchemaOrgRecipeMapper(
     fun description(raw: JSONObject): String? =
         TextCleaner.oneLine(raw.optStringOrNull("description")).takeIf { it.isNotBlank() }
 
-    /** Ingredient lines, HTML stripped, blanks removed. */
+    /** Ingredient lines, HTML stripped, `250.0g` tidied to `250g`, blanks removed. */
     fun ingredients(raw: JSONObject): List<String> {
         val value = raw.opt("recipeIngredient") ?: raw.opt("ingredients") ?: return emptyList()
-        return flattenStrings(value).map { TextCleaner.oneLine(it) }.filter { it.isNotBlank() }
+        return flattenStrings(value).map { TextCleaner.tidyNumbers(TextCleaner.oneLine(it)) }.filter { it.isNotBlank() }
     }
 
     /** Instruction steps flattened from any of the schema.org shapes. */
@@ -98,10 +98,10 @@ class SchemaOrgRecipeMapper(
         return out.filter { TextCleaner.isHttpUrl(it) }.distinctBy { TextCleaner.urlKey(it) }
     }
 
-    /** `recipeYield` as display text ("4", "6 servings", "12 cookies"), or `null`. */
+    /** `recipeYield` as display text ("4", "6 servings", "12 cookies"; `10.0 items` → `10 items`), or `null`. */
     fun yieldText(raw: JSONObject): String? {
         val value = raw.opt("recipeYield") ?: raw.opt("yield") ?: return null
-        return yieldOf(value)?.takeIf { it.isNotBlank() }
+        return yieldOf(value)?.let { TextCleaner.tidyNumbers(it) }?.takeIf { it.isNotBlank() }
     }
 
     fun minutes(raw: JSONObject, key: String): Int? {
