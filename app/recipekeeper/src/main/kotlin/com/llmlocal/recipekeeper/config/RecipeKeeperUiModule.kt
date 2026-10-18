@@ -19,8 +19,7 @@ import org.koin.dsl.module
  * provides; installed next to it in `RecipeKeeperApp`.
  *
  *  - [PendingRecipeDeletes] — app-wide undo window for deletes.
- *  - [ModelStatusSource]   — TEMP shim over the selection / progress stores;
- *                            replaced by WS3's `ModelReadinessObserver` at merge.
+ *  - [ModelStatusSource]   — adapter over the shared `ModelReadinessObserver`.
  *  - [LibraryViewModel]    — no parameters.
  *  - [RecipeDetailViewModel] — `parametersOf(recipeId)` from `RecipeDetailRoute`.
  */

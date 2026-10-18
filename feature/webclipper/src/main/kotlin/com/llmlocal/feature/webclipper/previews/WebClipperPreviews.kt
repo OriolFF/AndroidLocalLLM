@@ -40,12 +40,12 @@ import com.llmlocal.feature.webclipper.mvi.Phase
 import com.llmlocal.feature.webclipper.mvi.PhaseStatus
 import com.llmlocal.feature.webclipper.mvi.PictureDraft
 import com.llmlocal.feature.webclipper.mvi.PictureStatus
-import com.llmlocal.feature.webclipper.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadiness
 import com.llmlocal.feature.webclipper.ui.CandidateSheetContent
 import com.llmlocal.feature.webclipper.ui.ClipFab
 import com.llmlocal.feature.webclipper.ui.NothingDetectedSheetContent
-import com.llmlocal.feature.webclipper.ui.SkeletonLine
-import com.llmlocal.feature.webclipper.ui.StreamingCursor
+import com.llmlocal.core.designsystem.component.SkeletonLine
+import com.llmlocal.core.designsystem.component.StreamingCursor
 import com.llmlocal.feature.webclipper.ui.WebClipperBrowserScreen
 import com.llmlocal.feature.webclipper.ui.WebClipperExtractionScreen
 import com.llmlocal.feature.webclipper.ui.label

@@ -11,7 +11,7 @@ import com.llmlocal.feature.webclipper.mvi.BrowserIntent
 import com.llmlocal.feature.webclipper.mvi.BrowserSheet
 import com.llmlocal.feature.webclipper.mvi.BrowserState
 import com.llmlocal.feature.webclipper.mvi.ClipFabState
-import com.llmlocal.feature.webclipper.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadiness
 import com.llmlocal.feature.webclipper.readiness.ReadinessSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel

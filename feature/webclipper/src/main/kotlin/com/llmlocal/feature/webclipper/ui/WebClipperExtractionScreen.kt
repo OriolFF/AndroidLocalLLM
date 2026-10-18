@@ -64,6 +64,11 @@ import com.llmlocal.feature.webclipper.mvi.ExtractionError
 import com.llmlocal.feature.webclipper.mvi.ExtractionIntent
 import com.llmlocal.feature.webclipper.mvi.ExtractionState
 import com.llmlocal.feature.webclipper.mvi.Phase
+import com.llmlocal.core.designsystem.component.PhaseItem
+import com.llmlocal.core.designsystem.component.PhaseProgress
+import com.llmlocal.core.designsystem.component.PhaseStatus as DsPhaseStatus
+import com.llmlocal.core.designsystem.component.SkeletonLine
+import com.llmlocal.core.designsystem.component.StreamingCursor
 import com.llmlocal.feature.webclipper.mvi.PhaseStatus
 import com.llmlocal.feature.webclipper.mvi.PictureDraft
 import com.llmlocal.feature.webclipper.mvi.PictureStatus
@@ -240,7 +245,7 @@ private fun PhaseList(state: ExtractionState, labels: WebClipperLabels, elapsedS
             phase == Phase.Pictures && status == PhaseStatus.Warning -> labels.picturesUnavailable
             else -> null
         }
-        PhaseItem(label = phaseLabel(phase, labels), status = status, detail = detail)
+        PhaseItem(label = phaseLabel(phase, labels), status = status.toDesign(), detail = detail)
     }
     PhaseProgress(items = items)
 }
@@ -399,7 +404,7 @@ private fun PictureTile(
                 modifier = Modifier.align(Alignment.Center),
             )
             PictureStatus.Pending, PictureStatus.Downloading -> {
-                SkeletonLine(modifier = Modifier.fillMaxSize(), height = 96.dp)
+                SkeletonLine(widthFraction = 1f, modifier = Modifier.fillMaxSize(), height = 96.dp)
                 CircularProgressIndicator(
                     modifier = Modifier
                         .size(20.dp)
@@ -455,4 +460,13 @@ fun phaseLabel(phase: Phase, labels: WebClipperLabels): String = when (phase) {
 private fun errorTitle(error: ExtractionError, labels: WebClipperLabels): String = when (error) {
     is ExtractionError.ModelFailed, ExtractionError.ModelMissing -> labels.modelFailedTitle
     is ExtractionError.ParseFailed -> labels.parseFailedTitle
+}
+
+/** The feature's MVI phase status maps 1:1 onto the design-system marker set. */
+private fun PhaseStatus.toDesign(): DsPhaseStatus = when (this) {
+    PhaseStatus.Pending -> DsPhaseStatus.Pending
+    PhaseStatus.Active -> DsPhaseStatus.Active
+    PhaseStatus.Done -> DsPhaseStatus.Done
+    PhaseStatus.Failed -> DsPhaseStatus.Failed
+    PhaseStatus.Warning -> DsPhaseStatus.Warning
 }

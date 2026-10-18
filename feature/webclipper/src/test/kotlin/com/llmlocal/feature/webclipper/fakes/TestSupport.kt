@@ -15,7 +15,7 @@ import com.llmlocal.feature.webclipper.ClipSink
 import com.llmlocal.feature.webclipper.WebClipConfig
 import com.llmlocal.feature.webclipper.capture.PageScanner
 import com.llmlocal.feature.webclipper.capture.PictureDownloader
-import com.llmlocal.feature.webclipper.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadiness
 import com.llmlocal.feature.webclipper.readiness.ReadinessSource
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope

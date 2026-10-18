@@ -3,7 +3,7 @@ package com.llmlocal.feature.webclipper.mvi
 import androidx.compose.runtime.Immutable
 import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.feature.webclipper.ClipCandidate
-import com.llmlocal.feature.webclipper.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadiness
 
 /**
  * Single source of truth for the browser screen (URL bar, WebView, clip
@@ -33,7 +33,7 @@ data class BrowserState(
     val fabExpanded: Boolean = true,
     val candidates: List<ClipCandidate> = emptyList(),
     val sheet: BrowserSheet = BrowserSheet.None,
-    // TEMP shim type: swap the import for WS3's `com.llmlocal.core.llm.readiness.ModelReadiness` at merge.
+    /** Shared model readiness from `:core:llm`; drives [fab] when no model is usable. */
     val readiness: ModelReadiness = ModelReadiness.Checking,
 )
 

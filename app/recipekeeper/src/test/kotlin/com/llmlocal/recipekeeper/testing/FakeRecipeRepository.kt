@@ -23,6 +23,10 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
     val current: List<ClippedRecipe>
         get() = rows.value.values.sortedByDescending { it.clippedAt }
 
+    /** Every stored recipe, including soft-deleted ones (used by the pipeline tests). */
+    val recipes: List<ClippedRecipe>
+        get() = rows.value.values.toList()
+
     override fun observeAll(): Flow<List<RecipeSummary>> =
         rows.map { map -> map.values.sortedByDescending { it.clippedAt }.map { it.toSummary() } }
 
@@ -34,7 +38,25 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
 
     override suspend fun delete(id: String) {
         deleteCalls += id
+        softDeleted -= id
         rows.update { it - id }
+    }
+
+    /** Ids hidden by [softDelete] but still present until [delete]/[purgeDeleted]. */
+    val softDeleted = mutableSetOf<String>()
+
+    override suspend fun softDelete(id: String) {
+        if (id in rows.value) softDeleted += id
+    }
+
+    override suspend fun restore(id: String) {
+        softDeleted -= id
+    }
+
+    override suspend fun purgeDeleted(olderThanMillis: Long): List<String> {
+        val ids = softDeleted.toList()
+        ids.forEach { delete(it) }
+        return ids
     }
 
     override suspend fun setChecked(id: String, checked: Set<Int>) {

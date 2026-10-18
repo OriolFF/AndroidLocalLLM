@@ -82,47 +82,4 @@ class TestDispatcherProvider(dispatcher: TestDispatcher = StandardTestDispatcher
     override val main: CoroutineDispatcher = dispatcher
 }
 
-/** In-memory [RecipeRepository] for sink / pipeline tests. */
-class FakeRecipeRepository : RecipeRepository {
-    private val store = MutableStateFlow<Map<String, ClippedRecipe>>(emptyMap())
-    private val deleted = mutableMapOf<String, Long>()
-    val upserts = mutableListOf<ClippedRecipe>()
-
-    val recipes: List<ClippedRecipe> get() = store.value.values.toList()
-
-    override fun observeAll(): Flow<List<RecipeSummary>> = store.map { map ->
-        map.values.filter { it.id !in deleted }.sortedByDescending { it.clippedAt }.map { it.summary() }
-    }
-
-    override fun observe(id: String): Flow<ClippedRecipe?> = store.map { it[id] }
-
-    override suspend fun upsert(recipe: ClippedRecipe) {
-        upserts += recipe
-        store.value = store.value + (recipe.id to recipe)
-    }
-
-    override suspend fun softDelete(id: String) { deleted[id] = System.currentTimeMillis() }
-
-    override suspend fun restore(id: String) { deleted.remove(id) }
-
-    override suspend fun delete(id: String) {
-        deleted.remove(id)
-        store.value = store.value - id
-    }
-
-    override suspend fun purgeDeleted(olderThanMillis: Long): List<String> {
-        val ids = deleted.filterValues { it < olderThanMillis }.keys.toList()
-        ids.forEach { delete(it) }
-        return ids
-    }
-
-    override suspend fun setChecked(id: String, checked: Set<Int>) {
-        store.value[id]?.let { upsert(it.copy(checkedIngredients = checked)) }
-    }
-
-    override fun search(query: String): Flow<List<RecipeSummary>> = observeAll().map { list ->
-        list.filter { it.title.contains(query, ignoreCase = true) }
-    }
-
-    private fun ClippedRecipe.summary() = RecipeSummary(id, title, sourceHost, totalMinutes, pictures.firstOrNull(), truncated, clippedAt)
-}
+// The shared in-memory RecipeRepository fake lives in FakeRecipeRepository.kt.

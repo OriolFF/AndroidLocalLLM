@@ -13,7 +13,8 @@ import com.llmlocal.feature.webclipper.capture.PageScanner
 import com.llmlocal.feature.webclipper.capture.PictureDownloader
 import com.llmlocal.feature.webclipper.capture.WebViewPageScanner
 import com.llmlocal.feature.webclipper.readiness.ReadinessSource
-import com.llmlocal.feature.webclipper.readiness.ShimModelReadinessObserver
+import com.llmlocal.feature.webclipper.readiness.asReadinessSource
+import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.Module
@@ -33,8 +34,7 @@ const val WEBCLIPPER_TEMP_DIR_QUALIFIER = "webclipper-temp-dir"
  * `WebClipConfig<T>` / `ClipSink<T>` / `WebClipperLabels`. The real engine
  * is resolved under [REAL_ENGINE_QUALIFIER].
  *
- * `ReadinessSource` is bound to the TEMP shim observer; at merge the lead
- * points it at WS3's `ModelReadinessObserver`.
+ * `ReadinessSource` adapts the shared `ModelReadinessObserver` from `:core:llm`.
  */
 val webClipperModule: Module = module {
     single { ClipSession() }
@@ -43,16 +43,7 @@ val webClipperModule: Module = module {
     single<PictureDownloader> { ImageDownloaderPictureDownloader(delegate = get()) }
     single(named(WEBCLIPPER_TEMP_DIR_QUALIFIER)) { File(androidContext().cacheDir, "webclipper") }
 
-    // TEMP shim: replaced by WS3's ModelReadinessObserver at merge.
-    single<ReadinessSource> {
-        ShimModelReadinessObserver(
-            selectionStore = get(),
-            progressStore = get(),
-            manager = get(),
-            engine = get(named(REAL_ENGINE_QUALIFIER)),
-            dispatchers = get(),
-        )
-    }
+    single<ReadinessSource> { get<ModelReadinessObserver>().asReadinessSource() }
 
     viewModel { params ->
         BrowserViewModel(

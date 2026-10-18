@@ -15,7 +15,7 @@ import com.llmlocal.feature.webclipper.mvi.BrowserEffect
 import com.llmlocal.feature.webclipper.mvi.BrowserIntent
 import com.llmlocal.feature.webclipper.mvi.BrowserSheet
 import com.llmlocal.feature.webclipper.mvi.ClipFabState
-import com.llmlocal.feature.webclipper.readiness.ModelReadiness
+import com.llmlocal.core.llm.readiness.ModelReadiness
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
