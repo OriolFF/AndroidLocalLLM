@@ -23,10 +23,11 @@ A **white-label Android template** for apps that run an **LLM on-device** to tur
 
 Everything else (LiteRT-LM engine, model catalog/download/selection, the generic MVI task screen, model-management screen, design-system primitives, WorkManager plumbing) lives in `:core:*` and `:feature:*` and is reused verbatim.
 
-Two demo apps ship and both build today:
+Three apps ship and all build today:
 
 - `:app:recipes` — ingredients → recipe. Package `com.llmlocal.recipe`, Application class `RecipeApp`.
 - `:app:medical` — symptoms → lifestyle/wellness advice with a mandatory disclaimer. Package `com.llmlocal.medical`, Application class `MedicalApp`.
+- `:app:recipekeeper` — **Recipe Keeper**, a recipe web clipper: in-app WebView browser, a floating "Clip recipe" button, on-device extraction of the recipe on the current page, pictures downloaded alongside it, Room library + detail screens. Package `com.llmlocal.recipekeeper`, Application class `RecipeKeeperApp`. It does **not** use `:feature:llm-task`; it uses `:feature:webclipper` + `:core:web`. Plan, UX spec and stream reports live in `docs/plans/`.
 
 ## Stack
 
@@ -39,7 +40,8 @@ Two demo apps ship and both build today:
 | DI | Koin 4.2.2, classic DSL, no KSP, no annotations |
 | Async | Coroutines + `Flow` |
 | Networking | OkHttp 5.5 — only for model download. `Response.body` is non-null in 5.x. |
-| Persistence | Preferences DataStore: `model_selection` and `model_download_progress`. Model files in `Context.filesDir/llm/`. |
+| Persistence | Preferences DataStore: `model_selection` and `model_download_progress`. Model files in `Context.filesDir/llm/`. Recipe Keeper additionally uses **Room 2.8.5** (KSP 2.3.12, via `llmlocal.android.room`) with pictures under `filesDir/recipes/<id>/`. |
+| Web | `androidx.webkit` 1.17.1 WebView + injected `capture.js`/Readability.js (`:core:web`); **Coil 3.6.3** for images (Recipe Keeper only). |
 | Background | WorkManager 2.12.0, `CoroutineWorker` promoted to a `dataSync` foreground service |
 | Tests | JUnit 4 + Truth + Turbine + `kotlinx-coroutines-test` |
 
@@ -52,12 +54,15 @@ Build: AGP 9.4.1 (needs Gradle ≥ 9.6), Kotlin 2.4.21, Gradle 9.8.1 (wrapper **
 ./gradlew assemble                          # every module, both apps
 ./gradlew :app:recipes:assembleDebug        # per-ABI split APKs under app/recipes/build/outputs/apk/debug/
 ./gradlew :app:medical:assembleDebug
+./gradlew :app:recipekeeper:assembleDebug
 ./gradlew :app:recipes:installDebug && adb shell am start -n com.llmlocal.recipe/.MainActivity
 ./gradlew :app:medical:installDebug && adb shell am start -n com.llmlocal.medical/.MainActivity
+./gradlew :app:recipekeeper:installDebug && adb shell am start -n com.llmlocal.recipekeeper/.MainActivity
 
 # Tests
 ./gradlew test                              # all modules
 ./gradlew :core:common:test                 # one module
+./gradlew :core:web:testDebugUnitTest :feature:webclipper:testDebugUnitTest :app:recipekeeper:testDebugUnitTest
 ./gradlew :core:common:test --tests "com.llmlocal.core.common.result.OutcomeTest"   # one class
 
 # Lint
@@ -65,14 +70,15 @@ Build: AGP 9.4.1 (needs Gradle ≥ 9.6), Kotlin 2.4.21, Gradle 9.8.1 (wrapper **
 
 # Module boundary check (must show no :feature → :app or :core → :feature edge)
 ./gradlew :feature:llm-task:dependencies --configuration releaseRuntimeClasspath
+./gradlew :feature:webclipper:dependencies --configuration releaseRuntimeClasspath
 ```
 
-**Test reality check:** the only test in the repo is `core/common/src/test/.../OutcomeTest.kt`. Parser, prompt-builder, repository and `LlmModelManager` tests do not exist yet; the per-app parsers (`RecipeParser`, `MedicalParser`) and `LlmTaskRepositoryImpl` are the obvious places to add them (`src/test/kotlin/` beside the code, pass a fake `LlmEngine` into `GenerateLlmTaskUseCase`). The LiteRT `Engine` itself needs native libs and is not unit-testable.
+**Test reality check:** unit tests exist for `:core:common` (`OutcomeTest`), `:core:domain` (engine default-method delegation), `:core:llm` (`FakeLlmEngine`, `ModelReadinessObserverTest`), `:core:web` (JSON-LD, durations, snapshot mapping, capture, downloader), `:feature:webclipper` (browser + extraction ViewModels, truncation heuristic) and `:app:recipekeeper` (schema mapper, parsers, clip config, pipeline round trip, library/detail ViewModels). The original `RecipeParser`/`MedicalParser` and `LlmTaskRepositoryImpl` still have none. `FakeLlmEngine` lives in `core/llm/src/test` (no test fixtures module); other modules copy it. The LiteRT `Engine` itself needs native libs and is not unit-testable. `org.json` is a stub on the JVM: tests touching `JSONObject` add `testImplementation(libs.org.json)`.
 
 ## Module layout & dependency direction
 
 ```
-:app:recipes, :app:medical         # composition roots — own tokens, config, labels, icon, manifest
+:app:recipes, :app:medical, :app:recipekeeper   # composition roots — own tokens, config, labels, icon, manifest
 :build-logic                       # included build with the convention plugins
 :core:common                       # DispatcherProvider, Outcome, FlowExt, commonModule
 :core:model                        # LlmModelDescriptor, ModelFamily — no domain types
@@ -83,15 +89,20 @@ Build: AGP 9.4.1 (needs Gradle ≥ 9.6), Kotlin 2.4.21, Gradle 9.8.1 (wrapper **
 :core:domain                       # PURE KOTLIN (kotlin-jvm plugin): LlmTaskConfig, PromptBuilder, TaskParser,
                                    #   LlmTaskEvent, LlmTaskRepository, GenerateLlmTaskUseCase
 :core:data                         # LlmTaskRepositoryImpl + dataModule
+:core:web                          # PageSnapshot/PageCapture (WebView + capture.js/Readability), JsonLdExtractor, IsoDuration,
+                                   #   ImageDownloader, webModule — brand-free page capture for clipper-style apps
 :feature:llm-task                  # generic MVI scaffold: LlmTaskViewModel/Route/Screen, LlmTaskLabels, input components
 :feature:modelmanagement           # MVI: ModelManagementViewModel/Route/Screen, ModelDownloadScheduler, WorkInfoObserver
+:feature:webclipper                # generic web clipper over WebClipConfig<T>/ClipSink<T>: WebViewHolder, Browser/Extraction
+                                   #   ViewModels + routes, ClipFab, candidate sheets, WebClipperLabels, webClipperModule
 ```
 
 Allowed edges (one-way):
 
 ```
-:app:*            → every :core:* and :feature:*     (added for you by the white-label-app plugin)
-:feature:*        → :core:designsystem/domain/model/common (feature plugin) + :core:llm, :core:data (declared per module)
+:app:*            → every :core:* and :feature:*     (added for you by the white-label-app plugin, incl. :core:web, :feature:webclipper)
+:feature:*        → :core:designsystem/domain/model/common (feature plugin) + :core:llm, :core:data, :core:web (declared per module)
+:core:web         → :core:common, :core:network, :core:model
 :core:data        → :core:domain, :core:llm, :core:model
 :core:llm         → api(:core:common, :core:model, :core:domain) + :core:network
 :core:domain      → :core:model, :core:common   (no Android, no Koin)
@@ -99,7 +110,7 @@ Allowed edges (one-way):
 
 `:core:llm` exposes `:core:common`, `:core:model` and `:core:domain` as `api(...)`, so anything depending on `:core:llm` sees those types without a direct edge. Everything else is `implementation(...)`.
 
-**`LlmEngine` / `LlmToken` are duplicated.** `:core:domain` must not depend on `:core:llm`, so it carries its own copies of `LlmEngine.kt` and `LlmToken.kt` in package `com.llmlocal.core.llm.engine`, and `:core:llm/engine/LiteRtLlmEngine.kt` implements that same interface. Change one, change the other.
+**`LlmEngine` / `LlmToken` / `LlmRequest` live in `:core:domain`** (package `com.llmlocal.core.llm.engine`, because `:core:domain` must not depend on `:core:llm`); `:core:llm/engine/LiteRtLlmEngine.kt` implements that interface. There is only one copy. `LlmEngine.generateStream(request: LlmRequest)` is the real method; `generateStream(prompt: String)` is a default method delegating to it. `LlmRequest` carries `systemInstruction`, `maxOutputTokens`, `jsonSchema` (constrained decoding) and `temperature`; **no image input by design** (Recipe Keeper stores pictures, it never sends them to the model).
 
 **Project deps are written as `project(":core:llm")` strings**, both in convention plugins and in module `build.gradle.kts` files. `enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")` is on in `settings.gradle.kts` (so `projects.core.llm` would also resolve) but nothing uses it yet; follow the existing string style for consistency and don't remove the flag.
 
@@ -111,7 +122,7 @@ Allowed edges (one-way):
 - `llmlocal.android.feature` — library + compose + koin + designsystem/domain/model/common + lifecycle/viewmodel + tooling. Used by `:feature:*`.
 - `llmlocal.android.white-label-app` — application + compose + koin + **every** `:core:*`/`:feature:*` + navigation/work/lifecycle + per-ABI splits (`arm64-v8a`, `x86_64`, `armeabi-v7a`, `x86`, plus a universal APK). **Use this for every `:app:<name>`**; the module's own `build.gradle.kts` then only sets `namespace`, `applicationId`, version, and release proguard.
 - `llmlocal.android.application` — raw app plugin used by white-label-app; not applied directly
-- `llmlocal.android.room` — empty stub
+- `llmlocal.android.room` — applies KSP + the Room Gradle plugin, adds `room-runtime` + `ksp(room-compiler)`, `schemaDirectory("$projectDir/schemas")`. Used by `:app:recipekeeper` (commit the generated `schemas/**/N.json`). The root `build.gradle.kts` must keep `alias(libs.plugins.androidx.room) apply false` or the convention plugin cannot see the Room classes.
 
 SDK constants live in `build-logic/convention/src/main/kotlin/com/llmlocal/convention/AndroidConfig.kt`.
 
@@ -167,7 +178,17 @@ app/recipes/src/main/kotlin/com/llmlocal/recipe/
 5. Point `MainActivity` and the screen wrapper at the new values. `Application.onCreate` stays the same except for the per-app config module.
 6. `./gradlew :app:<name>:assembleDebug`. No shared module changes.
 
-If an app needs UX the generic `LlmTaskScreen` can't express, write a new `:feature:<x>` that reuses `GenerateLlmTaskUseCase` + `LlmTaskConfig<T>`.
+If an app needs UX the generic `LlmTaskScreen` can't express, write a new `:feature:<x>` that reuses `GenerateLlmTaskUseCase` + `LlmTaskConfig<T>`. `:feature:webclipper` is the worked example: the app supplies a `WebClipConfig<T>` (detect candidates on a `PageSnapshot`, render the LLM input, deterministic fallback, picture ranking), a `ClipSink<T>` (persistence), `WebClipperLabels`, and a `renderDraft` composable for the streaming skeleton; see `app/recipekeeper/.../clip/`, `MainActivity.kt` and `docs/plans/recipekeeper-app-plan.md`.
+
+### Recipe Keeper pipeline (`:app:recipekeeper` + `:feature:webclipper` + `:core:web`)
+
+1. `WebViewHolder` owns one application-context `WebView`; after `onPageFinished`, `BrowserViewModel` runs a cheap `quickScanStructured` (JSON-LD/microdata count) to badge the FAB.
+2. Tap → `PageCapture.capture()` injects Readability.js + `capture.js` via `evaluateJavascript` (the IIFE returns an object, so the result is single-encoded JSON) → `PageSnapshot` (JSON-LD nodes, readable text, heading sections, images with layout data, OG tags).
+3. `RecipeKeeperClipConfig.detect`: Tier A = schema.org `Recipe` nodes → STRUCTURED candidates; Tier B = heading/ingredient-regex heuristics → TEXT candidates; else WholePage. One candidate → extraction; several → `CandidateSheet`.
+4. `ExtractionViewModel` renders the candidate (compact JSON-LD fields or trimmed section text, ≤ `budgetChars` = 9,000 chars) and runs `GenerateLlmTaskUseCase(..., LlmRequestOptions(systemInstruction = true, maxOutputTokens = 1024, temperature = 0.2))`; pictures are picked by heuristics (`pickPictures`) and downloaded in parallel with `ImageDownloader`. Parse failure on a STRUCTURED candidate falls back to `SchemaOrgRecipeMapper`.
+5. `RecipeKeeperClipSink.save` moves pictures to `filesDir/recipes/<id>/` and upserts into Room; the route navigates to the detail screen.
+
+Model readiness for non-`LlmTask` screens comes from `:core:llm/readiness/ModelReadinessObserver` (`observe(scope): StateFlow<ModelReadiness>`); `LlmTaskViewModel` delegates to it too. Recipe Keeper has **no one-tap default download**: every "no model" state navigates to the shared model-management screen.
 
 ## Generation pipeline (the non-obvious core)
 
@@ -180,8 +201,8 @@ If an app needs UX the generic `LlmTaskScreen` can't express, write a new `:feat
 
 `LiteRtLlmEngine`:
 - `initialize()` is idempotent via `AtomicReference<Engine?>`; it fails `Outcome.Failure` if the model file is missing or under 1 MB.
-- `generateStream` opens a fresh `Conversation` per call under a `Mutex` (LiteRT-LM can't run concurrent conversations on one engine) and closes it in `finally`.
-- **`cancel()` is a no-op.** Cancellation works because the ViewModel cancels the collecting coroutine; the engine just stops being collected.
+- `generateStream` opens a fresh `Conversation` per call under a `Mutex` (LiteRT-LM can't run concurrent conversations on one engine) and closes it in `finally`. `EngineConfig.maxNumTokens` is set explicitly (default 4096); `ConversationConfig.maxOutputToken`, `systemInstruction` and `enableResponseFormat`/`ResponseFormat.json` come from the `LlmRequest`.
+- **`cancel()` is real**: it calls `Conversation.cancelProcess()` on the live conversation, and the flow also cancels native compute when the collector is cancelled (LiteRT-LM's own `callbackFlow` has an empty `awaitClose`, so collector cancellation alone never stopped inference). A cancelled stream completes without a terminal token.
 - Backend comes from `BuildConfig.LLM_BACKEND` in `core/llm/build.gradle.kts`, **per build type**: `debug` → `"CPU"`, `release` → `"GPU"`. So a debug build on a real phone also runs on CPU. The emulator's x86_64 GPU/NPU paths fail, which is why debug is CPU.
 - Registered in `llmModule` as `single(named(REAL_ENGINE_QUALIFIER)) { LiteRtLlmEngine(...) } bind LlmEngine::class`; the `bind` is required or `get<LlmEngine>(named(...))` fails at runtime. A fake engine goes under a different qualifier.
 
@@ -202,7 +223,9 @@ If an app needs UX the generic `LlmTaskScreen` can't express, write a new `:feat
 - **No resumable downloads.** The `.part` file is deleted on cancel/failure; a retry starts from zero. HTTP `Range` support is not implemented. Flag it if a multi-GB model makes this painful.
 - **`LlmTaskViewModel` must react to download completion, not just selection.** For a fresh install the default model is already "selected", so `selectedModelId` emits once and never again when the user downloads that model. `observeSelection()` therefore `flatMapLatest`s into `progressStore.progressFor(selectedId)` and re-runs `CheckModel` when the state is `null` or `SUCCEEDED`. Without this the task screen stays on `NoModelAvailable` after the download finishes.
 - **Per-ABI splits are on** because LiteRT-LM ships ~25–30 MB of native code per ABI. `:core:llm` additionally filters NDK ABIs to `arm64-v8a`, `armeabi-v7a`, `x86_64`.
-- **Some copy is still hardcoded in shared code** and bypasses the labels system: `ModelManagementViewModel`'s snackbars ("… selected for recipe generation", "… removed", "… is not downloaded yet.") and `ModelDownloadWorker`'s notification titles. Move them into `ModelManagementLabels` if a non-recipe app needs them right.
+- **Remaining hardcoded copy in shared code:** `ModelDownloadWorker`'s notification titles and `DownloadProgressBar`'s "s left"/"m left". The model-management snackbars now come from `ModelManagementLabels` (`modelSelectedSnackbar`, `modelRemovedSnackbar`, `modelNotDownloadedSnackbar`; the ViewModel receives labels via `parametersOf`). `AppErrorView` only renders its button when `retryLabel` is passed.
+- **Shared streaming primitives** live in `:core:designsystem/component`: `PhaseProgress`/`PhaseItem`/`PhaseStatus`, `StreamingText`/`StreamingCursor`, `SkeletonLine`, `SectionHeader` (optional `trailing` slot), `NumberBadge` (`selected`). Don't re-create them in an app.
+- **WebView gotchas (`:core:web`, `:feature:webclipper`):** `evaluateJavascript` returns JSON-encoded results (`undefined` arrives as the string `"null"`); the WebView must be held with the application context and its lifecycle driven explicitly, never held by a ViewModel with an Activity context; the shared emulator image is arm64 with ~220 MB free, so `installDebug` fails — use `adb install -r` of the arm64 split, and no 2.6 GB model fits on it (device QA of the LLM step needs a real phone).
 - `.gitignore` excludes `**/files/llm/` and `**/cache/llm/`; models are always re-downloaded from HuggingFace on a fresh install.
 
 ## Key file locations
@@ -213,8 +236,12 @@ If an app needs UX the generic `LlmTaskScreen` can't express, write a new `:feat
 - Selection: `core/llm/src/main/kotlin/com/llmlocal/core/llm/selection/LlmModelSelectionStore.kt`
 - LLM DI + backend switch: `core/llm/src/main/kotlin/com/llmlocal/core/llm/di/LlmModule.kt`, `core/llm/build.gradle.kts`
 - Domain contracts: `core/domain/src/main/kotlin/com/llmlocal/core/domain/task/{PromptBuilder,TaskParser,LlmTaskConfig}.kt`
-- Repository: `core/data/src/main/kotlin/com/llmlocal/core/data/repository/LlmTaskRepositoryImpl.kt`
+- Repository: `core/data/src/main/kotlin/com/llmlocal/core/data/repository/LlmTaskRepositoryImpl.kt` (`LlmRequestOptions` + `LlmTaskParseException` in `core/domain/.../repository/LlmTaskRepository.kt`)
+- Model readiness: `core/llm/src/main/kotlin/com/llmlocal/core/llm/readiness/{ModelReadiness,ModelReadinessObserver}.kt`
+- Page capture: `core/web/src/main/kotlin/com/llmlocal/core/web/{PageSnapshot,PageCapture,WebViewPageCapture,JsonLdExtractor,IsoDuration,ImageDownloader}.kt`, JS in `core/web/src/main/assets/webclipper/`
+- Web clipper: `feature/webclipper/src/main/kotlin/com/llmlocal/feature/webclipper/{WebClipConfig,ClipSink,BrowserViewModel,ExtractionViewModel,WebViewHolder}.kt`, `ui/`, `mvi/`, `di/WebClipperModule.kt`
+- Recipe Keeper: `app/recipekeeper/src/main/kotlin/com/llmlocal/recipekeeper/{clip,parser,prompt,data,library,detail}/`, `MainActivity.kt`; plan + reports under `docs/plans/`
 - Generic task MVI: `feature/llm-task/src/main/kotlin/com/llmlocal/feature/llmtask/{LlmTaskViewModel,LlmTaskRoute,LlmTaskScreen}.kt` and `mvi/`
 - Model management: `feature/modelmanagement/src/main/kotlin/com/llmlocal/feature/modelmanagement/`
 - Design tokens contract: `core/designsystem/src/main/kotlin/com/llmlocal/core/designsystem/theme/{Tokens,Theme}.kt`
-- App wiring examples: `app/recipes/src/main/kotlin/com/llmlocal/recipe/{RecipeApp,MainActivity,RecipeScreen}.kt`, `app/medical/src/main/kotlin/com/llmlocal/medical/`
+- App wiring examples: `app/recipes/src/main/kotlin/com/llmlocal/recipe/{RecipeApp,MainActivity,RecipeScreen}.kt`, `app/medical/src/main/kotlin/com/llmlocal/medical/`, `app/recipekeeper/src/main/kotlin/com/llmlocal/recipekeeper/{RecipeKeeperApp,MainActivity}.kt`
