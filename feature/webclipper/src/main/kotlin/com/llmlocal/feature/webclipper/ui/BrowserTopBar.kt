@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -195,16 +196,26 @@ private fun UrlTextField(
     val scheme = MaterialTheme.colorScheme
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     var value by remember {
         mutableStateOf(TextFieldValue(state.draftUrl, selection = TextRange(0, state.draftUrl.length)))
     }
+    // `onFocusChanged` also fires with the initial *Inactive* state when the
+    // field attaches; without this guard that first event would dismiss the
+    // field before `requestFocus()` below ever ran (device QA finding 1).
+    var hadFocus by remember { mutableStateOf(false) }
     // Keep the field in sync when the ViewModel changes the draft (e.g. focus → full URL).
     LaunchedEffect(state.draftUrl) {
         if (value.text != state.draftUrl) {
             value = TextFieldValue(state.draftUrl, selection = TextRange(0, state.draftUrl.length))
         }
     }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        // Focus alone does not open the IME when the window itself is still
+        // gaining focus (first frame of the screen), so ask explicitly.
+        keyboard?.show()
+    }
 
     BasicTextField(
         value = value,
@@ -243,7 +254,11 @@ private fun UrlTextField(
             .fillMaxWidth()
             .focusRequester(focusRequester)
             .onFocusChanged { focus ->
-                if (!focus.isFocused && state.urlFocused) onIntent(BrowserIntent.UrlFocusChanged(false))
+                if (focus.isFocused) {
+                    hadFocus = true
+                } else if (hadFocus && state.urlFocused) {
+                    onIntent(BrowserIntent.UrlFocusChanged(false))
+                }
             }
             .semantics { contentDescription = labels.urlFieldDescription },
     )
