@@ -3,6 +3,7 @@ package com.llmlocal.feature.webclipper.mvi
 import androidx.compose.runtime.Immutable
 import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.readiness.ModelReadiness
 
 /**
  * Single source of truth for the browser screen (URL bar, WebView, clip
@@ -16,7 +17,7 @@ import com.llmlocal.feature.webclipper.ClipCandidate
  * @property fabExpanded extended (label visible) vs. collapsed on scroll
  * @property candidates what the last scan found on this page
  * @property sheet which bottom sheet is open
- * @property readiness model readiness from `:core:llm`
+ * @property readiness model readiness (drives [ClipFabState.ModelNotReady])
  */
 @Immutable
 data class BrowserState(
@@ -32,8 +33,8 @@ data class BrowserState(
     val fabExpanded: Boolean = true,
     val candidates: List<ClipCandidate> = emptyList(),
     val sheet: BrowserSheet = BrowserSheet.None,
-    // TODO WS3: ModelReadiness — typed as Any? until :core:llm/readiness lands.
-    val readiness: Any? = null,
+    // TEMP shim type: swap the import for WS3's `com.llmlocal.core.llm.readiness.ModelReadiness` at merge.
+    val readiness: ModelReadiness = ModelReadiness.Checking,
 )
 
 /** What the clip button renders; see UX spec §2 for icon / label / tap per state. */

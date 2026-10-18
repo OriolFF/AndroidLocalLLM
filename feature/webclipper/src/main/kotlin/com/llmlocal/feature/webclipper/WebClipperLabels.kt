@@ -28,6 +28,7 @@ data class WebClipperLabels(
     val linkCopied: String = "Link copied",
     val searchUrlTemplate: (String) -> String = { q -> "https://duckduckgo.com/?q=${Uri.encode(q)}" },
     val pageLoadError: String = "This page couldn't be loaded",
+    val scanFailed: String = "Couldn't read this page",
 
     // Clip button
     val fabClip: String = "Clip recipe",

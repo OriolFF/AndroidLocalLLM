@@ -1,9 +1,12 @@
 package com.llmlocal.core.data.repository
 
 import com.llmlocal.core.domain.model.LlmTaskEvent
+import com.llmlocal.core.domain.repository.LlmRequestOptions
+import com.llmlocal.core.domain.repository.LlmTaskParseException
 import com.llmlocal.core.domain.repository.LlmTaskRepository
 import com.llmlocal.core.domain.task.LlmTaskConfig
 import com.llmlocal.core.llm.engine.LlmEngine
+import com.llmlocal.core.llm.engine.LlmRequest
 import com.llmlocal.core.llm.engine.LlmToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -35,16 +38,12 @@ class LlmTaskRepositoryImpl : LlmTaskRepository {
         engine: LlmEngine,
         config: LlmTaskConfig<T>,
         inputs: List<String>,
+        options: LlmRequestOptions,
     ): Flow<LlmTaskEvent<T>> {
-        val prompt = buildString {
-            append(config.promptBuilder.systemPrompt())
-            append("\n\n")
-            append(config.promptBuilder.userPrompt(inputs))
-        }
-
+        val request = buildRequest(options, config, inputs)
         val buffer = StringBuilder()
 
-        return engine.generateStream(prompt)
+        return engine.generateStream(request)
             .transform { token ->
                 when (token) {
                     is LlmToken.Partial -> {
@@ -56,14 +55,7 @@ class LlmTaskRepositoryImpl : LlmTaskRepository {
                         if (parsed != null) {
                             emit(LlmTaskEvent.Complete(parsed))
                         } else {
-                            emit(
-                                LlmTaskEvent.Failed(
-                                    IllegalStateException(
-                                        "Parser returned null for completed stream. " +
-                                            "Expected at least a partial result.",
-                                    ),
-                                ),
-                            )
+                            emit(LlmTaskEvent.Failed(LlmTaskParseException(buffer.toString())))
                         }
                     }
                     is LlmToken.Error -> {
@@ -72,5 +64,46 @@ class LlmTaskRepositoryImpl : LlmTaskRepository {
                 }
             }
             .catch { e -> emit(LlmTaskEvent.Failed(e)) }
+    }
+}
+
+/**
+ * Map a [LlmTaskConfig]'s prompt halves + [LlmRequestOptions] onto a
+ * single [LlmRequest]. Two modes:
+ *
+ *  - **SystemInstruction = true** (modern: clipper): the prompt builder's
+ *    `systemPrompt()` becomes a separate `systemInstruction` turn;
+ *    `userPrompt(inputs)` is the user turn. Token/sampling knobs apply.
+ *  - **SystemInstruction = false** (legacy: `:app:recipes`,
+ *    `:app:medical`): the halves are concatenated into one user prompt.
+ *    The existing parsers were tuned on this exact shape, so producing it
+ *    is mandatory for those callers.
+ */
+private fun <T> buildRequest(
+    options: LlmRequestOptions,
+    config: LlmTaskConfig<T>,
+    inputs: List<String>,
+): LlmRequest {
+    val system = config.promptBuilder.systemPrompt()
+    val user = config.promptBuilder.userPrompt(inputs)
+    return if (options.systemInstruction) {
+        LlmRequest(
+            prompt = user,
+            systemInstruction = system,
+            maxOutputTokens = options.maxOutputTokens,
+            jsonSchema = options.jsonSchema,
+            temperature = options.temperature,
+        )
+    } else {
+        LlmRequest(
+            prompt = buildString {
+                append(system)
+                append("\n\n")
+                append(user)
+            },
+            maxOutputTokens = options.maxOutputTokens,
+            jsonSchema = options.jsonSchema,
+            temperature = options.temperature,
+        )
     }
 }

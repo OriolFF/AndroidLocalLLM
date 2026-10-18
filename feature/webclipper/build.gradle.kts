@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":core:web"))
 
     implementation(libs.androidx.webkit)
+    implementation(libs.coil.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
