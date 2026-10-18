@@ -74,6 +74,9 @@ val llmModule: Module = module {
                     ?: LlmModelCatalog.DEFAULT_MODEL
                 manager.targetFile(descriptor)
             },
+            // Total context window (prompt + output). Explicit so memory use is
+            // predictable; LiteRT-LM clamps it to the bundle's static limit.
+            maxNumTokens = LiteRtLlmEngine.DEFAULT_MAX_NUM_TOKENS,
             backend = buildBackend(BuildConfig.LLM_BACKEND),
         )
     } bind LlmEngine::class
