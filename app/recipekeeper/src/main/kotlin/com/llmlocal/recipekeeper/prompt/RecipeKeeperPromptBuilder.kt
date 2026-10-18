@@ -31,6 +31,7 @@ class RecipeKeeperPromptBuilder : PromptBuilder {
             Servings: <as written on the page, optional>
             PrepMinutes: <integer minutes, optional>
             CookMinutes: <integer minutes, optional>
+            TotalMinutes: <integer minutes, optional>
             Ingredients:
             - <one ingredient per line, with its quantity exactly as the page writes it>
             Steps:
@@ -38,7 +39,7 @@ class RecipeKeeperPromptBuilder : PromptBuilder {
             Notes:
             <short tips from the page, optional>
 
-            Rules: keep ingredient lines exactly as quantities appear. Do not invent ingredients or steps that are not on the page. Do not add commentary, headings or Markdown. If a field is unknown, omit that line entirely. If the page has several recipes, extract only the one the text focuses on.
+            Rules: keep ingredient lines exactly as quantities appear. Do not invent ingredients or steps that are not on the page. Copy the page's total time into TotalMinutes; if the page gives only a total, do not split it into PrepMinutes and CookMinutes. Do not add commentary, headings or Markdown. If a field is unknown, omit that line entirely. If the page has several recipes, extract only the one the text focuses on.
         """.trimIndent()
     }
 }

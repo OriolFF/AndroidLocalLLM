@@ -72,6 +72,22 @@ class RecipeKeeperParserTest {
     }
 
     @Test
+    fun `explicit TotalMinutes wins over prep plus cook, and alone it is kept`() {
+        val explicit = parser.parse("Title: X\nPrepMinutes: 10\nCookMinutes: 20\nTotalMinutes: 45\nIngredients:\n- a\n")!!
+        assertThat(explicit.prepMinutes).isEqualTo(10)
+        assertThat(explicit.cookMinutes).isEqualTo(20)
+        assertThat(explicit.totalMinutes).isEqualTo(45)
+
+        val totalOnly = parser.parse("Title: X\nTotalMinutes: 30\nIngredients:\n- a\n")!!
+        assertThat(totalOnly.prepMinutes).isNull()
+        assertThat(totalOnly.cookMinutes).isNull()
+        assertThat(totalOnly.totalMinutes).isEqualTo(30)
+
+        val emptyTotal = parser.parse("Title: X\nPrepMinutes: 10\nCookMinutes: 20\nTotalMinutes:\nIngredients:\n- a\n")!!
+        assertThat(emptyTotal.totalMinutes).isEqualTo(30)
+    }
+
+    @Test
     fun `truncated mid-step is flagged and still parses`() {
         val text = FULL_OUTPUT.substringBefore("3. Add the flour") + "3. Add the flour and mix unt"
         val recipe = parser.parse(text)!!

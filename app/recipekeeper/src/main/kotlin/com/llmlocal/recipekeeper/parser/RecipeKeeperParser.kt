@@ -31,6 +31,7 @@ class RecipeKeeperParser : TaskParser<ClippedRecipe> {
 
         val prep = parsed.prepMinutes
         val cook = parsed.cookMinutes
+        // An explicit TotalMinutes (the page's own total) beats a prep + cook sum.
         val total = parsed.totalMinutes ?: if (prep != null || cook != null) (prep ?: 0) + (cook ?: 0) else null
 
         return ClippedRecipe(

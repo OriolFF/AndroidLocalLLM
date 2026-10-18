@@ -13,6 +13,7 @@ package com.llmlocal.recipekeeper.parser
  * Servings: …
  * PrepMinutes: <int>
  * CookMinutes: <int>
+ * TotalMinutes: <int>
  * Ingredients:
  * - …
  * Steps:
@@ -24,8 +25,8 @@ package com.llmlocal.recipekeeper.parser
  * Tolerances: header synonyms in several languages, optional Markdown
  * `#`/`**` decoration, bullets `-`, `*`, `•`, `–`, steps as `1.`, `1)`,
  * `Step 1:` or bullets, continuation lines appended to the previous item,
- * `PrepMinutes: 1 h 15 min` style durations, a `TotalMinutes:` header the
- * prompt does not ask for but models sometimes add.
+ * `PrepMinutes: 1 h 15 min` style durations. An explicit `TotalMinutes:`
+ * wins over `prep + cook` in [RecipeKeeperParser].
  */
 internal object RecipeLineGrammar {
 
