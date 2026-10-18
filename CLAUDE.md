@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Subagents run as herdr panes.** Inside herdr (`HERDR_ENV=1`), every subagent
+> is spawned as a separate `claude` process via `scripts/herdr-spawn.sh` (or the
+> `.claude/skills/herdr-subagents/SKILL.md` workflow) so the user can watch every
+> agent in the herdr UI. New panes must use the **`claude-work` profile**
+> (`CLAUDE_CONFIG_DIR=~/.claude-work`; plain `claude` routes to another provider).
+> Never use the in-process Agent tool inside herdr; outside herdr, fall back to it.
+
 > **Source of truth.** `README.md` is badly out of date (it still describes MediaPipe, Gemma 3, a single `:app`, and a `:feature:recipe` module that no longer exist). Trust this file and the code when they disagree.
 
 ## What this project is
