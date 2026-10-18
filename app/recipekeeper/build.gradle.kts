@@ -25,6 +25,11 @@ dependencies {
     // Only this app shows remote / local pictures.
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }
 
 dependencies {
