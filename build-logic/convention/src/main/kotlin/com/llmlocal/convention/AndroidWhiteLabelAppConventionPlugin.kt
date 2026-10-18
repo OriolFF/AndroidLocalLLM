@@ -16,7 +16,7 @@ import org.gradle.kotlin.dsl.getByType
  *  - application plugin + SDK / JVM config (delegates to `llmlocal.android.application`)
  *  - Compose plugin
  *  - Koin plugin
- *  - project dependencies on every `:core:*` module + both `:feature:*` modules
+ *  - project dependencies on every `:core:*` module + every `:feature:*` module
  *  - runtime libraries (lifecycle, navigation, koin-android-compose, coroutines, work-runtime)
  *  - debug-only Compose tooling (preview + tooling + test-manifest)
  *
@@ -70,8 +70,10 @@ class AndroidWhiteLabelAppConventionPlugin : Plugin<Project> {
             add("implementation", project(":core:llm"))
             add("implementation", project(":core:domain"))
             add("implementation", project(":core:data"))
+            add("implementation", project(":core:web"))
             add("implementation", project(":feature:llm-task"))
             add("implementation", project(":feature:modelmanagement"))
+            add("implementation", project(":feature:webclipper"))
 
             // Runtime libs.
             add("implementation", catalog.findLibrary("androidx-core-ktx").get())

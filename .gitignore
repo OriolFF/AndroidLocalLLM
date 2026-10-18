@@ -22,3 +22,6 @@ local.properties
 
 # Logs
 *.log
+
+# Claude Code / herdr agent worktrees
+.claude/worktrees/

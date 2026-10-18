@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+        Required on API 33+ to post the foreground-service notification that
+        keeps the model download alive when the app is backgrounded.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        Foreground-service permission (API 28+). Needed because
+        ModelDownloadWorker calls setForeground().
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <application
+        android:name=".RecipeKeeperApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LlmLocalAndroid"
+        tools:targetApi="33">
+
+        <!--
+            OpenCL is optional. The MediaPipe LLM engine falls back to the CPU
+            backend if no OpenCL is present. These declarations must be inside
+            <application>, not at the manifest root.
+        -->
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL-car.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL-pixel.so"
+            android:required="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.LlmLocalAndroid">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Disable WorkManager's default initializer so it uses our
+            Configuration.Provider path (RecipeKeeperApp), which lets us inject a
+            Koin-aware WorkerFactory.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <!--
+            Required on API 34+ (Android 14): WorkManager's own
+            SystemForegroundService must be declared with a
+            foregroundServiceType that matches the type ModelDownloadWorker
+            requests when promoting itself to foreground via setForeground().
+            Without this, the OS throws IllegalArgumentException at runtime:
+
+                foregroundServiceType 0x00000001 is not a subset of
+                foregroundServiceType attribute 0x00000000 in service element
+
+            The library's own manifest entry isn't always merged into apps
+            that disable WorkManager's default initializer, so declare it
+            explicitly here. Keep this in sync with
+            ModelDownloadWorker.foregroundInfo(...) (DATA_SYNC).
+        -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            tools:node="merge" />
+    </application>
+
+</manifest>
