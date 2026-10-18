@@ -135,6 +135,28 @@ class RecipeKeeperParserTest {
     }
 
     @Test
+    fun `decimal quantities keep their integer part while dotted step numbers still parse`() {
+        val recipe = parser.parse(
+            """
+            Title: Rösti
+            Ingredients:
+            - 250.0g potatoes
+            - 2.5 cups flour
+            - 1.5 tsp salt
+            - 6.0tbsp olive oil
+            - 10 eggs
+            Steps:
+            2. Preheat the oven.
+            2.Grate the potatoes.
+            3) Fry 2.5 minutes per side.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.ingredients).containsExactly("250.0g potatoes", "2.5 cups flour", "1.5 tsp salt", "6.0tbsp olive oil", "10 eggs").inOrder()
+        assertThat(recipe.steps).containsExactly("Preheat the oven.", "Grate the potatoes.", "Fry 2.5 minutes per side.").inOrder()
+    }
+
+    @Test
     fun `preamble chatter before the first header is ignored`() {
         val recipe = parser.parse("Sure! Here is the recipe:\n\nTitle: Toast\nIngredients:\n- bread\nSteps:\n1. Toast it.\n")!!
         assertThat(recipe.title).isEqualTo("Toast")

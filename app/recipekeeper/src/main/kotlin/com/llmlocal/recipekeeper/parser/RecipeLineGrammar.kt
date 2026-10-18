@@ -70,7 +70,13 @@ internal object RecipeLineGrammar {
     }
 
     private val bullet = Regex("^\\s*[-*•–·]\\s+(.*?)\\s*$")
-    private val numbered = Regex("^\\s*(?:Step\\s*)?\\d{1,3}\\s*[.):]\\s*(.*?)\\s*$", RegexOption.IGNORE_CASE)
+
+    /**
+     * `1.`, `1)`, `1:`, `Step 1:` list markers. A dot that is directly
+     * followed by a digit is a decimal point, not a marker: `250.0g potatoes`
+     * and `2.5 cups flour` are quantities, `2.Preheat…` is still step 2.
+     */
+    private val numbered = Regex("^\\s*(?:Step\\s*)?\\d{1,3}\\s*(?:[):]|\\.(?!\\d))\\s*(.*?)\\s*$", RegexOption.IGNORE_CASE)
     private val bareNumber = Regex("^\\s*(?:Step\\s*)?\\d{1,3}\\s*[.):]?\\s*$", RegexOption.IGNORE_CASE)
     private val markdownDecor = Regex("^[*_`]+|[*_`]+$")
 
