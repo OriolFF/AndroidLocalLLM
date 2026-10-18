@@ -1,6 +1,7 @@
 package com.llmlocal.feature.modelmanagement.di
 
 import com.llmlocal.feature.modelmanagement.ModelManagementViewModel
+import com.llmlocal.feature.modelmanagement.mvi.ModelManagementLabels
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -13,12 +14,16 @@ import org.koin.dsl.module
  * stores, scheduler, and WorkManager observer. All its dependencies are
  * already provided by `:core:llm`'s `llmModule` (and `commonModule` for
  * `DispatcherProvider`).
+ *
+ * The caller-supplied [ModelManagementLabels] is received via
+ * `parametersOf(labels)` from `ModelManagementRoute`, so the same module
+ * can serve any app.
  */
 val modelManagementModule: Module = module {
     single { ModelDownloadScheduler(androidContext()) }
     single { WorkInfoObserver(androidContext()) }
 
-    viewModel {
+    viewModel { params ->
         ModelManagementViewModel(
             manager = get(),
             selectionStore = get(),
@@ -26,6 +31,7 @@ val modelManagementModule: Module = module {
             scheduler = get(),
             workInfoObserver = get(),
             dispatchers = get(),
+            labels = params.get<ModelManagementLabels>(),
         )
     }
 }

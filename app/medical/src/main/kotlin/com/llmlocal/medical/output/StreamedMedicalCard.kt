@@ -1,11 +1,6 @@
 package com.llmlocal.medical.output
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,11 +13,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Spa
@@ -33,14 +26,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llmlocal.core.designsystem.component.SectionHeader
+import com.llmlocal.core.designsystem.component.StreamingText
 import com.llmlocal.medical.domain.MedicalAdvice
 
 /**
@@ -54,12 +44,16 @@ import com.llmlocal.medical.domain.MedicalAdvice
  * The card is **not** a substitute for a clinician — see the disclaimer
  * block at the bottom of [MedicalAdvice.disclaimer], which is always
  * rendered here.
+ *
+ * [warmingUpLabel] comes from `MedicalLabels.warmingUpLabel` via `MedicalScreen`;
+ * the card itself carries no copy.
  */
 @Composable
 fun StreamedMedicalCard(
     streamedText: String,
     advice: MedicalAdvice?,
     isGenerating: Boolean,
+    warmingUpLabel: String,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -92,7 +86,11 @@ fun StreamedMedicalCard(
                 if (currentAdvice != null) {
                     StructuredAdvice(currentAdvice)
                 } else {
-                    StreamingText(text = streamedText, isGenerating = isGenerating)
+                    StreamingText(
+                        text = streamedText,
+                        isGenerating = isGenerating,
+                        warmingUpLabel = warmingUpLabel,
+                    )
                 }
             }
         }
@@ -186,7 +184,9 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
                 imageVector = Icons.Outlined.Info,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = Modifier
+                    .size(18.dp)
+                    .padding(top = 2.dp),
             )
             Text(
                 text = advice.disclaimer,
@@ -194,41 +194,6 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    label: String,
-    icon: ImageVector,
-    iconTint: Color? = null,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint ?: MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-        )
     }
 }
 
@@ -245,54 +210,4 @@ private fun Bullet(tone: BulletTone) {
             .size(6.dp)
             .background(color = color, shape = CircleShape),
     )
-}
-
-@Composable
-private fun StreamingText(text: String, isGenerating: Boolean) {
-    val transition = rememberInfiniteTransition(label = "cursor")
-    val cursorAlpha by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cursorAlpha",
-    )
-    val textAlpha by transition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "textPulse",
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (text.isNotBlank()) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(if (isGenerating) textAlpha else 1f),
-            )
-        } else if (isGenerating) {
-            Text(
-                text = "Reviewing your symptoms…",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (isGenerating) {
-            Box(
-                modifier = Modifier
-                    .width(if (isGenerating) 24.dp else 0.dp)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(vertical = 1.dp)
-                    .alpha(cursorAlpha),
-            )
-        }
-    }
 }

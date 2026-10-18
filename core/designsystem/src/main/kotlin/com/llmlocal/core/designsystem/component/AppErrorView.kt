@@ -16,12 +16,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * Generic full-screen error view with an optional retry button.
+ * Generic full-screen error view with an optional brand-localised retry
+ * action.
+ *
+ * The view is intentionally content-only: it draws an error icon, the
+ * supplied [message], and (when both [retryLabel] and [onRetry] are
+ * present) a single primary button. There is no hardcoded "Retry"
+ * string — each caller passes its own [retryLabel] so a non-English
+ * brand or a non-retry use case ("Try again", "Reload", "Open
+ * models", …) renders without forking this composable.
+ *
+ * @param message    the error description to display
+ * @param retryLabel optional button label; pass `null` (the default) to
+ *                   hide the button. The button is rendered only when
+ *                   both [retryLabel] and [onRetry] are non-null.
+ * @param onRetry    optional click handler for the retry button.
  */
 @Composable
 fun AppErrorView(
     message: String,
     modifier: Modifier = Modifier,
+    retryLabel: String? = null,
     onRetry: (() -> Unit)? = null,
 ) {
     Column(
@@ -40,9 +55,9 @@ fun AppErrorView(
             modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
             color = MaterialTheme.colorScheme.onSurface,
         )
-        if (onRetry != null) {
+        if (retryLabel != null && onRetry != null) {
             Button(onClick = onRetry) {
-                Text(text = "Retry")
+                Text(text = retryLabel)
             }
         }
     }

@@ -10,6 +10,7 @@ import com.llmlocal.core.llm.download.ModelDownloadWorkerFactory
 import com.llmlocal.core.llm.engine.LiteRtLlmEngine
 import com.llmlocal.core.llm.engine.LlmEngine
 import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
@@ -80,6 +81,19 @@ val llmModule: Module = module {
             backend = buildBackend(BuildConfig.LLM_BACKEND),
         )
     } bind LlmEngine::class
+
+    // `factory`: one observer per consumer scope (typically a ViewModel).
+    // Named arguments pick the production constructor over the
+    // internal flow/lambda one used by unit tests.
+    factory {
+        ModelReadinessObserver(
+            selectionStore = get(),
+            progressStore = get(),
+            manager = get(),
+            engine = get(named(REAL_ENGINE_QUALIFIER)),
+            dispatchers = get(),
+        )
+    }
 }
 
 /**

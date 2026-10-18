@@ -62,4 +62,9 @@ val RecipeModelManagementLabels: ModelManagementLabels = ModelManagementLabels(
     // Download progress
     secondsLeftTemplate = { secs -> "${secs}s left" },
     minutesLeftTemplate = { mins -> "${mins}m left" },
+
+    // Snackbar templates
+    modelSelectedSnackbar = { name -> "$name selected for recipe generation" },
+    modelRemovedSnackbar = { name -> "$name removed" },
+    modelNotDownloadedSnackbar = { name -> "$name is not downloaded yet." },
 )

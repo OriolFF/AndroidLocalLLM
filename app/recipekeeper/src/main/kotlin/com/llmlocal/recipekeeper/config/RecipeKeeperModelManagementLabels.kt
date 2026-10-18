@@ -63,4 +63,8 @@ val RecipeKeeperModelManagementLabels: ModelManagementLabels = ModelManagementLa
     // Download progress
     secondsLeftTemplate = { secs -> "${secs}s left" },
     minutesLeftTemplate = { mins -> "${mins}m left" },
+    // Snackbar templates (WS3): this brand clips recipes, it does not generate them.
+    modelSelectedSnackbar = { name -> "$name will read your clipped recipes" },
+    modelRemovedSnackbar = { name -> "$name removed" },
+    modelNotDownloadedSnackbar = { name -> "$name is not downloaded yet." },
 )

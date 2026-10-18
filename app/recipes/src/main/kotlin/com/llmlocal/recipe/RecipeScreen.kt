@@ -36,6 +36,7 @@ fun RecipeScreen(
                 streamedText = state.streamedText,
                 recipe = recipe,
                 isGenerating = state.isGenerating,
+                warmingUpLabel = RecipeLabels.warmingUpLabel,
             )
         },
         modifier = modifier,

@@ -16,6 +16,7 @@ import com.llmlocal.feature.modelmanagement.di.WorkInfoObserver
 import com.llmlocal.feature.modelmanagement.mvi.ModelFilters
 import com.llmlocal.feature.modelmanagement.mvi.ModelManagementEffect
 import com.llmlocal.feature.modelmanagement.mvi.ModelManagementIntent
+import com.llmlocal.feature.modelmanagement.mvi.ModelManagementLabels
 import com.llmlocal.feature.modelmanagement.mvi.ModelManagementState
 import com.llmlocal.feature.modelmanagement.mvi.QuantFilter
 import com.llmlocal.feature.modelmanagement.mvi.StatusFilter
@@ -40,16 +41,21 @@ import kotlinx.coroutines.withContext
  *  3. [WorkInfoObserver.observe] — terminal states (SUCCEEDED / FAILED /
  *     CANCELLED) for download jobs.
  *
- * The view model also owns the user's filter set ([ModelFilters]) and
+ * The ViewModel also owns the user's filter set ([ModelFilters]) and
  * computes [ModelManagementState.filteredCatalog] from
  * `catalog + installedIds + downloading + filters` atomically — the
  * screen never re-derives it.
+ *
+ * Snackbar copy comes from the caller-supplied [ModelManagementLabels]
+ * (passed via Koin parameters from `ModelManagementRoute`), so this class
+ * carries no brand strings.
  *
  * On init it scans disk via [LlmModelManager.installedModelIds] so the
  * catalog can render Installed / Not installed badges correctly.
  *
  * The view model does **not** itself run downloads — that work belongs to
- * [ModelDownloadWorker] so the OS can keep it alive across process death.
+ * [com.llmlocal.core.llm.download.ModelDownloadWorker] so the OS can keep
+ * it alive across process death.
  */
 class ModelManagementViewModel(
     private val manager: LlmModelManager,
@@ -58,6 +64,7 @@ class ModelManagementViewModel(
     private val scheduler: ModelDownloadScheduler,
     private val workInfoObserver: WorkInfoObserver,
     private val dispatchers: DispatcherProvider,
+    private val labels: ModelManagementLabels,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -117,7 +124,11 @@ class ModelManagementViewModel(
         viewModelScope.launch {
             val removed = withContext(dispatchers.io) { manager.remove(descriptor) }
             if (removed) {
-                _effects.send(ModelManagementEffect.ShowSnackbar("${descriptor.displayName} removed"))
+                _effects.send(
+                    ModelManagementEffect.ShowSnackbar(
+                        labels.modelRemovedSnackbar(descriptor.displayName),
+                    ),
+                )
             }
             // The selection store is left as-is; the user can clear it
             // manually if they want. The engine will surface a "file
@@ -133,7 +144,7 @@ class ModelManagementViewModel(
             if (modelId !in _state.value.installedIds) {
                 _effects.send(
                     ModelManagementEffect.ShowSnackbar(
-                        "${descriptor.displayName} is not downloaded yet.",
+                        labels.modelNotDownloadedSnackbar(descriptor.displayName),
                     ),
                 )
                 return@launch
@@ -141,7 +152,7 @@ class ModelManagementViewModel(
             selectionStore.setSelected(modelId)
             _effects.send(
                 ModelManagementEffect.ShowSnackbar(
-                    "${descriptor.displayName} selected for recipe generation",
+                    labels.modelSelectedSnackbar(descriptor.displayName),
                 ),
             )
         }
@@ -213,7 +224,7 @@ class ModelManagementViewModel(
  *  2. Family filter — single-select; `null` means "all families".
  *  3. Size filter — single-select; `null` means "all sizes".
  *  4. Quantisation filter — derived from the descriptor's tags; `ALL`
- *      means "either is fine".
+ *     means "either is fine".
  *
  * Filters compose with **AND** semantics. An item passes only if it
  * satisfies every active filter.

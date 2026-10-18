@@ -143,6 +143,7 @@ private fun PreviewSurface(
                         streamedText = s.streamedText,
                         recipe = recipe,
                         isGenerating = s.isGenerating,
+                        warmingUpLabel = labels.warmingUpLabel,
                     )
                 },
                 modifier = Modifier.fillMaxSize(),

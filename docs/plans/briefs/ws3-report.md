@@ -1,7 +1,7 @@
 # WS3 report — shared model readiness, copy debt, design-system primitives
 
 Branch: `ws3-shared-readiness-primitives` (worktree, based on `master` at `47eb643`).
-Commit: `5c91ba98807e068eb381afbad1fdf25b63152bd4` (`5c91ba9`).
+Commit: see the terminal reply / `git log -1` on the branch.
 
 ## State found on arrival
 
