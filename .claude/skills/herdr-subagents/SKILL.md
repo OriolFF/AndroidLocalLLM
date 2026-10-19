@@ -87,7 +87,7 @@ herdr agent start <name> --kind claude \
 Prefer `scripts/herdr-spawn.sh <name> <brief> [--worktree <branch> --base <ref>]`; it exports the profile, picks the split direction, copies `local.properties` into a new worktree, prompts with the brief, and dismisses Claude Code's one-time startup notice.
 
 - `--permission-mode auto` matches the lead. Override only if the user asks.
-- Add `--model <alias>` to pin the model (e.g. `--model opus`).
+- **Model choice (user rule, 2026-10-19):** test/QA/verification agents must **never** run on the lead's Fable model. Pass `--model sonnet` for multi-scenario device QA (adb driving, screenshots, timings, bug analysis) or `--model haiku` for simple checks (install + launch + logcat, one-scenario re-check, run a Gradle test task and summarise). Implementation/refactor agents may use `--model sonnet`; use the default only for research or design work that needs the strongest model.
 - The leading `--` separates herdr args from Claude Code args; everything after is passed through.
 
 Submit the task:

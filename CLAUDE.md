@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > `.claude/skills/herdr-subagents/SKILL.md` workflow) so the user can watch every
 > agent in the herdr UI. New panes must use the **`claude-work` profile**
 > (`CLAUDE_CONFIG_DIR=~/.claude-work`; plain `claude` routes to another provider).
-> Never use the in-process Agent tool inside herdr; outside herdr, fall back to it.
+> Test/QA agents never run on Fable: spawn them with `--model sonnet` (complex device QA) or
+> `--model haiku` (simple checks). Never use the in-process Agent tool inside herdr; outside herdr, fall back to it.
 
 > **Source of truth.** `README.md` is badly out of date (it still describes MediaPipe, Gemma 3, a single `:app`, and a `:feature:recipe` module that no longer exist). Trust this file and the code when they disagree.
 
