@@ -9,12 +9,9 @@ import com.llmlocal.recipekeeper.recipes.presentation.editor.RecipeEditorViewMod
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import java.io.File
 import java.util.UUID
-
-/** Cache sub-folder holding per-editor-session temp pictures (swept at app start by the lead). */
-private const val EDITOR_TEMP_DIR = "recipe-editor"
 
 /**
  * Bindings of the recipe editor: its use cases and `RecipeEditorViewModel`
@@ -36,7 +33,8 @@ val recipeEditorModule: Module = module {
     factory {
         AddRecipePictureUseCase(
             importer = get(),
-            tempRoot = File(androidContext().cacheDir, EDITOR_TEMP_DIR),
+            // Same folder the PictureImporter sweeps at app start (bound in recipesModule).
+            tempRoot = get(named(EDITOR_TEMP_DIR)),
             dispatchers = get(),
         )
     }

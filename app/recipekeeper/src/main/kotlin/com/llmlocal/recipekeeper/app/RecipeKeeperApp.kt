@@ -16,6 +16,12 @@ import com.llmlocal.feature.llmtask.di.llmTaskModule
 import com.llmlocal.feature.modelmanagement.di.modelManagementModule
 import com.llmlocal.feature.webclipper.di.webClipperModule
 import com.llmlocal.recipekeeper.app.di.recipeKeeperModules
+import com.llmlocal.recipekeeper.recipes.domain.PictureImporter
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
@@ -67,6 +73,12 @@ class RecipeKeeperApp : Application(), Configuration.Provider, SingletonImageLoa
                     webClipperModule,
                 ) + recipeKeeperModules,
             )
+        }
+        // Editor pictures are imported into a temp dir before Save; a draft that
+        // never reached Save (process death, discard) leaves them behind. Sweep
+        // anything older than a day off the main thread at every launch.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            get<PictureImporter>().sweep(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(24))
         }
     }
 
