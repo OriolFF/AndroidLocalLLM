@@ -56,8 +56,9 @@ import java.util.UUID
  *     [ExtractionState.streamedText] for the app's draft slot. A parser
  *     `null` — or a result `config.accept` rejects — on a STRUCTURED
  *     candidate falls back to `config.fallback`.
- *  3. **Pictures** — `config.pickPictures` downloaded in parallel with the
- *     model (never sent to it); failures only turn the phase to `Warning`.
+ *  3. **Pictures** — `config.rankPictures` downloaded in parallel with the
+ *     model (never sent to it); only the first [DEFAULT_KEEP] *preferred*
+ *     picks start checked; failures only turn the phase to `Warning`.
  *  4. **Saving** — `sink.save` with the kept picture files, then
  *     [ExtractionEffect.NavigateToSaved] after a short beat so the last
  *     tick is visible.
@@ -294,12 +295,20 @@ class ExtractionViewModel(
      */
     private fun CoroutineScope.startPictures(candidate: ClipCandidate, snapshot: PageSnapshot): Deferred<Boolean> =
         async {
-            val urls = withContext(dispatchers.default) {
-                config.pickPictures(candidate, snapshot, config.maxPictures)
-            }.distinct()
-            if (urls.isEmpty()) return@async false
+            val picks = withContext(dispatchers.default) {
+                config.rankPictures(candidate, snapshot, config.maxPictures)
+            }.distinctBy { it.url }
+            if (picks.isEmpty()) return@async false
+            val urls = picks.map { it.url }
+            var checked = 0
             _state.update { state ->
-                state.copy(pictures = urls.mapIndexed { i, url -> PictureDraft(url = url, keep = i < DEFAULT_KEEP) })
+                state.copy(
+                    pictures = picks.map { pick ->
+                        val keep = pick.preferred && checked < DEFAULT_KEEP
+                        if (keep) checked++
+                        PictureDraft(url = pick.url, keep = keep)
+                    },
+                )
             }
             setPhase(Phase.Pictures, PhaseStatus.Active)
             val runId = UUID.randomUUID().toString().take(8)
@@ -447,7 +456,7 @@ class ExtractionViewModel(
         /** Beat between the last phase ticking and leaving the screen. */
         const val NAVIGATE_DELAY_MS = 600L
 
-        /** How many pictures start checked. */
+        /** How many *preferred* pictures start checked. */
         const val DEFAULT_KEEP = 3
 
         /** Long-edge resize bound handed to the downloader. */

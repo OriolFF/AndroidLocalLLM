@@ -9,6 +9,7 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.PicturePick
 import com.llmlocal.feature.webclipper.WebClipConfig
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import org.json.JSONObject
@@ -370,34 +371,60 @@ class RecipeKeeperClipConfig(
         }
     }
 
-    override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> {
-        if (max <= 0) return emptyList()
-        val ranked = mutableListOf<String>()
+    override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
+        rankPictures(candidate, snapshot, max).map { it.url }
 
-        when (val payload = candidate.payload) {
-            is CandidatePayload.Structured -> ranked += mapper.imageUrls(payload.node.raw)
-            is CandidatePayload.Text -> ranked += payload.section.imageSrcs
-            CandidatePayload.WholePage -> Unit
+    /**
+     * Ranking: the candidate's own images (JSON-LD `image` / the section's
+     * inline images), then `og:image` / `twitter:image`, then recipe-card
+     * images by area, then the rest of the page by proximity (TEXT) or area.
+     *
+     * Preferred (= pre-checked on the extraction screen, WS10 bug 4):
+     *  - STRUCTURED: the node's own images; `og:image` too when the page
+     *    holds a single recipe node (it is then that recipe's hero). Page
+     *    images are offered unchecked. On a round-up (more than one recipe
+     *    node) the og / page pool is skipped altogether — every one of those
+     *    pictures belongs to some other recipe on the page.
+     *  - TEXT / WholePage: everything, as before — there is no structured
+     *    ownership to go by, and proximity ranking already favours the
+     *    section's neighbourhood.
+     */
+    override fun rankPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<PicturePick> {
+        if (max <= 0) return emptyList()
+        val payload = candidate.payload
+        val structured = payload is CandidatePayload.Structured
+        val roundUp = structured && detectStructured(snapshot).size > 1
+        val poolPreferred = !structured
+
+        val own: List<String> = when (payload) {
+            is CandidatePayload.Structured -> mapper.imageUrls(payload.node.raw)
+            is CandidatePayload.Text -> payload.section.imageSrcs
+            CandidatePayload.WholePage -> emptyList()
         }
-        ranked += listOfNotNull(
+        val og = listOfNotNull(
             snapshot.openGraph["og:image:secure_url"],
             snapshot.openGraph["og:image"],
             snapshot.openGraph["twitter:image"],
         )
-
-        val anchorTop = (candidate.payload as? CandidatePayload.Text)?.section?.topOffset
+        val anchorTop = (payload as? CandidatePayload.Text)?.section?.topOffset
         val images = snapshot.images.filter { TextCleaner.isHttpUrl(it.src) && it.naturalWidth >= MIN_NATURAL_PX && it.naturalHeight >= MIN_NATURAL_PX }
-        ranked += images.filter { it.inRecipeCard }.sortedByDescending { it.area }.map { it.src }
-        ranked += images.filterNot { it.inRecipeCard }
-            .sortedWith(
-                if (anchorTop != null) compareBy<PageImage> { abs(it.top - anchorTop) }.thenByDescending { it.area }
-                else compareByDescending { it.area },
-            )
-            .map { it.src }
+        val pageImages = images.filter { it.inRecipeCard }.sortedByDescending { it.area }.map { it.src } +
+            images.filterNot { it.inRecipeCard }
+                .sortedWith(
+                    if (anchorTop != null) compareBy<PageImage> { abs(it.top - anchorTop) }.thenByDescending { it.area }
+                    else compareByDescending { it.area },
+                )
+                .map { it.src }
 
+        val ranked = mutableListOf<PicturePick>()
+        own.forEach { ranked += PicturePick(it, preferred = true) }
+        if (!roundUp) {
+            og.forEach { ranked += PicturePick(it, preferred = poolPreferred || structured) }
+            pageImages.forEach { ranked += PicturePick(it, preferred = poolPreferred) }
+        }
         return ranked
-            .filter { TextCleaner.isHttpUrl(it) }
-            .distinctBy { TextCleaner.urlKey(it) }
+            .filter { TextCleaner.isHttpUrl(it.url) }
+            .distinctBy { TextCleaner.urlKey(it.url) }
             .take(max)
     }
 

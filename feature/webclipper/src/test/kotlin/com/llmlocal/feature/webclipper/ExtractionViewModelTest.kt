@@ -21,6 +21,7 @@ import com.llmlocal.feature.webclipper.mvi.ExtractionIntent
 import com.llmlocal.feature.webclipper.mvi.Phase
 import com.llmlocal.feature.webclipper.mvi.PhaseStatus
 import com.llmlocal.feature.webclipper.mvi.PictureStatus
+import com.llmlocal.feature.webclipper.PicturePick
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -293,6 +294,38 @@ class ExtractionViewModelTest {
         assertThat(saved.pictures.all { it.exists() }).isTrue()
         // Unkept temp file was removed.
         assertThat(tempFiles()).hasSize(2)
+    }
+
+    @Test
+    fun `only preferred picks start checked, at most three, non-preferred stay unchecked`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.picturePicks = listOf(
+            PicturePick("https://img.example/own-1.jpg", preferred = true),
+            PicturePick("https://img.example/neighbour.jpg", preferred = false),
+            PicturePick("https://img.example/own-2.jpg", preferred = true),
+            PicturePick("https://img.example/own-3.jpg", preferred = true),
+            PicturePick("https://img.example/own-4.jpg", preferred = true),
+            PicturePick("https://img.example/own-1.jpg", preferred = false), // duplicate url, dropped
+        )
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+
+        val pictures = vm.state.value.pictures
+        assertThat(pictures.map { it.url }).containsExactly(
+            "https://img.example/own-1.jpg", "https://img.example/neighbour.jpg", "https://img.example/own-2.jpg",
+            "https://img.example/own-3.jpg", "https://img.example/own-4.jpg",
+        ).inOrder()
+        assertThat(pictures.map { it.keep }).containsExactly(true, false, true, true, false).inOrder()
+        assertThat(sink.saved.single().pictures).hasSize(3)
+    }
+
+    @Test
+    fun `a config without preferred information keeps the first three checked`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.pictureUrls = listOf("https://img.example/1.jpg", "https://img.example/2.jpg", "https://img.example/3.jpg", "https://img.example/4.jpg")
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(vm.state.value.pictures.map { it.keep }).containsExactly(true, true, true, false).inOrder()
     }
 
     @Test

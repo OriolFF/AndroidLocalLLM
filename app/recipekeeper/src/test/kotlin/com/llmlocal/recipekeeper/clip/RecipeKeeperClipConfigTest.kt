@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.llmlocal.core.web.JsonLdNode
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
+import com.llmlocal.feature.webclipper.PicturePick
 import com.llmlocal.feature.webclipper.wholePageCandidate
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.testing.image
@@ -403,6 +404,34 @@ class RecipeKeeperClipConfigTest {
         ).inOrder()
         assertThat(config.pickPictures(candidate, page, max = 2)).hasSize(2)
         assertThat(config.pickPictures(candidate, page, max = 0)).isEmpty()
+
+        // Single recipe node: its own images and og are preferred, the page pool is offered unchecked.
+        assertThat(config.rankPictures(candidate, page, max = 8).map { it.preferred })
+            .containsExactly(true, true, true, true, false, false, false, false).inOrder()
+    }
+
+    @Test
+    fun `rankPictures on a round-up page offers only the node's own images`() {
+        val page = snapshot(
+            jsonLd = listOf(loadJsonLd("howto_sections"), loadJsonLd("single_recipe")),
+            openGraph = mapOf("og:image" to "https://cdn.example.com/roundup-og.jpg"),
+            images = listOf(
+                image("https://cdn.example.com/hero.jpg", 800, 600, top = 600, inCard = true),
+                image("https://cdn.example.com/other-recipe.jpg", 800, 600, top = 2600, inCard = true),
+            ),
+        )
+        val candidates = config.detect(page)
+        assertThat(candidates).hasSize(2)
+
+        val lasagne = config.rankPictures(candidates[0], page, max = 8)
+        assertThat(lasagne).containsExactly(
+            PicturePick("https://cdn.example.com/lasagne-1x1.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-4x3.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-16x9.jpg"),
+        ).inOrder()
+        val banana = config.rankPictures(candidates[1], page, max = 8)
+        assertThat(banana.map { it.url }).containsExactly("https://cdn.example.com/banana-bread.jpg")
+        assertThat(banana.single().preferred).isTrue()
     }
 
     @Test
@@ -423,6 +452,8 @@ class RecipeKeeperClipConfigTest {
             "https://img.example.com/near.jpg",
             "https://img.example.com/far.jpg",
         ).inOrder()
+        // TEXT candidates have no structured ownership: everything stays preferred (pre-WS11 behaviour).
+        assertThat(config.rankPictures(candidate, page, max = 8).all { it.preferred }).isTrue()
     }
 
     /** h1 intro + method prose (no instructions heading), an empty h2, then the ingredient list h2 — like joyofbaking.com. */

@@ -12,6 +12,7 @@ import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
 import com.llmlocal.feature.webclipper.ClipSink
+import com.llmlocal.feature.webclipper.PicturePick
 import com.llmlocal.feature.webclipper.WebClipConfig
 import com.llmlocal.feature.webclipper.capture.PageScanner
 import com.llmlocal.feature.webclipper.capture.PictureDownloader
@@ -56,6 +57,8 @@ class FakeWebClipConfig(
     var candidates: List<ClipCandidate> = emptyList(),
     var fallbackResult: Parsed? = null,
     var pictureUrls: List<String> = emptyList(),
+    /** When set, overrides [pictureUrls] with explicit preferred flags. */
+    var picturePicks: List<PicturePick>? = null,
     override val maxOutputTokens: Int = 1_024,
     override val skipModelWhenStructuredComplete: Boolean = false,
     /** Fallback results that count as complete (direct path); default: every one. */
@@ -99,6 +102,9 @@ class FakeWebClipConfig(
 
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
         pictureUrls.take(max)
+
+    override fun rankPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<PicturePick> =
+        picturePicks?.take(max) ?: super.rankPictures(candidate, snapshot, max)
 }
 
 class FakeClipSink : ClipSink<Parsed> {

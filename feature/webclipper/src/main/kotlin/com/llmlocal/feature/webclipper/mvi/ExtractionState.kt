@@ -47,7 +47,9 @@ enum class PhaseStatus { Pending, Active, Done, Failed, Warning }
 /**
  * One picture being downloaded for the item.
  *
- * @property keep user checkbox; the first three default to checked
+ * @property keep user checkbox; the first three *preferred* picks
+ *   (`PicturePick.preferred`) default to checked, every other pick starts
+ *   unchecked
  */
 data class PictureDraft(
     val url: String,
