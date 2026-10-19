@@ -75,6 +75,18 @@ Build: AGP 9.4.1 (needs Gradle ≥ 9.6), Kotlin 2.4.21, Gradle 9.8.1 (wrapper **
 
 **Test reality check:** unit tests exist for `:core:common` (`OutcomeTest`), `:core:domain` (engine default-method delegation), `:core:llm` (`FakeLlmEngine`, `ModelReadinessObserverTest`), `:core:web` (JSON-LD, durations, snapshot mapping, capture, downloader), `:feature:webclipper` (browser + extraction ViewModels, truncation heuristic) and `:app:recipekeeper` (schema mapper, parsers, clip config, pipeline round trip, library/detail ViewModels). The original `RecipeParser`/`MedicalParser` and `LlmTaskRepositoryImpl` still have none. `FakeLlmEngine` lives in `core/llm/src/test` (no test fixtures module); other modules copy it. The LiteRT `Engine` itself needs native libs and is not unit-testable. `org.json` is a stub on the JVM: tests touching `JSONObject` add `testImplementation(libs.org.json)`.
 
+## Architecture rules (apply to every new feature and every change)
+
+1. **ViewModels depend on use cases, never on repositories, stores, engines or downloaders directly.** A `*ViewModel` constructor takes use cases (plus `DispatcherProvider`, labels/config and route parameters) and maps use-case results/events to `*State`/`*Effect`. Orchestration (call the engine, download pictures, write the repository, undo windows) lives in a use case. The lone exception that still exists is historical (see below) and must not be copied.
+2. **One package per feature, split into `presentation`, `domain` and `data`.** Inside a feature module (`:feature:<x>`) or an app's feature area (`app/<name>/src/main/kotlin/com/llmlocal/<name>/<feature>/`):
+   - `presentation/` — composables, `*Route`, `*Screen`, `*ViewModel`, MVI `State`/`Intent`/`Effect`, labels.
+   - `domain/` — use cases, domain models, repository *interfaces*; pure Kotlin, no Android, no Koin.
+   - `data/` — repository implementations, Room/DataStore/network/file sources, mappers, Koin bindings for data.
+   Dependencies point inward: `presentation → domain ← data`. `presentation` never imports `data`.
+3. Keep MVI as described below; keep brand values and copy in the app module via tokens/labels.
+
+**Current state vs these rules (2026-10-19):** `LlmTaskViewModel`, `ExtractionViewModel` and `RecipeDetailViewModel` still inject stores/engines/downloaders directly and the Recipe Keeper code is split by screen (`library/`, `detail/`, `clip/`, `data/`) rather than feature/presentation-domain-data. Any work that touches these files must move the touched logic into use cases and the new layout rather than extending the old shape.
+
 ## Module layout & dependency direction
 
 ```
