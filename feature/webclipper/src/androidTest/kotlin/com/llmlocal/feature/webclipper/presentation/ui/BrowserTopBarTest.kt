@@ -1,4 +1,4 @@
-package com.llmlocal.feature.webclipper.ui
+package com.llmlocal.feature.webclipper.presentation.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
@@ -22,9 +22,9 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
-import com.llmlocal.feature.webclipper.WebClipperLabels
-import com.llmlocal.feature.webclipper.mvi.BrowserIntent
-import com.llmlocal.feature.webclipper.mvi.BrowserState
+import com.llmlocal.feature.webclipper.presentation.WebClipperLabels
+import com.llmlocal.feature.webclipper.presentation.mvi.BrowserIntent
+import com.llmlocal.feature.webclipper.presentation.mvi.BrowserState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

@@ -22,6 +22,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.llmlocal.feature.webclipper.data.WebViewHolder
+import com.llmlocal.feature.webclipper.domain.ClipSink
+import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.presentation.mvi.BrowserEffect
 import com.llmlocal.feature.webclipper.presentation.mvi.BrowserIntent
 import com.llmlocal.feature.webclipper.presentation.ui.WebClipperBrowserScreen

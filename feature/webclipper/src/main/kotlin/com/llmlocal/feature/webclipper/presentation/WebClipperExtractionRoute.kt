@@ -10,6 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.llmlocal.feature.webclipper.domain.ClipSink
+import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.presentation.mvi.ExtractionEffect
 import com.llmlocal.feature.webclipper.presentation.mvi.ExtractionIntent
 import com.llmlocal.feature.webclipper.presentation.ui.WebClipperExtractionScreen
@@ -21,7 +23,7 @@ import org.koin.core.parameter.parametersOf
 /**
  * Entry point for the extraction screen: phase progress, the app's draft
  * slot, picture strip and Stop button. Reads the candidate from
- * [ClipSession] by [candidateId]; if the session is empty (process death)
+ * `ClipSession` by [candidateId]; if the session is empty (process death)
  * the ViewModel pops straight back.
  *
  * Creates [ExtractionViewModel] via `koinViewModel { parametersOf(candidateId, config, sink, labels) }`.

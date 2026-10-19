@@ -1,4 +1,4 @@
-package com.llmlocal.feature.webclipper
+package com.llmlocal.feature.webclipper.domain
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test

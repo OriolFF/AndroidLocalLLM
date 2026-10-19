@@ -21,7 +21,7 @@ class EngineLlmGenerationSource(
         config: LlmTaskConfig<T>,
         input: String,
         maxOutputTokens: Int,
-    ): Flow<LlmTaskEvent> = generateTask(
+    ): Flow<LlmTaskEvent<T>> = generateTask(
         engine,
         config,
         listOf(input),

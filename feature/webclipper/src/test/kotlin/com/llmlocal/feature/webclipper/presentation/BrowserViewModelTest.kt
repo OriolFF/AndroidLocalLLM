@@ -1,4 +1,4 @@
-package com.llmlocal.feature.webclipper
+package com.llmlocal.feature.webclipper.presentation
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
@@ -7,16 +7,22 @@ import com.llmlocal.core.llm.download.DownloadState
 import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
+import com.llmlocal.feature.webclipper.domain.CandidatePayload
+import com.llmlocal.feature.webclipper.domain.WHOLE_PAGE_CANDIDATE_ID
+import com.llmlocal.feature.webclipper.data.InMemoryClipSession
+import com.llmlocal.feature.webclipper.domain.ClipSession
+import com.llmlocal.feature.webclipper.domain.usecase.ObserveReadinessUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.ScanPageUseCase
 import com.llmlocal.feature.webclipper.fakes.FakePageScanner
 import com.llmlocal.feature.webclipper.fakes.FakeReadinessSource
 import com.llmlocal.feature.webclipper.fakes.FakeWebClipConfig
 import com.llmlocal.feature.webclipper.fakes.MainDispatcherRule
 import com.llmlocal.feature.webclipper.fakes.TestDispatchers
 import com.llmlocal.feature.webclipper.fakes.candidate
-import com.llmlocal.feature.webclipper.mvi.BrowserEffect
-import com.llmlocal.feature.webclipper.mvi.BrowserIntent
-import com.llmlocal.feature.webclipper.mvi.BrowserSheet
-import com.llmlocal.feature.webclipper.mvi.ClipFabState
+import com.llmlocal.feature.webclipper.presentation.mvi.BrowserEffect
+import com.llmlocal.feature.webclipper.presentation.mvi.BrowserIntent
+import com.llmlocal.feature.webclipper.presentation.mvi.BrowserSheet
+import com.llmlocal.feature.webclipper.presentation.mvi.ClipFabState
 import com.llmlocal.core.llm.readiness.ModelReadiness
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -36,7 +42,7 @@ class BrowserViewModelTest {
         tags = emptyList(), license = "", author = "", minRamMb = 1, family = ModelFamily.INSTRUCT,
     )
     private val labels = WebClipperLabels(searchUrlTemplate = { q -> "https://search.example/?q=$q" })
-    private val session = ClipSession()
+    private val session: ClipSession = InMemoryClipSession()
     private val readiness = FakeReadinessSource(ModelReadiness.Ready(descriptor))
     private val scanner = FakePageScanner()
     private val config = FakeWebClipConfig()
@@ -44,9 +50,9 @@ class BrowserViewModelTest {
     private fun viewModel(initialUrl: String? = null) = BrowserViewModel(
         config = config,
         labels = labels,
-        scanner = scanner,
+        scanPage = ScanPageUseCase(scanner, session, TestDispatchers(mainDispatcherRule.dispatcher)),
+        observeReadiness = ObserveReadinessUseCase(readiness),
         session = session,
-        readinessSource = readiness,
         dispatchers = TestDispatchers(mainDispatcherRule.dispatcher),
         initialUrl = initialUrl,
     )

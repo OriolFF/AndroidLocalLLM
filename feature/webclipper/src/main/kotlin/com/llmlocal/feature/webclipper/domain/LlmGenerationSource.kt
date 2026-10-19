@@ -19,7 +19,7 @@ interface LlmGenerationSource {
      * Runs [config] over the single rendered [input], emitting raw deltas
      * and one terminal `Complete` / `Failed`, capped at [maxOutputTokens].
      */
-    fun <T : Any> generate(config: LlmTaskConfig<T>, input: String, maxOutputTokens: Int): Flow<LlmTaskEvent>
+    fun <T : Any> generate(config: LlmTaskConfig<T>, input: String, maxOutputTokens: Int): Flow<LlmTaskEvent<T>>
 
     /** Stops native compute for the generation in flight, if any. */
     fun cancel()

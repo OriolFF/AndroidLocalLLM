@@ -2,6 +2,10 @@ package com.llmlocal.feature.webclipper.presentation.mvi
 
 import androidx.compose.runtime.Immutable
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
+import com.llmlocal.feature.webclipper.domain.ExtractionError
+import com.llmlocal.feature.webclipper.domain.Phase
+import com.llmlocal.feature.webclipper.domain.PhaseStatus
+import com.llmlocal.feature.webclipper.domain.PictureStatus
 import java.io.File
 
 /**
@@ -43,12 +47,6 @@ data class ExtractionState(
     val replaceId: String? = null,
 )
 
-/** The four extraction phases, in display order. */
-enum class Phase { Reading, Extracting, Pictures, Saving }
-
-/** Per-phase status rendered by `PhaseProgress`. */
-enum class PhaseStatus { Pending, Active, Done, Failed, Warning }
-
 /**
  * One picture being downloaded for the item.
  *
@@ -62,17 +60,3 @@ data class PictureDraft(
     val keep: Boolean = true,
     val status: PictureStatus = PictureStatus.Pending,
 )
-
-enum class PictureStatus { Pending, Downloading, Done, Failed }
-
-/** Terminal failures shown in place of the draft card (UX spec §4 table). */
-sealed interface ExtractionError {
-    /** Engine init or generation failed. */
-    data class ModelFailed(val reason: String) : ExtractionError
-
-    /** Parser returned `null` at `Done` and no fallback applied. */
-    data class ParseFailed(val rawOutput: String) : ExtractionError
-
-    /** Model file disappeared mid-flow. */
-    data object ModelMissing : ExtractionError
-}
