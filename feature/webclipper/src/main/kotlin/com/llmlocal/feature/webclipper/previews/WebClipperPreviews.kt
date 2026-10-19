@@ -333,6 +333,20 @@ private fun ExtractionSavedLightPreview() = PreviewTheme(dark = false) { Extract
 @Composable
 private fun ExtractionParseFailedDarkPreview() = PreviewTheme(dark = true) { ExtractionPreview(PARSE_FAILED_STATE) }
 
+@Preview(name = "Extraction — duplicate warning, light", showSystemUi = true)
+@Composable
+private fun ExtractionDuplicatePreview() = PreviewTheme(dark = false) {
+    ExtractionPreview(
+        RUNNING_STATE.copy(
+            phases = Phase.entries.associateWith { PhaseStatus.Pending },
+            streamedText = "",
+            pictures = emptyList(),
+            isRunning = false,
+            duplicateOf = "existing-id",
+        ),
+    )
+}
+
 @Preview(name = "Extraction — landscape, light", showSystemUi = true, device = "spec:width=840dp,height=400dp,dpi=420")
 @Composable
 private fun ExtractionLandscapePreview() = PreviewTheme(dark = false) { ExtractionPreview(RUNNING_STATE) }

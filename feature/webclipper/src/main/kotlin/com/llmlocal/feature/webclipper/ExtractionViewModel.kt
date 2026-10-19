@@ -63,6 +63,12 @@ import java.util.UUID
  *     [ExtractionEffect.NavigateToSaved] after a short beat so the last
  *     tick is visible.
  *
+ * Before anything runs, `sink.existingId(snapshot)` is asked whether the
+ * page was clipped before; if so [ExtractionState.duplicateOf] puts the
+ * "Already in your library" dialog up and the pipeline waits for
+ * [ExtractionIntent.ReplaceExisting] (save under the old id),
+ * [ExtractionIntent.KeepBoth] or Cancel (WS10 bug 6).
+ *
  * Cancel stops the job **and** the engine, deletes the temp pictures and
  * pops to the browser. The candidate is read once from [ClipSession]; if
  * the session is empty (process death, or a stale "Recipe found" button
@@ -112,7 +118,7 @@ class ExtractionViewModel(
         if (candidate == null) {
             popWithoutPage()
         } else {
-            start()
+            checkDuplicateThenStart()
         }
     }
 
@@ -131,10 +137,47 @@ class ExtractionViewModel(
             }
             ExtractionIntent.ToggleRaw -> _state.update { it.copy(showRaw = !it.showRaw) }
             ExtractionIntent.BackToCandidates -> backToCandidates()
+            ExtractionIntent.ReplaceExisting -> decideDuplicate(replace = true)
+            ExtractionIntent.KeepBoth -> decideDuplicate(replace = false)
         }
     }
 
     // -- pipeline ------------------------------------------------------------
+
+    /**
+     * Asks the sink whether this page is already in the library; shows the
+     * duplicate dialog if so, otherwise starts right away. A sink that
+     * throws is treated as "no duplicate" — the warning is a courtesy, not
+     * a gate.
+     */
+    private fun checkDuplicateThenStart() {
+        val snapshot = session.current.value?.snapshot ?: run {
+            popWithoutPage()
+            return
+        }
+        viewModelScope.launch {
+            val existing = withContext(dispatchers.io) {
+                try {
+                    sink.existingId(snapshot)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    null
+                }
+            }
+            if (existing != null) {
+                _state.update { it.copy(duplicateOf = existing) }
+            } else {
+                start()
+            }
+        }
+    }
+
+    private fun decideDuplicate(replace: Boolean) {
+        val existing = _state.value.duplicateOf ?: return
+        _state.update { it.copy(duplicateOf = null, replaceId = if (replace) existing else null) }
+        start()
+    }
 
     private fun start() {
         if (job?.isActive == true || _state.value.savedId != null) return
@@ -284,7 +327,11 @@ class ExtractionViewModel(
         val savedId = withContext(dispatchers.io) {
             sink.save(
                 result, snapshot, candidate, kept, truncated,
-                ClipSaveOptions(pictureCandidates = drafts.map { it.url }, picturesFailed = picturesFailed),
+                ClipSaveOptions(
+                    replaceId = _state.value.replaceId,
+                    pictureCandidates = drafts.map { it.url },
+                    picturesFailed = picturesFailed,
+                ),
             )
         }
         deleteTempFiles(except = kept)

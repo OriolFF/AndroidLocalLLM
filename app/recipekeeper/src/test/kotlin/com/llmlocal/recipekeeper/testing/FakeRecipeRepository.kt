@@ -85,6 +85,9 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
             .map { it.toSummary() }
     }
 
+    override suspend fun findIdBySourceUrl(url: String): String? =
+        rows.value.values.filter { it.sourceUrl == url && it.id !in softDeleted }.maxByOrNull { it.clippedAt }?.id
+
     private fun ClippedRecipe.toSummary() = RecipeSummary(
         id = id,
         title = title,

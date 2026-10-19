@@ -97,4 +97,7 @@ interface RecipeDao {
 
     @Query("SELECT deletedAt FROM recipes WHERE id = :id")
     suspend fun deletedAtOf(id: String): Long?
+
+    @Query("SELECT id FROM recipes WHERE sourceUrl = :url AND deletedAt IS NULL ORDER BY clippedAt DESC LIMIT 1")
+    suspend fun findIdBySourceUrl(url: String): String?
 }

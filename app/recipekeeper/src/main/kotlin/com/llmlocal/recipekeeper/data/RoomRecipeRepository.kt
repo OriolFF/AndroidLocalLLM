@@ -69,4 +69,6 @@ class RoomRecipeRepository(
         if (q.isEmpty()) return observeAll()
         return dao.searchSummaries(q).map { rows -> rows.map(RecipeSummaryRow::toDomain) }
     }
+
+    override suspend fun findIdBySourceUrl(url: String): String? = dao.findIdBySourceUrl(url)
 }

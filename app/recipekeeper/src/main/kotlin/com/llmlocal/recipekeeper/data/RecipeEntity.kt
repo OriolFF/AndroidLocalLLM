@@ -25,7 +25,7 @@ import com.llmlocal.recipekeeper.domain.RecipeSummary
  */
 @Entity(
     tableName = "recipes",
-    indices = [Index(value = ["clippedAt"]), Index(value = ["deletedAt"])],
+    indices = [Index(value = ["clippedAt"]), Index(value = ["deletedAt"]), Index(value = ["sourceUrl"])],
 )
 data class RecipeEntity(
     @PrimaryKey val id: String,

@@ -120,6 +120,17 @@ class FakeClipSink : ClipSink<Parsed> {
     val saved = mutableListOf<Saved>()
     var failWith: Throwable? = null
 
+    /** What [existingId] answers; `null` = the page was never clipped. */
+    var existing: String? = null
+    var existingIdFailure: Throwable? = null
+    val existingIdCalls = mutableListOf<String>()
+
+    override suspend fun existingId(snapshot: PageSnapshot): String? {
+        existingIdCalls += snapshot.url
+        existingIdFailure?.let { throw it }
+        return existing
+    }
+
     override suspend fun save(
         item: Parsed,
         snapshot: PageSnapshot,

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -116,6 +117,10 @@ fun WebClipperExtractionScreen(
         else -> ""
     }
 
+    if (state.duplicateOf != null) {
+        DuplicateDialog(labels = labels, onIntent = onIntent)
+    }
+
     BoxWithConstraints(modifier = modifier) {
         val wide = maxWidth >= 600.dp && maxWidth > maxHeight
         val hasAction = state.isRunning || state.savedId != null
@@ -189,6 +194,29 @@ fun WebClipperExtractionScreen(
             }
         }
     }
+}
+
+/**
+ * "Already in your library" (WS10 bug 6): shown before the model runs when
+ * the sink knows this page. Replace keeps the old id, Keep both saves a
+ * second copy, Cancel / dismiss goes back to the page.
+ */
+@Composable
+private fun DuplicateDialog(labels: WebClipperLabels, onIntent: (ExtractionIntent) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onIntent(ExtractionIntent.Cancel) },
+        title = { Text(labels.duplicateTitle) },
+        text = { Text(labels.duplicateMessage) },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { onIntent(ExtractionIntent.KeepBoth) }) { Text(labels.keepBoth) }
+                TextButton(onClick = { onIntent(ExtractionIntent.ReplaceExisting) }) { Text(labels.replace) }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(labels.cancel) }
+        },
+    )
 }
 
 /**

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "3d14309049501597410905ea3e7c0570",
+    "identityHash": "a955b1c049bca0e872cc7f7635f0331a",
     "entities": [
       {
         "tableName": "recipes",
@@ -136,6 +136,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_recipes_deletedAt` ON `${TABLE_NAME}` (`deletedAt`)"
+          },
+          {
+            "name": "index_recipes_sourceUrl",
+            "unique": false,
+            "columnNames": [
+              "sourceUrl"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_recipes_sourceUrl` ON `${TABLE_NAME}` (`sourceUrl`)"
           }
         ]
       },
@@ -197,7 +206,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3d14309049501597410905ea3e7c0570')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a955b1c049bca0e872cc7f7635f0331a')"
     ]
   }
 }

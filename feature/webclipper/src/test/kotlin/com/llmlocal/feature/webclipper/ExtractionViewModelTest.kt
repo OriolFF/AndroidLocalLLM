@@ -102,6 +102,96 @@ class ExtractionViewModelTest {
         assertThat(sink.saved.single().truncated).isFalse()
         assertThat(session.current.value).isNull()
         assertThat(session.activeExtraction.value).isNull()
+
+        // The duplicate check ran once, found nothing, and no dialog was shown.
+        assertThat(sink.existingIdCalls).containsExactly(snapshot().url)
+        assertThat(state.duplicateOf).isNull()
+        assertThat(sink.saved.single().options.replaceId).isNull()
+    }
+
+    // -- duplicate warning (WS10 bug 6) ----------------------------------------
+
+    @Test
+    fun `an already clipped page shows the duplicate dialog before anything runs`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        config.pictureUrls = listOf("https://img.example/1.jpg")
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        val state = vm.state.value
+        assertThat(state.duplicateOf).isEqualTo("old-id")
+        assertThat(state.isRunning).isFalse()
+        assertThat(state.phases.values.toSet()).containsExactly(PhaseStatus.Pending)
+        assertThat(engine.requests).isEmpty()
+        assertThat(state.pictures).isEmpty()
+        assertThat(session.activeExtraction.value).isNull()
+    }
+
+    @Test
+    fun `Replace runs the extraction and saves under the existing id`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.ReplaceExisting)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.recipeSaved))
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.NavigateToSaved("saved-1"))
+        }
+        assertThat(vm.state.value.duplicateOf).isNull()
+        assertThat(vm.state.value.replaceId).isEqualTo("old-id")
+        assertThat(engine.requests).hasSize(1)
+        assertThat(sink.saved.single().options.replaceId).isEqualTo("old-id")
+    }
+
+    @Test
+    fun `Keep both runs the extraction as a new item`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        vm.onIntent(ExtractionIntent.KeepBoth)
+        advanceUntilIdle()
+        assertThat(vm.state.value.duplicateOf).isNull()
+        assertThat(vm.state.value.replaceId).isNull()
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+        assertThat(sink.saved.single().options.replaceId).isNull()
+    }
+
+    @Test
+    fun `Cancel on the duplicate dialog pops without running or a cancelled snackbar`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.Cancel)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
+            expectNoEvents()
+        }
+        assertThat(engine.requests).isEmpty()
+        assertThat(sink.saved).isEmpty()
+        assertThat(vm.state.value.isRunning).isFalse()
+    }
+
+    @Test
+    fun `a failing duplicate check is treated as no duplicate`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existingIdFailure = IllegalStateException("db locked")
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(vm.state.value.duplicateOf).isNull()
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
     }
 
     @Test

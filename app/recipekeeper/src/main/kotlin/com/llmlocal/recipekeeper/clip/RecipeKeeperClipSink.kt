@@ -19,8 +19,10 @@ import java.util.UUID
  *
  * The parser's result is *detached* (empty id/source, maybe blank title);
  * the deterministic fallback already carries them. Either way [save]
- * normalises: an existing non-blank id is kept (fallback), otherwise a new
- * one is minted.
+ * normalises: `options.replaceId` wins (the user chose "Replace" on the
+ * duplicate warning — the old row and its picture folder are replaced),
+ * else an existing non-blank id is kept (fallback), else a new one is
+ * minted. [existingId] answers the duplicate check by exact source URL.
  */
 class RecipeKeeperClipSink(
     private val repository: RecipeRepository,
@@ -46,8 +48,11 @@ class RecipeKeeperClipSink(
         truncated: Boolean,
         options: ClipSaveOptions,
     ): String {
-        val id = item.id.ifBlank { idFactory() }
-        val paths = withContext(dispatchers.io) { this@RecipeKeeperClipSink.pictures.moveIn(id, pictures) }
+        val id = options.replaceId ?: item.id.ifBlank { idFactory() }
+        val paths = withContext(dispatchers.io) {
+            if (options.replaceId != null) this@RecipeKeeperClipSink.pictures.deleteAll(id)
+            this@RecipeKeeperClipSink.pictures.moveIn(id, pictures)
+        }
         val recipe = item.copy(
             id = id,
             title = item.title.trim().ifBlank { candidate.title.trim() }.ifBlank { snapshot.title?.trim().orEmpty() }.ifBlank { "Untitled recipe" },
@@ -62,4 +67,7 @@ class RecipeKeeperClipSink(
         repository.upsert(recipe)
         return id
     }
+
+    override suspend fun existingId(snapshot: PageSnapshot): String? =
+        withContext(dispatchers.io) { repository.findIdBySourceUrl(snapshot.url) }
 }

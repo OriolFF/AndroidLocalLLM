@@ -140,6 +140,38 @@ class RecipeKeeperPipelineTest {
     }
 
     @Test
+    fun `sink knows a page it saved before and Replace reuses the id and wipes the old pictures`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        val candidate = config.detect(page).single()
+        val repository = FakeRecipeRepository()
+        val store = RecipePictureStore(temp.newFolder("recipes"))
+        var minted = 0
+        val sink = RecipeKeeperClipSink(repository, store, TestDispatcherProvider(dispatcher), idFactory = { "id-${++minted}" }, clock = { 10L })
+        val parsed = config.llmConfig.parser.parse(RecipeKeeperParserTest.FULL_OUTPUT)!!
+
+        assertThat(sink.existingId(page)).isNull()
+        val first = sink.save(parsed, page, candidate, listOf(temp.newFile("a.jpg").apply { writeText("A") }, temp.newFile("b.jpg").apply { writeText("B") }), truncated = false)
+        assertThat(first).isEqualTo("id-1")
+        assertThat(sink.existingId(page)).isEqualTo("id-1")
+        assertThat(sink.existingId(snapshot(url = "https://www.example.com/recipes/other"))).isNull()
+        assertThat(store.dirFor("id-1").listFiles().orEmpty().map { it.name }).containsExactly("001.jpg", "002.jpg")
+
+        // Replace: same id, one row, old picture files gone, new ones in place.
+        val again = sink.save(parsed, page, candidate, listOf(temp.newFile("c.jpg").apply { writeText("C") }), truncated = false, ClipSaveOptions(replaceId = "id-1"))
+        assertThat(again).isEqualTo("id-1")
+        assertThat(repository.recipes).hasSize(1)
+        assertThat(repository.recipes.single().pictures.map { File(it).name }).containsExactly("001.jpg")
+        assertThat(store.dirFor("id-1").listFiles().orEmpty().map { it.name }).containsExactly("001.jpg")
+        assertThat(File(repository.recipes.single().pictures.single()).readText()).isEqualTo("C")
+
+        // Keep both: a second row with its own id.
+        val second = sink.save(parsed, page, candidate, emptyList(), truncated = false, ClipSaveOptions())
+        assertThat(second).isEqualTo("id-2")
+        assertThat(repository.recipes.map { it.id }).containsExactly("id-1", "id-2")
+    }
+
+    @Test
     fun `sink records failed pictures and the candidate urls for a later retry`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
