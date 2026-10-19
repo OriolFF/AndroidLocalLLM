@@ -1,123 +1,154 @@
-# Sharing on-device LLM model files across our Android apps
+# Sharing on-device LLM model files across our Android apps (v2)
 
-Date: 2026-10-19. Research only, no code changed.
-Evidence legend: **[doc]** read in official docs/source this session; **[src]** read in LiteRT-LM `main` source; **UNVERIFIED** = from general knowledge, not confirmed here (needs a device spike).
+Date: 2026-10-19 (v1 same day: API analysis only; v2 adds online research into Google's guidance and developer practice). Research only, no code changed.
+Legend: **[doc]** official doc read this session · **[src]** source read this session (AOSP / LiteRT-LM `main` / Gallery `main` / the 0.18.0 AAR on this machine) · **[web]** blog/issue/forum read · **[skim]** only a search summary seen · **UNVERIFIED** = inference, needs a device test.
 
 ## 1. Executive summary
 
-Today each app (`:app:recipes`, `:app:medical`, `:app:recipekeeper`) downloads its own 2.6 GB `.litertlm` into `filesDir/llm/` and hands `file.absolutePath` to `EngineConfig(modelPath = String)`. **LiteRT-LM exposes only a path-string API** [src: `EngineConfig.modelPath: String`, `nativeCreateEngine(modelPath: String, …)`, `nativeCreateModelInfo(modelPath: String)`; the official Android guide also shows only `modelPath` — no fd/AssetFileDescriptor/URI]. That is the decisive constraint: any sharing scheme must end with a *filesystem path the native code can open*. Android's sandbox (UID + SELinux MCS categories) forbids cross-app access to `filesDir`, hard links, and symlinks, so the only mechanisms are (a) system-mediated blobs (`BlobStoreManager`, API 30+), (b) a provider app serving an fd, or (c) world-visible shared storage. Options (a) and (b) deliver an **fd, not a path**; whether `/proc/self/fd/<n>` can be re-opened by the native loader is **UNVERIFIED** and plausibly blocked by SELinux for blobstore/other-app files. Realistic outcome: **share the *download* (once per device) via BlobStoreManager with `allowSameSignatureAccess()`, then copy once into each app's `filesDir`** — this saves bandwidth/time but *not* disk (still N copies, unless the `/proc/self/fd` spike succeeds, which would also save disk and be the ideal). Shared external storage (MediaStore.Downloads) is the only option that shares disk *and* yields a real path, but it is world-readable, user-deletable, and path access to another app's file is not guaranteed on Android 10+. Recommendation: **spike `/proc/self/fd` on a real device first (1 day); ship BlobStoreManager + copy-on-first-use for API 30+, keep per-app download for API 24–29**; do not use sharedUserId, MANAGE_EXTERNAL_STORAGE, or a companion app.
+- **Google's official answer is "per app, not shared".** Play for On-device AI (still **beta**, page updated 2026-10-16) delivers "AI packs" into *the app's own* internal storage and says outright: "Models downloaded by Play for On-device AI should only be used by your apps. Models shouldn't be offered to other apps." Packs are capped at **1.5 GB compressed**, so our 2.58 GB `.litertlm` does not even fit in one pack [doc §2.1].
+- **The only Google-run *shared* models are Google's own** (Gemini Nano via AICore, ML Kit unbundled models and Downloadable Fonts via Play services). Google's decision page routes "your own model, such as Gemma" to LiteRT, which is per-app [doc §2.2].
+- **Nobody in the open-source Android LLM ecosystem shares model files across apps.** AI Edge Gallery, MLC Chat, PocketPal, SmolChat, Layla, Maid all keep a private copy; the only "no copy" designs (ChatterUI, kotlinllamacpp, llama.rn fork) read a *user-picked* file through SAF + a patched native loader that accepts an **fd**. Users ask for shared folders (PocketPal #475, Gallery #1012); maintainers log and defer [web §3].
+- **BlobStoreManager is effectively unusable for a 2.6 GB blob** on normal phones: the per-app *lease* quota is `max(300 MiB, 1 % of /data)` (≈1.3 GB on a 128 GB phone) and an unleased blob is deleted ~6 h after commit by the daily idle job [src §4.1]. Adoption is near zero (4 Stack Overflow questions ever; no public ML usage found).
+- **Zero-copy loading is blocked by LiteRT-LM 0.18.0**: the LLM JNI entry point is path-only (the embedding engine already takes `model_fd`), the shipped AAR exports no C API, and format detection trusts the path extension so `/proc/self/fd/N` fails. Even with a usable path, SELinux lets apps `read`/`map` a passed-in `system_data_file` fd but not `open` it, so re-opening a blob or a sibling's private file by path is denied. Feature request #3905 (2026-10-09) is open and assigned [src/web §5].
+- **Recommendation:** keep per-app `filesDir` copies (what Google and everyone else does). Add the cheap win only: **"copy from a sibling app"** over a signature-protected ContentProvider so a device downloads the 2.6 GB once (bandwidth 1×, disk N×), and re-evaluate zero-copy when #3905 ships a `modelFd`. Do not adopt BlobStoreManager, Play AI packs, shared external storage, `sharedUserId`, `MANAGE_EXTERNAL_STORAGE` or a companion app for this model size.
 
-## 2. Comparison table
+## 2. Google's guidance
 
-| # | Option | API | Prompt/permission | LiteRT-LM can use it? | Saves disk? | Saves download? | Security (who reads) | Play policy | Lifecycle |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | **BlobStoreManager** | 30+ | none | fd only → needs `/proc/self/fd` (UNVERIFIED) or copy | only if fd path works | **yes** | same-signature / named pkgs / public (your choice) | fine | system GC on expiry & when no lease/commit holders; lease API |
-| 2 | **Signature ContentProvider** | 24+ | signature permission, none to user | fd → same caveat; copy works | only if fd path works | yes (if a host exists) | same signing key only | fine | host-app dependent; election needed |
-| 3a | MediaStore.Downloads | 29+ (legacy path <29) | none for own files; **others' non-media files not readable by path** | path only for files you own (UNVERIFIED for cross-app) | yes if readable | yes | any app w/ storage access; user can delete | fine | survives uninstall (orphan) |
-| 3b | SAF `OPEN_DOCUMENT_TREE` | 21+ | **user picks folder every app**; Downloads root blocked on 11+ [doc] | URI/fd only | yes | yes | user-chosen | fine | persists; user-managed |
-| 3c | `MANAGE_EXTERNAL_STORAGE` | 30+ | special access toggle | real path | yes | yes | all files | **restricted by Play policy; rejected for this use** | orphaned |
-| 3d | app-specific external dir | 19+ | none | path | no | no | not shareable across apps on 11+ (`Android/data` blocked) [doc] | — | removed with app |
-| 4 | `sharedUserId` | ≤ 28 usable; deprecated 29 | none | path | yes | yes | shared UID | Play disallows adding to existing apps (cannot migrate installed apps) | n/a |
-| 5 | AICore / Gemini Nano / ML Kit GenAI | device-dependent | none | **No** — system-managed Gemini Nano, not a Gemma `.litertlm` | n/a | n/a | OS | fine | OS |
-| 6 | Companion "model manager" app | any | install 2nd app | via #2 | maybe | yes | signature | fine, high UX cost | host uninstall = loss |
-| 7 | grantUriPermission / persistable grants | 19+ | none | URI/fd only | no | maybe | per grant | fine | grants die on restart/uninstall |
-| 8 | hard link / symlink / `/data/local/tmp` | — | — | **do not work** across sandboxes | — | — | — | — | — |
+### 2.1 Play for On-device AI (beta) [doc: developer.android.com/google/play/on-device-ai, "Last updated 2026-10-16"]
+- Announced at I/O '25 ("we've launched Play for On-Device AI in beta … to help developers manage custom model downloads efficiently", Android Developers Blog 2025-06-16). No GA announcement found in the I/O '26 recap (2026-05-26) or elsewhere; the page is still titled "(beta)". Runtime lib `com.google.android.play:ai-delivery` versions on Google Maven: 0.1.0-alpha01, 0.1.1-alpha01, **0.2.0-beta01** (2026-08-06) [src: maven-metadata].
+- Mechanism: "AI packs" in the App Bundle, built by the `com.android.ai-pack` Gradle plugin (AGP ≥ 8.8; device targeting needs AGP ≥ 8.10). "AI packs only contain models." Delivery: install-time ("installed as an APK", read via `AssetManager`), fast-follow and on-demand ("downloaded to your app's internal storage space"; "Each AI pack is stored in a separate folder in the app's internal storage", located via `AiPackManager.getPackLocation().assetsPath()`). Device targeting by SoC/model/RAM/system feature. "At no additional cost."
+- Limits: "Individual AI packs can be up to 1.5GB, based on their compressed download sizes." "The maximum cumulative app size … is 4GB." Downloads > 200 MB off Wi-Fi need user consent; sideloaded builds get `REQUIRES_USER_CONFIRMATION`. "Don't rely on cached AI pack locations between app launches."
+- Sharing: explicitly **not** supported. "Models downloaded by Play for On-device AI should only be used by your apps. Models shouldn't be offered to other apps." Storage is per app; nothing about cross-app or cross-package reuse. Formats are not restricted (LiteRT/MediaPipe recommended); the fast-follow/on-demand path hands you a real file path, which LiteRT-LM needs.
+- Real adopters: Argmax ships NVIDIA Parakeet 0.6B speech models per NPU "via Play's AI Packs" (Google Developers Blog 2026-04-23); waterkit issue #164 (2026-10-05) plans the same for vision models and records the 1.5 GB cap as a design constraint. No LLM-sized adopter found.
+- Verdict for us: a 2.58 GB file exceeds the 1.5 GB pack cap (a split-into-chunks workaround is UNVERIFIED and unsupported by docs), and even if it fit it would be one download **per app**. It solves hosting/targeting, not sharing.
 
-## 3. Options in detail
+### 2.2 AICore / Gemini Nano / ML Kit GenAI [doc/web]
+- Positioning is a hard split: Gemini Nano is the single system-managed model ("you only have one model on the device, and then all of the apps are using that same model through this AICore system" — Google DeepMind talk; AICore "manages the distribution of Gemini Nano and handles future updates" [doc: developer.android.com/ai/gemini-nano]). The AICore Developer Preview (2026-04-02) serves Google's **Gemma 4 E2B/E4B** as "the foundation for the next generation of Gemini Nano", through the ML Kit Prompt API, on AICore-enabled devices only; **no bring-your-own-model path** exists [web].
+- Google's own decision page (2026-10-08): "start with ML Kit's GenAI APIs"; "For applications that require highly specialized solutions, you can use your own custom model, such as Gemma … Run your model directly on the user's device with LiteRT" [doc: developer.android.com/ai/generativeai]. I/O '26 recap: "bring your own fine-tuned small language model to Android" with LiteRT-LM [web].
+- Precedent that *is* shared: ML Kit unbundled models "Reside in Google Play Services and are not counted towards the storage used by this app"; Play services "will only remove the model from storage if all apps that depend on the model are uninstalled" [doc: ml-kit/tips/installation-paths]. Same pattern for Downloadable Fonts (Play services font provider, a ContentProvider serving fds). Both are Google-owned providers; no public API lets a third party register a shared model.
+- Implication: if the product can live with Gemini Nano/Gemma-4-via-AICore quality and device coverage, AICore is the only true "one copy per device" option, as a second `LlmEngine` backend. It cannot load our `.litertlm`.
 
-### 3.1 BlobStoreManager (API 30+)
-- **How** [doc: developer.android.com/training/data-storage/shared/datasets]: app computes SHA-256 of the content, builds `BlobHandle.createWithSha256(digest, label, expiryMillis, tag)`; contributor does `createSession(handle)` → `openSession(id)` → `openWrite(offset, length)` → `allowSameSignatureAccess()` / `allowPackageAccess(pkg, cert)` / `allowPublicAccess()` → `commit(executor, cb)`. Consumers call `openBlob(handle)` → `ParcelFileDescriptor`. The system verifies the digest at commit, so integrity is built in and the blob is **content-addressed**: any app that knows the sha256 can find it, no host app or package-name coupling.
-- **Leases / expiry** (reference page was too large to read here; **UNVERIFIED** details): `acquireLease(handle, description, expiryMillis)` keeps a blob from being GC'd; blobs whose expiry passed and with no leases are removed; per-app lease/session quotas exist (`getRemainingLeaseQuotaBytes`, `getLeasedBlobs`). The user-visible `label` appears in Settings → storage (doc says label is user-visible). Size limits: **UNVERIFIED**; the doc example writes 200 MiB — a 2.6 GB blob must be tested; per-app quota may apply.
-- **Seekable fd for native code?** `openBlob` returns a read-only `ParcelFileDescriptor` onto a file in system storage — seekable/mmap-able in-process (**UNVERIFIED**). But LiteRT-LM wants a path; see §4.
-- **Availability:** AOSP feature, OEM builds should ship it; but Go/low-RAM or stripped OEM builds may lack the service (`getSystemService(BLOB_STORE_SERVICE)` null) — **UNVERIFIED**; must null-check and fall back.
-- **Play policy:** no issue; it is the platform's intended ML-dataset sharing API.
-- **Lifecycle/orphans:** blob not tied to a package; survives uninstall of the contributor while an expiry/lease holds. Use expiry = long (e.g. 1 year) and re-acquire a lease each time any app uses it; the system cleans up when nobody leases it. Good: no orphan logic of our own.
+### 2.3 LiteRT-LM / MediaPipe team guidance [doc/src/web]
+- LiteRT-LM Android guide (2026-09-04): models come from "HuggingFace LiteRT Community"; sample uses `modelPath = "/path/to/your/model.litertlm"` and `cacheDir = context.cacheDir.path`; nothing on download, Play delivery, fds or sharing [doc]. MediaPipe LLM guide (maintenance mode): "The model is too large to be bundled in an APK … For deployment, host the model on a server and download it at runtime"; dev workflow is `adb push` to `/data/local/tmp/llm/` [doc].
+- LiteRT NPU docs: "use LiteRT to export your compiled models into a single Google Play AI Pack" — the AI-pack recommendation is for *compiled NPU variants*, not for sharing [skim].
+- GitHub: #3905 (2026-10-09, open, "type: feature request", assigned 2026-10-12) asks for a `modelFileDescriptor`/`fd:<n>` in `EngineConfig`; the author's isolated-process prototype on v0.16.1 loaded from an fd "within a few percent" of path speed and notes `/proc/self/fd/<n>` fails with "Unsupported or unknown file format" [web]. Merged PRs #3214/#3305/#3458 (Aug–Sep 2026) added fd loading to NPU AOT and the *embedding* engine. No issue mentions `content://`, asset packs or Play delivery for LLM models.
+- Google AI Edge Gallery (the reference app): downloads with WorkManager into `context.getExternalFilesDir(null)` (falls back to `filesDir`; Pixel 11 "CD1A" builds use `filesDir` "to avoid FUSE filesystem DMA mapping issues") and *copies* imported files into `<dir>/imports/` via `FileOutputStream` [src: `ModelUtils.getModelStorageDir`, `Model.getPath`, `ModelImportDialog`]. Issue #1012 ("Put .litertlm files in a shared folder", macOS, 2026-07-15) was logged, not planned. Android storage path confirmed by a user bug: `/storage/emulated/0/Android/data/com.google.ai.edge.gallery/files/…` (#649).
 
-### 3.2 Signature-protected ContentProvider
-- A provider in `:core:llm` (so every app has it) with `android:permission="com.llmlocal.permission.MODEL_ACCESS"` (`protectionLevel="signature"`), `openFile(uri,"r")` → `ParcelFileDescriptor.open(file, MODE_READ_ONLY)`. Each app declares a *different authority* (`${applicationId}.models`) since two apps cannot share one authority; clients query siblings via `PackageManager.queryContentProviders`/known package list (needs `<queries>` on API 30+).
-- Same fd-vs-path problem. Copy-from-fd works on every API 24+.
-- **Who hosts?** Each app that has the file hosts it; a client asks siblings in a deterministic order and takes the first that has it ("leader election" = first installed w/ file). When the host is uninstalled the file vanishes with its `filesDir` — remaining apps must re-download or already hold their own copy (they would, after copy-on-first-use). This is therefore **a sneakier "copy from neighbour" feature, not true sharing**, and it is the right fallback for API 24–29.
-- Security: signature permission → only our key; no user prompt. Per-app UID check is enforced by the framework.
+### 2.4 Android storage team: BlobStoreManager [doc/src]
+- Origin: Android 11 feature list, "Secure sharing of large datasets … such as those that involve machine learning or media playback … cached on the device using shared data blobs" [doc: about/versions/11/features]; AOSP README: "added in Android R", four access modes, leases, cross-user access limited to platform/privileged apps [src].
+- Evidence of adoption/abandonment: Stack Overflow has **4** questions mentioning it (2021–2023); the accepted 2022 answer to the main one says the handle must be shared out-of-band ("on-device blob discovery is not supported") [src: StackExchange API]. One Medium tutorial (2021, not readable: 403). No GitHub sample using it for ML found; no Google sample, Codelab or talk beyond the 2020 guide. The guide itself has not changed since Android 11.
+- Hard limits from AOSP `main` [src: `BlobStoreConfig`, `BlobStoreManagerService`, `BlobMetadata`]: lease quota per app `max(300 MiB, 1 % of /data size)` — `acquireLease` throws `LimitExceededException("Total amount of data with an active lease is exceeding the max limit")` when `blob.size > remaining quota`; `shouldBeDeleted()` is true for any blob with no valid lease once 6 h (`LEASE_ACQUISITION_WAIT_DURATION_MS`) have passed since every commit, evaluated by a daily idle job and on package removal; sessions idle for 7 days are dropped; `openBlob` returns a plain `ParcelFileDescriptor` from `Os.open(blobFile, O_RDONLY)` (revocable fds default off); blobs live under `/data/system/blobstore/blobs` (label `system_data_file`).
+- Consequence: a 2.6 GB blob can be committed and opened, but **cannot be leased** on devices with < ~260 GB storage, so it is garbage-collected within ~6–30 h. v1's "long expiry + lease" plan does not work at this size.
 
-### 3.3 Shared external storage
-- `MediaStore.Downloads` + `IS_PENDING` (API 29+): the creating app owns the entry; **other apps cannot open non-media files they didn't create** without `READ_EXTERNAL_STORAGE`+ it only exposes media types on 13+; for non-media in Downloads they must use SAF. Direct `File` path to another app's Downloads file is not reliable on 10+ (**UNVERIFIED**, FUSE-dependent). Also user can delete it, and it's visible in the Files app.
-- SAF `OPEN_DOCUMENT_TREE`: on Android 11+ the root of internal storage and `Download` cannot be selected [doc]; grant lasts until reboot unless `takePersistableUriPermission` [doc]; each app needs its own user pick. Gives URI → fd, not path. Poor UX.
-- `MANAGE_EXTERNAL_STORAGE`: Play restricts to file managers/backup/antivirus etc.; an LLM app sharing its own model does not qualify (policy from general knowledge, **UNVERIFIED** wording). Reject.
-- App-specific external dirs: `Android/data/<pkg>` is not accessible to other apps on 11+ [doc]. `requestLegacyExternalStorage` is ignored from targetSdk 30 and dead on Android 11+.
+## 3. What other developers do
 
-### 3.4 `android:sharedUserId`
-Deprecated in API 29. Can only be adopted at *first install* with the same signing key; already-installed apps cannot switch (and Play blocks adding it to updates). `sharedUserMaxSdkVersion="32"` only helps migrate existing sharedUserId users. Would also entangle our three apps' data. **Reject.**
+| Project (runtime) | Obtained | Stored | Shared across apps? | Notes [source] |
+|---|---|---|---|---|
+| Google AI Edge Gallery (LiteRT-LM) | HF download (WorkManager); local import | `getExternalFilesDir()`; imports copied in | No | Shared-folder request logged (#1012) [src/web] |
+| MLC Chat (mlc-llm) | HF download at runtime; optional APK bundle; adb push | app data dir (`Android/data/ai.mlc.mlcchat/files`) | No | [doc: llm.mlc.ai; skim] |
+| PocketPal AI (llama.rn) | HF download; "Add local model" | copied to "the app's own storage which is inaccessible to the user" | No | #475 (2025-10, open): "other applications can also use the model without duplicating it" → "we need upstream support" (llama.rn #191) [web] |
+| ChatterUI (cui-llama.rn) | user file via SAF | "Import" = copy; "Use External Model" = read in place, "slight delay in load times" | Only via user-picked shared file | Fork patches ggml to `fopen` an fd number [web] |
+| kotlinllamacpp | user file via SAF | in place via `content://` + persistable grant → fd | Same | "you cannot pass traditional file paths to native libraries due to Scoped Storage" [web] |
+| SmolChat (llama.cpp) | user file | stores a file path per model | Same, UNVERIFIED copy/no-copy | [skim] |
+| Layla, Maid (llama.cpp) | user file / download | "local models stay in Layla's app storage" | No | [web/skim] |
+| llama.cpp in Termux | wget to `~/` | Termux private home | No | docs: "recommended to place it in the ~/ directory for best performance"; shared-storage loads hit FUSE `EINVAL`/slow mmap (#18804, PR #7016) [web] |
+| Firebase ML custom models | per-app download | app private | No | deprecated, shutdown 2027-06-15 [skim] |
+| Argmax / waterkit (LiteRT) | Play AI packs | app internal | No | ≤ 1.5 GB per pack [web] |
 
-### 3.5 System / Play solutions
-- **Play Asset Delivery**: per-app asset packs, not shared; 2.6 GB also exceeds comfortable install-time pack limits (pack-size limits **UNVERIFIED**).
-- **AICore / Gemini Nano / ML Kit GenAI** (developer.android.com/ai/gemini-nano, developers.google.com/ml-kit/genai): OS-shared, Google-curated Gemini Nano on supported devices only (Pixel/Samsung/Xiaomi etc., list changes). APIs expose task-level calls (Prompt API, summarise, rewrite…) — **they cannot load a Gemma `.litertlm`**, and our template relies on custom prompts/JSON schemas and device-independent behaviour. Could be an *additional* engine backend later; not a way to share our model.
-- Vendor stores (Samsung/Qualcomm): no public cross-vendor API found; **UNVERIFIED**/not a path.
+Non-LLM precedents for "one developer, several apps, huge asset":
+- **System-owned shared stores**: ML Kit unbundled models, Downloadable Fonts, Google TTS voices — all live inside Play services / the engine app and are served over a Google-controlled provider. The pattern is "one *privileged* host app", which we cannot be.
+- **Add-on APKs**: AnySoftKeyboard language packs are separate APKs discovered via `queryBroadcastReceivers` and read with `createPackageContext(pkg).resources` [src: `AddOnsFactory`]; OsmAnd topo/contour plugins are paid add-on APKs with per-region data downloaded by the main app [skim]. Works because APK contents are world-readable, but Play caps a single install-time pack/APK far below 2.6 GB and LiteRT-LM cannot read an asset-in-APK by path.
+- **Desktop LLM tooling**: users dedupe Ollama/llama.cpp/LM Studio with hard links or symlinks in one folder [web] — exactly what Android's sandbox forbids.
+- **Community signal**: no r/androiddev or r/LocalLLaMA thread about sharing models *between apps* was found (several searches); the recurring ask is "let me pick my own file / don't duplicate my download", answered by SAF + fd loading in llama.cpp apps.
 
-### 3.6 Companion model-manager app
-Same technology as 3.2 but forces users to install a 2nd app. Play has no sanctioned "install dependency" hook for third-party apps (Instant Apps/`PackageInstaller` can't silently install; cross-promotion needs user action — general knowledge, **UNVERIFIED**). If host is uninstalled, everyone loses the model. **Reject** unless BlobStoreManager proves unusable *and* sharing is a must.
+## 4. API options, condensed from v1 and corrected
 
-### 3.7 `grantUriPermission` vs persistable grants
-`grantUriPermission` (temporary, per-package, tied to process/reboot; revoked on revoke or uninstall) works with a ContentProvider but needs the host to push grants to a specific package — impossible for apps that start independently. With the signature permission it is unnecessary. `FLAG_GRANT_PERSISTABLE_URI_PERMISSION` applies only to SAF/documents providers and lasts until the doc moves/deletes [doc]. **Not needed.**
+| # | Option | Keep from v1 | Correction after v2 evidence |
+|---|---|---|---|
+| 1 | BlobStoreManager (API 30+) | content-addressed, same-signature access, commit verifies SHA-256, plain fd | **Reject for 2.6 GB**: lease quota `max(300 MiB, 1 %)`, unleased blobs GC'd after 6 h; near-zero ecosystem adoption; fd cannot be re-opened by path (SELinux `read map` but no `open` on `system_data_file`) |
+| 2 | Signature ContentProvider | works on API 24+, same key only, no user prompt, copy-from-fd always works | Still the best cheap win; it is "copy from neighbour", not sharing. Same `/proc/self/fd` blocker (sibling's `app_data_file` has other MCS categories) |
+| 3 | Shared external storage (MediaStore / SAF / `MANAGE_EXTERNAL_STORAGE`) | world-readable, user-deletable, path not guaranteed | Confirmed: Play's All-files-access policy lists file managers, backup, antivirus, document mgmt, search, encryption, migration; our use is not listed [doc]. FUSE paths also degrade mmap (llama.cpp #18804, Gallery `filesDir` workaround) |
+| 4 | `sharedUserId` | deprecated API 29, cannot be added to installed apps | unchanged, reject |
+| 5 | AICore / Gemini Nano / ML Kit GenAI | cannot load our `.litertlm` | Confirmed; only path to a true single on-device copy, as an optional second backend (Gemma 4 preview now, Nano 4 "later this year") |
+| 6 | Play Asset Delivery / **Play for On-device AI** | per app | Confirmed per app and explicitly "shouldn't be offered to other apps"; 1.5 GB pack cap; still beta |
+| 7 | Companion model-manager app | high UX cost | unchanged, reject |
+| 8 | Hard links / symlinks / `/data/local/tmp` | do not work | unchanged |
 
-### 3.8 Hard links, symlinks, `/data/local/tmp`
-Each app's `/data/data/<pkg>` is `app_data_file` with a per-app MCS category set and a distinct UID; `link()`/`symlink` into another app's dir fails with EACCES (and since Android 8ish `fs.protected_hardlinks`-style restrictions plus SELinux deny it). `/data/local/tmp` is shell-only (not writable by untrusted apps). Confirmed by the platform security model, but not tested here → treat as **doc-level knowledge, not tested**. **Do not use.**
+## 5. LiteRT-LM and fd loading: verified state (0.18.0 and `main`)
+- `EngineConfig.modelPath: String`; `nativeCreateEngine(modelPath, …)` calls `FileExists(path)` then `ModelAssets::Create(path)` [src: `Config.kt`, `jni/litertlm.cc`]. `nativeCreateEmbeddingEngine(model_fd: Int, modelPath, …)` already `dup()`s an fd into a `ScopedFile` — the fd plumbing exists one function away [src].
+- The 0.18.0 AAR (`liblitertlm_jni.so`, 21 MB arm64) exports only `Java_…LiteRtLmJni_native*` symbols; **no `litert_lm_*` C API** is exported, so `litert_lm_engine_settings_create_from_raw_file_descriptor` [src: `c/engine.h`] is unreachable without building from source [src: `nm -D`].
+- Format detection: `GetFileFormat(path, scoped_file)` trusts `.tflite/.task/.litertlm` extensions, else sniffs the header *only if a `ScopedFile` is supplied*; otherwise "Unsupported or unknown file format." [src: `runtime/util/file_format_util.cc`]. That is why `/proc/self/fd/N` fails (#3905). A symlink named `x.litertlm` → `/proc/self/fd/N` inside our own `filesDir` would pass the extension check, but the re-open then needs SELinux `open` on the target: apps have `allow appdomain system_data_file:file { getattr read map }` (no `open`) [src: `private/app.te`], and sibling `app_data_file`s differ in MCS category. The native loader mmaps the file ("could not mmap file descriptor" strings in the .so), which an fd passed over Binder supports — so a real `modelFd` API would work; a path never will across sandboxes. **Zero-copy = wait for #3905** (or vendor a from-source JNI, not worth it).
 
-## 4. LiteRT-LM and fd-based loading
-- **0.18.0 API**: `EngineConfig(modelPath: String, backend, visionBackend?, audioBackend?, maxNumTokens, cacheDir)`. JNI takes a string path [src, `main` branch — **0.18.0 tag not diffed; UNVERIFIED that it matches**]. No `AssetFileDescriptor`/`ParcelFileDescriptor`/URI constructor exists on `main`. Whether native code mmaps the `.litertlm` or reads it: **UNVERIFIED** (LiteRT generally mmaps weights; the flatbuffer-style container is likely mapped).
-- **`/proc/self/fd/<n>` trick**: pass `"/proc/self/fd/$n"` as `modelPath`. Native `open()` of that symlink re-opens the underlying inode and re-runs SELinux/DAC checks against the *opener's domain* — for a blobstore file (system_data_file/blob dir) or another app's private file this is likely **denied** (**UNVERIFIED**). It does work for pipes/own files, and for fds from a ContentProvider only if the underlying file is readable by our domain. Also: `File.exists()`/`length()` on that path (used by `buildEngine()`) returns the target's metadata if opened-able. Must be tested on API 30, 33, 35 (real devices; emulator ok) before design is final.
-- **`cacheDir`**: defaults to the model's directory when unset — with a shared/readonly model location we **must** keep passing `cacheDirProvider()` (we already do).
-- **Fallback that always works**: copy fd → `filesDir/llm/<file>` once (needs 2.6 GB free per app; use `FileChannel.transferFrom` / `copyTo`, then verify sha256 and atomic rename, exactly the current `.part` flow).
-- If a path is truly required and disk must be shared, the only fully path-based option is a **world-readable file in shared storage** (3.3) which we judge unsafe/unreliable.
+## 6. Synthesis
 
-## 5. Recommended architecture
+### 6.1 Ranked recommendation (three apps, same key, 2.58 GB `.litertlm`)
+1. **Keep per-app private copies** (`filesDir/llm/`, already the case). This is Google's documented model (Play AI packs, LiteRT guides, Gallery) and universal practice. Keep `cacheDirProvider()`; do not move models to external/FUSE storage.
+2. **Add "copy from sibling" via a signature-protected ContentProvider in `:core:llm`** (v1 §3.2 design): before downloading, query sibling packages (`<queries>` + a shared `<permission … protectionLevel="signature">`, declared identically in every app), `openFile` → stream into the existing `.part` flow, verify `sha256`, rename. Benefit: one 2.6 GB download per device instead of up to three; works on API 24+; no user prompt; no Play policy exposure. Cost: ~1 day; disk stays N×. Prerequisite: non-null `sha256` in every `LlmModelDescriptor`.
+3. **Track LiteRT-LM #3905**; when `EngineConfig` gains an fd, turn the provider into a true share (host keeps the file, clients hold the pfd for the engine's lifetime, local copy deleted) — disk 1× for API 24+, no BlobStore needed. Re-check on every LiteRT-LM bump.
+4. **Optional product-level alternative:** an AICore/ML Kit Prompt API backend behind `LlmEngine` for devices that have Gemini Nano / Gemma 4 via AICore — the only route to a single on-device copy today, at the price of device coverage and our JSON-schema/prompt control. Not a sharing mechanism for our file.
+5. **Drop from the plan:** BlobStoreManager (quota/GC make it unusable at this size), Play for On-device AI as a sharing tool (per app, 1.5 GB cap, beta), shared external storage, `sharedUserId`, companion app.
 
-**Phase 0 – spike (≤ 1 day, real devices API 30/34/36):** (1) commit a 2.6 GB blob with `allowSameSignatureAccess`; check size/quota errors; (2) from a second app, `openBlob` and try `Engine(EngineConfig("/proc/self/fd/N"))`; (3) same for a provider-served fd. Record results here.
+### 6.2 If we adopted Play for On-device AI anyway (hosting, not sharing)
+- Would require: AGP ≥ 8.8 (we are on 9.4.1, fine), `com.android.ai-pack` modules per app, `ai-delivery:0.2.0-beta01`, an App Bundle per app, and **splitting the 2.58 GB file into ≥ 2 packs** (UNVERIFIED that packs can be concatenated at runtime; docs say nothing) or a smaller model variant (Gemma 4 q4 in our catalog might fit; check its compressed size). Each app still downloads its own copy; `getPackLocation()` must be re-resolved every launch; sideloaded/debug builds hit `REQUIRES_USER_CONFIRMATION`; bundletool local testing "does not support updates".
+- Gains: no HuggingFace hosting/gating, Play-managed patches and Wi-Fi/consent UX, device targeting (e.g. NPU variants later). Losses: no sharing, beta API, no F-Droid/sideload path, 1.5 GB cap. Recommendation: not now; revisit if we ship NPU-specific variants or drop below 1.5 GB.
 
-**Phase 1 (works regardless of spike): "download once, copy locally"**
-- API 30+: before downloading, `BlobStoreManager.openBlob(handle)` for the descriptor's `sha256`; if present → copy into `filesDir/llm/` (no network). Else download as today, then *also* contribute to the blob store (second write pass or write-through) with `allowSameSignatureAccess()` and a long expiry.
-- API 24–29 (and no blob service): per-app download as today, **plus** optional sibling `ModelProvider` (signature) to copy from a neighbour that has it.
-- Disk is N copies, bandwidth 1×. Offer a Settings action "free duplicate model copy" only if Phase 2 lands.
+### 6.3 Open questions and a 1-day spike
+Spike (existing brief `docs/plans/briefs/spike-model-sharing-fd.md` can be trimmed — experiments 1–3 and 5 are now predicted to fail; keep them only as a 1-hour confirmation):
+1. Signature ContentProvider between two debug-signed test apps: `openFile` of a 2.6 GB file, copy throughput and time on a real phone (expect ~1–2 min), behaviour when the host is uninstalled mid-copy, and the duplicate-`<permission>` install-order conflict (declare one shared name identically in all apps).
+2. Confirm the SELinux prediction cheaply: `open("/proc/self/fd/N")` on a provider fd and on a blob fd, log `avc:` denials (expected `{ open }` denied).
+3. Measure `acquireLease` on a 2.6 GB blob on a 128 GB phone (expect `LimitExceededException`) to close the BlobStore question with a device log.
+4. Check the compressed size of the Gemma 4 q4 catalog entry against the 1.5 GB AI-pack cap.
+Open: will #3905 land in 0.19/0.20 (ask on the issue)? Does Gemma-4-via-AICore meet our quality/JSON needs on Pixel/Samsung (prototype with the Prompt API)? Is per-device dedupe worth a day given that most users install one of the three apps (we have no install-overlap data)?
 
-**Phase 2 (only if spike succeeds): zero-copy**
-- Engine opens `/proc/self/fd/N` from `openBlob` (keep the `ParcelFileDescriptor` open for the engine's lifetime; closing it invalidates the path). Delete the local copy; disk = 1×.
-
-**Descriptor requirement:** blobs are keyed by sha256 → **every catalog entry must carry `sha256`** (currently optional). Model id/version = hash.
-
-## 6. Concrete changes in `:core:llm`
-- `LlmModelDescriptor` (`:core:model`): make `sha256` and `sizeBytes` non-null for catalog entries.
-- `LlmModelManager`:
-  - new `SharedModelStore` interface (`open(descriptor): ParcelFileDescriptor?`, `contribute(descriptor, file)`, `acquireLease(descriptor)`) with `BlobStoreModelStore` (API 30+) and `ProviderModelStore` (<30) / `NoopModelStore`; bound in `llmModule` by `Build.VERSION.SDK_INT` and null-check of `Context.BLOB_STORE_SERVICE`.
-  - `download(descriptor)`: before `downloadInto`, try `sharedStore.open(descriptor)` → `copyFrom(pfd, tmp)` reusing the existing `.part` → sha256 verify → rename path; after a successful network download call `sharedStore.contribute(...)`. Emit `DownloadProgress` during the copy so UI behaves the same.
-  - `isInstalled`/`installedModelIds`: unchanged for Phase 1.
-  - `remove(descriptor)`: delete local file only; **do not** delete the shared blob (let expiry/leases handle it); optionally `releaseLease`.
-- `ModelDownloadWorker.doWork`: unchanged contract; `setForeground` still mandatory (copy of 2.6 GB takes tens of seconds). Add a progress-store state/label "Reusing shared copy" (labels live in `ModelManagementLabels`).
-- `LiteRtLlmEngine`: Phase 1 no change (`modelPathProvider: () -> File`). Phase 2: change to a `ModelSource` sealed type (`Path(File)` | `Fd(ParcelFileDescriptor)`) and `buildEngine()` builds `modelPath = "/proc/self/fd/${pfd.fd}"`, holds the pfd in a field, closes it in a new `close()`; relax the `length() > MIN_MODEL_BYTES` check to `pfd.statSize`.
-- `:core:llm` manifest: if provider fallback is kept, add `<permission android:name="${applicationId}.…" protectionLevel="signature">` per app (permission names must be unique per app or share one declared name — beware of the *"permission already declared by another package"* install conflict, use one shared name declared identically; **UNVERIFIED** which behaviour on install order) and `<queries>` for sibling packages.
-- Tests: `FakeSharedModelStore` in `core/llm/src/test`; cases: blob hit, blob digest mismatch (treat as miss + delete `.part`), blob service null, cancel mid-copy.
-
-## 7. Integrity, corruption, versioning
-- Blob store verifies SHA-256 at commit [doc: "cryptographically secure SHA-256 hash"; commit verification itself **UNVERIFIED**], so a successful `openBlob` is trusted content; re-verify only after copying (cheap vs. download: ~10 s for 2.6 GB — optional).
-- Provider fallback: always verify sha256 after copy; mismatch → delete and fall through to network.
-- Updated model = new sha256 = new blob; old one expires (long expiry + lease refresh only by apps still using it). Catalog `id` should embed a version (`gemma-4-e2b-it@v2`) so selection store entries don't silently point at a changed file.
-- Local file integrity at startup: currently only `length() > 1 MB`; add a stored-size check (descriptor `sizeBytes`) to catch truncation cheaply without full re-hash.
-
-## 8. Risks and open questions
-1. `/proc/self/fd` loading is unproven (SELinux re-open check; native may use `stat`/`pread`/mmap flags incompatible). Without it disk is not saved — set expectations.
-2. 2.6 GB blob may exceed session/quota limits or take long to commit; blob store could evict under storage pressure; a user-visible label shows in settings.
-3. Two sequential writes (download to `.part` and blob session) double I/O and temporarily need ~2× free space — stream into the blob session first and copy out, or accept it.
-4. Cross-app permission declarations for the provider fallback conflict if the same name is declared by differing apps. Needs a test.
-5. Per-app fallback means API 24–29 users (small share) get no benefit.
-6. Version differences: LiteRT-LM 0.18.0 vs `main` — API may gain fd loading later; re-check on each upgrade (a native `fd` entry point would make Phase 2 trivial).
-7. OEM BlobStore availability unmeasured.
-8. Privacy: blobs with `allowPublicAccess` would let any app read the model — don't use it; use same-signature only.
-
-## 9. Sources
-- BlobStoreManager guide (read): https://developer.android.com/training/data-storage/shared/datasets
-- BlobStoreManager reference (not fully read): https://developer.android.com/reference/android/app/blob/BlobStoreManager and …/BlobStoreManager.Session
-- Documents/SAF & scoped storage (read): https://developer.android.com/training/data-storage/shared/documents-files
-- LiteRT-LM Android guide (read): https://developers.google.com/edge/litert-lm/android
-- LiteRT-LM source (read, `main`): https://github.com/google-ai-edge/LiteRT-LM/tree/main/kotlin/java/com/google/ai/edge/litertlm (`Config.kt`, `Engine.kt`, `LiteRtLmJni.kt`)
-- Gemini Nano / AICore: https://developer.android.com/ai/gemini-nano
-- ML Kit GenAI: https://developers.google.com/ml-kit/genai
-- Android 16 behavior changes (read; nothing relevant to blob/provider/storage found): https://developer.android.com/about/versions/16/behavior-changes-all
-- Project files: `core/llm/.../download/LlmModelManager.kt`, `core/llm/.../engine/LiteRtLlmEngine.kt`, `CLAUDE.md`
+## 7. Sources
+Google / official
+- Play for On-device AI (beta) — https://developer.android.com/google/play/on-device-ai — read
+- "Top 3 things to know for AI on Android at Google I/O '25" (2025-06-16) — https://android-developers.googleblog.com/2025/06/top-3-updates-for-ai-on-android-google-io.html — read
+- "Top AI on Android updates … Google I/O '26" (2026-05-26) — https://android-developers.googleblog.com/2026/05/android-ai-intelligence-system.html — read
+- "Announcing Gemma 4 in the AICore Developer Preview" (2026-04-02) — https://android-developers.googleblog.com/2026/04/AI-Core-Developer-Preview.html — read
+- "Hybrid inference and new AI models are coming to Android" (2026-04-17) — https://android-developers.googleblog.com/2026/04/Hybrid-inference-and-new-AI-models-are-coming-to-Android.html — skimmed
+- Find the right AI/ML solution (2026-10-08) — https://developer.android.com/ai/generativeai — read
+- Gemini Nano overview — https://developer.android.com/ai/gemini-nano — skimmed
+- "Building real-world on-device AI with LiteRT and NPU" (2026-04-23, Argmax) — https://developers.googleblog.com/building-real-world-on-device-ai-with-litert-and-npu/ — read
+- LiteRT NPU acceleration (AI pack export) — https://developers.google.com/edge/litert/next/npu — skimmed
+- LiteRT-LM Android guide (2026-09-04) — https://developers.google.com/edge/litert-lm/android — read
+- MediaPipe LLM Inference for Android — https://developers.google.com/edge/mediapipe/solutions/genai/llm_inference/android — read
+- ML Kit installation paths — https://developers.google.com/ml-kit/tips/installation-paths — read
+- ML Kit 2020 announcement — https://android-developers.googleblog.com/2020/06/mlkit-on-device-machine-learning-solutions.html — skimmed
+- Downloadable Fonts — https://developer.android.com/guide/topics/text/downloadable-fonts.html — skimmed
+- Play Asset Delivery (2026-10-06) — https://developer.android.com/guide/playcore/asset-delivery — read
+- Play size limits — https://support.google.com/googleplay/android-developer/answer/9859372 — read
+- Play "All files access" policy — https://support.google.com/googleplay/android-developer/answer/10467955 — read
+- Android 11 features ("Secure sharing of large datasets") — https://developer.android.com/about/versions/11/features — read
+- Access shared datasets guide — https://developer.android.com/training/data-storage/shared/datasets — read (v1)
+- BlobStoreManager reference — https://developer.android.com/reference/android/app/blob/BlobStoreManager — skimmed
+- `ai-delivery` Maven metadata — https://dl.google.com/android/maven2/com/google/android/play/ai-delivery/maven-metadata.xml — read
+Source code
+- AOSP BlobStore README — https://android.googlesource.com/platform/frameworks/base/+/a5cb005304ee/apex/blobstore/README.md — read
+- AOSP `BlobStoreConfig.java`, `BlobStoreManagerService.java`, `BlobMetadata.java` (`main`) — https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/apex/blobstore/service/java/com/android/server/blob/ — read (grep)
+- AOSP sepolicy `private/app.te`, `private/file_contexts` (`main`) — https://android.googlesource.com/platform/system/sepolicy/+/refs/heads/main/private/ — read (grep)
+- LiteRT-LM `c/engine.h`, `kotlin/.../Config.kt`, `LiteRtLmJni.kt`, `jni/litertlm.cc`, `runtime/util/file_format_util.cc` (`main`) — https://github.com/google-ai-edge/LiteRT-LM — read
+- LiteRT-LM 0.18.0 AAR symbol table (local Gradle cache, `nm -D`) — read
+- Gallery `data/ModelUtils.kt`, `data/Model.kt`, `data/DownloadRepository.kt`, `ui/modelmanager/ModelImportDialog.kt` (`main`) — https://github.com/google-ai-edge/gallery — read (grep)
+- AnySoftKeyboard `AddOnsFactory.java` — https://github.com/AnySoftKeyboard/AnySoftKeyboard — read (grep)
+Issues / community
+- LiteRT-LM #3905 fd for Android engine — https://github.com/google-ai-edge/LiteRT-LM/issues/3905 — read
+- LiteRT-LM #3139, PRs #2208/#3214/#3305/#3458 (fd work) — https://github.com/google-ai-edge/LiteRT-LM/issues/3139 — skimmed
+- Gallery #1012 shared folder — https://github.com/google-ai-edge/gallery/issues/1012 — read
+- Gallery #649 ENOENT (storage path) — https://github.com/google-ai-edge/gallery/issues/649 — read
+- Gallery wiki: importing local models — https://github.com/google-ai-edge/gallery/wiki/6.-Importing-Local-Models-(optional) — read
+- PocketPal #949 / #475 — https://github.com/a-ghorbani/pocketpal-ai/issues/475 — read
+- llama.rn #191 external files via fd — https://github.com/mybigday/llama.rn/issues/191 — read
+- ChatterUI README — https://github.com/Vali-98/ChatterUI — read
+- kotlinllamacpp README — https://github.com/ljcamargo/kotlinllamacpp — read
+- llama.cpp `docs/android.md` — https://github.com/ggml-org/llama.cpp/blob/master/docs/android.md — read
+- llama.cpp #18804 (Termux shared storage EINVAL) and PR #7016 — https://github.com/ggml-org/llama.cpp/issues/18804 — skimmed
+- MLC Android SDK docs — https://llm.mlc.ai/docs/deploy/android.html — read
+- mlc-llm #954 (weights location) — https://github.com/mlc-ai/mlc-llm/issues/954 — skimmed
+- Layla FAQ — https://help.layla-network.ai/faq/ — read
+- waterkit #164 Play AI packs — https://github.com/water-rs/waterkit/issues/164 — read
+- Stack Overflow 66250094 (BlobStoreManager) + StackExchange search counts — https://stackoverflow.com/questions/66250094/new-blobstoremanager-read-write-on-android-11 — read via API
+- "Shared Datasets in Android" (Medium, 2021) — https://supunisharaweerasekara.medium.com/shared-datasets-in-android-7ee612d33474 — unread (403)
+- "Gemini Nano on device" talk (Muntenescu/Gaymond) — https://ai.engineer/talks/owH1f0N-keY-gemini-nano-on-device — skimmed
+- Sharing models between Ollama and llama.cpp (desktop hard links) — https://www.rushis.com/sharing-local-llm-models-between-ollama-and-llama-cpp/ — skimmed
+- Project files: `core/llm/.../download/LlmModelManager.kt`, `core/llm/.../engine/LiteRtLlmEngine.kt`, `docs/plans/briefs/spike-model-sharing-fd.md`, `CLAUDE.md` — read
