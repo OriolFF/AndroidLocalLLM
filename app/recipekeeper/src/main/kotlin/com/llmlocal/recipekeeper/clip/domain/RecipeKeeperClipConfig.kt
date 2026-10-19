@@ -55,7 +55,7 @@ import kotlin.math.abs
  * @param clock epoch millis for `clippedAt`
  */
 class RecipeKeeperClipConfig(
-    untitledTitle: String,
+    private val untitledTitle: String,
     durationParser: (String?) -> Int? = IsoDuration::toMinutes,
     private val mapper: SchemaOrgRecipeMapper = SchemaOrgRecipeMapper(untitledTitle, durationParser),
     private val idFactory: () -> String = { java.util.UUID.randomUUID().toString() },
@@ -92,7 +92,7 @@ class RecipeKeeperClipConfig(
             .mapIndexed { index, node ->
                 val raw = node.raw
                 val ingredients = mapper.ingredients(raw)
-                val title = mapper.name(raw).ifBlank { snapshot.title?.trim().orEmpty() }.ifBlank { DEFAULT_TITLE }
+                val title = mapper.name(raw).ifBlank { snapshot.title?.trim().orEmpty() }.ifBlank { untitledTitle }
                 ClipCandidate(
                     id = "structured-$index",
                     title = title,
@@ -176,7 +176,7 @@ class RecipeKeeperClipConfig(
         }
         return snapshot.readable?.title?.takeIf { it.isNotBlank() }
             ?: snapshot.title?.takeIf { it.isNotBlank() }
-            ?: heading.ifBlank { DEFAULT_TITLE }
+            ?: heading.ifBlank { untitledTitle }
     }
 
     // -----------------------------------------------------------------------
@@ -474,7 +474,6 @@ class RecipeKeeperClipConfig(
         private const val SNIPPET_CHARS = 100
         private const val MIN_BODY_CHARS = 200
         private const val MIN_NATURAL_PX = 300
-        private const val DEFAULT_TITLE = "Recipe"
 
         /** `2 cups flour`, `½ tsp salt`, `200 g butter`, `1/2 onion`, `3 eggs`. */
         val quantityLine: Regex = Regex(

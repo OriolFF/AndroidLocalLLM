@@ -28,7 +28,7 @@ import com.llmlocal.feature.webclipper.presentation.WebClipperBrowserRoute
 import com.llmlocal.feature.webclipper.presentation.WebClipperExtractionRoute
 import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperDraftParser
 import com.llmlocal.recipekeeper.clip.presentation.ClipDraftCard
-import com.llmlocal.recipekeeper.clip.presentation.RecipeKeeperClipperLabels
+import com.llmlocal.recipekeeper.clip.presentation.rememberRecipeKeeperClipperLabels
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
 import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
@@ -93,7 +93,7 @@ fun RecipeKeeperNavHost() {
             WebClipperBrowserRoute(
                 config = koinInject<WebClipConfig<ClippedRecipe>>(),
                 sink = koinInject<ClipSink<ClippedRecipe>>(),
-                labels = RecipeKeeperClipperLabels,
+                labels = rememberRecipeKeeperClipperLabels(),
                 initialUrl = entry.arguments?.getString(Route.Browser.ARG_URL),
                 onNavigateToModelManagement = { navController.navigateToModelManagement() },
                 onNavigateToExtraction = { candidateId -> navController.navigate(Route.Extract.build(candidateId)) },
@@ -111,7 +111,7 @@ fun RecipeKeeperNavHost() {
                 candidateId = candidateId,
                 config = koinInject<WebClipConfig<ClippedRecipe>>(),
                 sink = koinInject<ClipSink<ClippedRecipe>>(),
-                labels = RecipeKeeperClipperLabels,
+                labels = rememberRecipeKeeperClipperLabels(),
                 renderDraft = { streamedText, isRunning ->
                     ClipDraftCard(
                         streamedText = streamedText,
