@@ -24,23 +24,23 @@ interface RecipeDao {
         SELECT r.id, r.title, r.sourceHost, r.totalMinutes, r.truncated, r.clippedAt, r.isFavourite, r.origin,
                (SELECT p.path FROM pictures p WHERE p.recipeId = r.id ORDER BY p.position LIMIT 1) AS heroPicture
         FROM recipes r
-        WHERE r.deletedAt IS NULL
+        WHERE r.deletedAt IS NULL AND (:favouritesOnly = 0 OR r.isFavourite = 1)
         ORDER BY r.clippedAt DESC
         """,
     )
-    fun observeSummaries(): Flow<List<RecipeSummaryRow>>
+    fun observeSummaries(favouritesOnly: Boolean): Flow<List<RecipeSummaryRow>>
 
     @Query(
         """
         SELECT r.id, r.title, r.sourceHost, r.totalMinutes, r.truncated, r.clippedAt, r.isFavourite, r.origin,
                (SELECT p.path FROM pictures p WHERE p.recipeId = r.id ORDER BY p.position LIMIT 1) AS heroPicture
         FROM recipes r
-        WHERE r.deletedAt IS NULL
+        WHERE r.deletedAt IS NULL AND (:favouritesOnly = 0 OR r.isFavourite = 1)
           AND (r.title LIKE '%' || :query || '%' OR r.ingredients LIKE '%' || :query || '%')
         ORDER BY r.clippedAt DESC
         """,
     )
-    fun searchSummaries(query: String): Flow<List<RecipeSummaryRow>>
+    fun searchSummaries(query: String, favouritesOnly: Boolean): Flow<List<RecipeSummaryRow>>
 
     @Transaction
     @Query("SELECT * FROM recipes WHERE id = :id")
@@ -76,6 +76,9 @@ interface RecipeDao {
 
     @Query("SELECT id FROM recipes WHERE deletedAt IS NOT NULL AND deletedAt < :olderThan")
     suspend fun deletedBefore(olderThan: Long): List<String>
+
+    @Query("UPDATE recipes SET isFavourite = :favourite WHERE id = :id")
+    suspend fun setFavourite(id: String, favourite: Boolean)
 
     @Query("UPDATE recipes SET checkedIngredients = :checked WHERE id = :id")
     suspend fun setChecked(id: String, checked: Set<Int>)
