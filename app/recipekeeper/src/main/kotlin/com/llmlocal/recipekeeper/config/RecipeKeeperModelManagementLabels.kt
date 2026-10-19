@@ -1,6 +1,6 @@
 package com.llmlocal.recipekeeper.config
 
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementLabels
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabels
 
 /**
  * Recipe Keeper copy for the model-management screen. Provides every

@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.mvi
+package com.llmlocal.feature.modelmanagement.domain
 
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily

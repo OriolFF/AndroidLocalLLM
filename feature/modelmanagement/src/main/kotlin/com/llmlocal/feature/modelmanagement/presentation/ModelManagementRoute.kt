@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement
+package com.llmlocal.feature.modelmanagement.presentation
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -8,9 +8,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.llmlocal.feature.modelmanagement.mvi.LocalModelManagementLabels
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementEffect
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementLabels
+import com.llmlocal.feature.modelmanagement.presentation.mvi.LocalModelManagementLabels
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementEffect
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabels
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 

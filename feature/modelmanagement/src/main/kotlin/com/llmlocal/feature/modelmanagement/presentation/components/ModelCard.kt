@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.components
+package com.llmlocal.feature.modelmanagement.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,13 +41,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.StatusDot
 import com.llmlocal.core.designsystem.component.StatusTone
-import com.llmlocal.core.llm.download.DownloadState
-import com.llmlocal.core.llm.download.LlmModelManager
-import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementIntent
-import com.llmlocal.feature.modelmanagement.mvi.modelManagementLabels
+import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
+import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementIntent
+import com.llmlocal.feature.modelmanagement.presentation.mvi.modelManagementLabels
 
 /**
  * A single model row in the catalog list.
@@ -61,7 +60,7 @@ fun ModelCard(
     isInstalled: Boolean,
     isSelected: Boolean,
     isDownloading: Boolean,
-    progress: PerModelProgress?,
+    progress: DownloadProgress?,
     onIntent: (ModelManagementIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -150,7 +149,7 @@ fun ModelCard(
                             }
                         }
                         Text(
-                            text = "${LlmModelManager.humanReadableBytes(descriptor.sizeBytes)} · " +
+                            text = "${formatBytes(descriptor.sizeBytes)} · " +
                                 "${descriptor.family.displayName} · ${descriptor.license}",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isActive) {
@@ -279,7 +278,7 @@ fun ModelCard(
 
                 // Failure footer
                 progress?.let { p ->
-                    if (p.state == DownloadState.FAILED) {
+                    if (p.status == DownloadStatus.FAILED) {
                         Text(
                             text = p.failureReason ?: labels.failureFooterFallback,
                             style = MaterialTheme.typography.bodySmall,

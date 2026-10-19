@@ -26,7 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.feature.modelmanagement.ModelManagementRoute
+import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
 import com.llmlocal.feature.webclipper.ClipSink
 import com.llmlocal.feature.webclipper.WebClipConfig
 import com.llmlocal.feature.webclipper.WebClipperBrowserRoute

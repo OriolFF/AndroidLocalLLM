@@ -28,7 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.feature.modelmanagement.ModelManagementRoute
+import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
 import com.llmlocal.medical.config.MedicalModelManagementLabels
 import com.llmlocal.medical.designsystem.MedicalTokens
 import com.llmlocal.medical.medical.presentation.MedicalScreen

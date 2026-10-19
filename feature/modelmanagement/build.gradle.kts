@@ -10,4 +10,9 @@ dependencies {
     implementation(project(":core:llm"))
 
     implementation(libs.androidx.work.runtime)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

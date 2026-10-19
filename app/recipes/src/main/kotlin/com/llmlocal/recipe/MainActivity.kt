@@ -28,7 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.feature.modelmanagement.ModelManagementRoute
+import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
 import com.llmlocal.recipe.recipe.presentation.RecipeScreen
 import com.llmlocal.recipe.config.RecipeModelManagementLabels
 import com.llmlocal.recipe.designsystem.RecipeTokens

@@ -1,6 +1,6 @@
 package com.llmlocal.recipe.config
 
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementLabels
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabels
 
 /**
  * Recipe-themed copy for the model-management screen. Provides every
