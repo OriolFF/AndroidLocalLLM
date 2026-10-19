@@ -1,6 +1,12 @@
 package com.llmlocal.recipekeeper.recipes.presentation
 
+import android.content.res.Resources
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import com.llmlocal.recipekeeper.R
 
 /**
  * Every user-visible string for Recipe Keeper's app-owned screens — the
@@ -12,89 +18,160 @@ import androidx.compose.runtime.Immutable
  * [com.llmlocal.feature.webclipper.WebClipperLabels]. Model-management copy
  * is owned by [RecipeKeeperModelManagementLabels].
  *
- * Every field carries the English default from UX spec §7, so a rebrand
- * only overrides the values it needs. Passed as a plain parameter down the
+ * Fields have no defaults: the English copy lives in `strings_recipekeeper.xml`
+ * and is built by [rememberRecipeKeeperLibraryLabels] / [recipeKeeperLibraryLabels].
+ * Passed as a plain parameter down the
  * composable tree (same convention as `LlmTaskLabels`); there is no
  * composition local.
  */
 @Immutable
 data class RecipeKeeperLibraryLabels(
     // ---- App chrome ------------------------------------------------------
-    val libraryTitle: String = "Your recipes",
-    val modelsTitle: String = "Models",
-    val manageModelsDescription: String = "Manage models",
-    val back: String = "Back",
+    val libraryTitle: String,
+    val modelsTitle: String,
+    val manageModelsDescription: String,
+    val back: String,
 
     // ---- Library screen --------------------------------------------------
-    val libraryFabClip: String = "Open browser",
-    val libraryEmptyTitle: String = "No recipes yet",
-    val libraryEmptyMessage: String =
-        "Browse any cooking site and tap Clip. The recipe is extracted " +
-            "on your phone and saved here.",
-    val openBrowser: String = "Open browser",
-    val searchHint: String = "Search recipes or ingredients",
-    val searchActionDescription: String = "Search",
-    val closeSearch: String = "Close search",
-    val clearSearch: String = "Clear search",
-    val searchEmptyTitle: (String) -> String = { q -> "Nothing matches “$q”" },
-    val recipeTileDescription: (title: String, host: String) -> String = { t, h -> "$t, from $h" },
-    val recipeMenuDescription: String = "Recipe options",
-    val libraryNoModelTitle: String = "Choose a model to start clipping",
-    val libraryNoModelSubtitle: String =
-        "Recipes are extracted on your phone by a local language model. " +
-            "Pick one in Models; it works offline afterwards.",
-    val chooseModelAction: String = "Open models",
-    val downloadingModel: (name: String) -> String = { n -> "Downloading $n…" },
-    val tapToManageModels: String = "Tap to manage models",
+    val libraryFabClip: String,
+    val libraryEmptyTitle: String,
+    val libraryEmptyMessage: String,
+    val openBrowser: String,
+    val searchHint: String,
+    val searchActionDescription: String,
+    val closeSearch: String,
+    val clearSearch: String,
+    val searchEmptyTitle: (String) -> String,
+    val recipeTileDescription: (title: String, host: String) -> String,
+    val recipeMenuDescription: String,
+    /** Separator between the parts of a tile's meta line (host · time). */
+    val metaSeparator: String,
+    val libraryNoModelTitle: String,
+    val libraryNoModelSubtitle: String,
+    val chooseModelAction: String,
+    val downloadingModel: (name: String) -> String,
+    /** Spoken description of the download card: "<downloadingModel>, <percent>%". */
+    val downloadingModelDescription: (title: String, percent: Int) -> String,
+    val tapToManageModels: String,
 
     // ---- Detail screen ---------------------------------------------------
-    val shareRecipe: String = "Share recipe",
-    val moreOptions: String = "More options",
-    val servingsTemplate: (Int) -> String = { n -> if (n == 1) "1 serving" else "$n servings" },
+    val shareRecipe: String,
+    val moreOptions: String,
+    val servingsTemplate: (Int) -> String,
     /** Yield the source wrote as free text ("6–8 cookies"); shown verbatim. */
-    val servingsFreeform: (String) -> String = { s -> s },
-    val prepTemplate: (Int) -> String = { m -> "Prep $m min" },
-    val cookTemplate: (Int) -> String = { m -> "Cook $m min" },
-    val totalTemplate: (Int) -> String = { m -> "$m min total" },
-    val minutesTemplate: (Int) -> String = { m -> "$m min" },
-    val clippedOn: (date: String) -> String = { d -> "Clipped $d" },
-    val openOriginal: String = "Open original",
-    val ingredientsHeader: String = "Ingredients",
-    val stepsHeader: String = "Steps",
-    val notesHeader: String = "Notes",
-    val picturesHeader: String = "Pictures",
-    val resetChecks: String = "Reset",
-    val checkedCount: (checked: Int, total: Int) -> String = { c, t -> "$c of $t checked" },
-    val stepDescription: (index: Int, total: Int) -> String = { i, t -> "Step $i of $t" },
-    val pictureDescription: (index: Int, total: Int) -> String = { i, t -> "Picture $i of $t" },
-    val keepScreenOn: String = "Keep screen on",
-    val reExtract: String = "Re-extract from source",
-    val heroImageDescription: (title: String) -> String = { t -> "Photo of $t" },
-    val shareTemplate: (title: String, url: String) -> String = { t, u -> "$t\n$u" },
-    val incompleteChip: String = "Possibly incomplete",
-    val recipeNotFound: String = "This recipe is no longer in your library",
+    val servingsFreeform: (String) -> String,
+    val prepTemplate: (Int) -> String,
+    val cookTemplate: (Int) -> String,
+    val totalTemplate: (Int) -> String,
+    val minutesTemplate: (Int) -> String,
+    val clippedOn: (date: String) -> String,
+    val openOriginal: String,
+    val ingredientsHeader: String,
+    val stepsHeader: String,
+    val notesHeader: String,
+    val picturesHeader: String,
+    val resetChecks: String,
+    val checkedCount: (checked: Int, total: Int) -> String,
+    val stepDescription: (index: Int, total: Int) -> String,
+    /** Spoken description of a step row: its position, then its text. */
+    val stepSpokenDescription: (position: String, text: String) -> String,
+    val pictureDescription: (index: Int, total: Int) -> String,
+    val keepScreenOn: String,
+    val reExtract: String,
+    val heroImageDescription: (title: String) -> String,
+    val shareTemplate: (title: String, url: String) -> String,
+    val incompleteChip: String,
+    val recipeNotFound: String,
     /** Chip shown when no picture could be downloaded at clip time (offline). */
-    val picturesUnavailable: String = "Pictures unavailable",
-    val retryPictures: String = "Retry pictures",
-    val retryPicturesFailed: String = "Still couldn't download the pictures — check your connection",
+    val picturesUnavailable: String,
+    val retryPictures: String,
+    val retryPicturesFailed: String,
 
     // ---- Streamed draft card --------------------------------------------
-    val draftWaiting: String = "Waiting for the first words from the model…",
-    val draftTitleFound: (title: String) -> String = { t -> "Recipe found: $t" },
-    val draftIngredientsFound: (count: Int) -> String = { n ->
-        if (n == 1) "1 ingredient found" else "$n ingredients found"
-    },
-    val draftStepsFound: (count: Int) -> String = { n -> if (n == 1) "1 step found" else "$n steps found" },
+    val draftWaiting: String,
+    val draftTitleFound: (title: String) -> String,
+    val draftIngredientsFound: (count: Int) -> String,
+    val draftStepsFound: (count: Int) -> String,
 
     // ---- Delete / undo ---------------------------------------------------
-    val delete: String = "Delete",
-    val cancel: String = "Cancel",
-    val deleteTitle: String = "Delete this recipe?",
-    val deleteMessage: String = "Its saved pictures are removed too.",
-    val recipeDeleted: String = "Recipe deleted",
-    val undo: String = "Undo",
-    val undoDeleteFailed: String = "Too late to undo — the recipe was already deleted",
+    val delete: String,
+    val cancel: String,
+    val deleteTitle: String,
+    val deleteMessage: String,
+    val recipeDeleted: String,
+    val undo: String,
+    val undoDeleteFailed: String,
 )
 
-/** The brand-default English [RecipeKeeperLibraryLabels] used by the app and its previews. */
-val DefaultRecipeKeeperLibraryLabels: RecipeKeeperLibraryLabels = RecipeKeeperLibraryLabels()
+/** Resource-built [RecipeKeeperLibraryLabels], refreshed when the configuration (locale) changes. */
+@Composable
+fun rememberRecipeKeeperLibraryLabels(): RecipeKeeperLibraryLabels {
+    val configuration = LocalConfiguration.current
+    val resources = LocalContext.current.resources
+    return remember(configuration) { recipeKeeperLibraryLabels(resources) }
+}
+
+/** Non-composable factory for callers outside composition (e.g. the share-text template in DI). */
+fun recipeKeeperLibraryLabels(resources: Resources): RecipeKeeperLibraryLabels = RecipeKeeperLibraryLabels(
+    libraryTitle = resources.getString(R.string.recipekeeper_library_title),
+    modelsTitle = resources.getString(R.string.recipekeeper_models_title),
+    manageModelsDescription = resources.getString(R.string.recipekeeper_manage_models_description),
+    back = resources.getString(R.string.recipekeeper_back),
+    libraryFabClip = resources.getString(R.string.recipekeeper_open_browser),
+    libraryEmptyTitle = resources.getString(R.string.recipekeeper_library_empty_title),
+    libraryEmptyMessage = resources.getString(R.string.recipekeeper_library_empty_message),
+    openBrowser = resources.getString(R.string.recipekeeper_open_browser),
+    searchHint = resources.getString(R.string.recipekeeper_search_hint),
+    searchActionDescription = resources.getString(R.string.recipekeeper_search_action_description),
+    closeSearch = resources.getString(R.string.recipekeeper_search_close),
+    clearSearch = resources.getString(R.string.recipekeeper_search_clear),
+    searchEmptyTitle = { q -> resources.getString(R.string.recipekeeper_search_empty_title, q) },
+    recipeTileDescription = { t, h -> resources.getString(R.string.recipekeeper_tile_description, t, h) },
+    recipeMenuDescription = resources.getString(R.string.recipekeeper_recipe_menu_description),
+    metaSeparator = resources.getString(R.string.recipekeeper_meta_separator),
+    libraryNoModelTitle = resources.getString(R.string.recipekeeper_library_no_model_title),
+    libraryNoModelSubtitle = resources.getString(R.string.recipekeeper_library_no_model_subtitle),
+    chooseModelAction = resources.getString(R.string.recipekeeper_choose_model_action),
+    downloadingModel = { n -> resources.getString(R.string.recipekeeper_downloading_model, n) },
+    downloadingModelDescription = { t, p -> resources.getString(R.string.recipekeeper_downloading_model_description, t, p) },
+    tapToManageModels = resources.getString(R.string.recipekeeper_tap_to_manage_models),
+    shareRecipe = resources.getString(R.string.recipekeeper_share_recipe),
+    moreOptions = resources.getString(R.string.recipekeeper_more_options),
+    servingsTemplate = { n -> resources.getQuantityString(R.plurals.recipekeeper_servings, n, n) },
+    servingsFreeform = { s -> s },
+    prepTemplate = { m -> resources.getString(R.string.recipekeeper_prep_minutes, m) },
+    cookTemplate = { m -> resources.getString(R.string.recipekeeper_cook_minutes, m) },
+    totalTemplate = { m -> resources.getString(R.string.recipekeeper_total_minutes, m) },
+    minutesTemplate = { m -> resources.getString(R.string.recipekeeper_minutes, m) },
+    clippedOn = { d -> resources.getString(R.string.recipekeeper_clipped_on, d) },
+    openOriginal = resources.getString(R.string.recipekeeper_open_original),
+    ingredientsHeader = resources.getString(R.string.recipekeeper_ingredients_header),
+    stepsHeader = resources.getString(R.string.recipekeeper_steps_header),
+    notesHeader = resources.getString(R.string.recipekeeper_notes_header),
+    picturesHeader = resources.getString(R.string.recipekeeper_pictures_header),
+    resetChecks = resources.getString(R.string.recipekeeper_reset_checks),
+    checkedCount = { c, t -> resources.getString(R.string.recipekeeper_checked_count, c, t) },
+    stepDescription = { i, t -> resources.getString(R.string.recipekeeper_step_description, i, t) },
+    pictureDescription = { i, t -> resources.getString(R.string.recipekeeper_picture_description, i, t) },
+    stepSpokenDescription = { p, t -> resources.getString(R.string.recipekeeper_step_spoken_description, p, t) },
+    keepScreenOn = resources.getString(R.string.recipekeeper_keep_screen_on),
+    reExtract = resources.getString(R.string.recipekeeper_re_extract),
+    heroImageDescription = { t -> resources.getString(R.string.recipekeeper_hero_image_description, t) },
+    shareTemplate = { t, u -> resources.getString(R.string.recipekeeper_share_template, t, u) },
+    incompleteChip = resources.getString(R.string.recipekeeper_incomplete_chip),
+    recipeNotFound = resources.getString(R.string.recipekeeper_recipe_not_found),
+    picturesUnavailable = resources.getString(R.string.recipekeeper_pictures_unavailable),
+    retryPictures = resources.getString(R.string.recipekeeper_retry_pictures),
+    retryPicturesFailed = resources.getString(R.string.recipekeeper_retry_pictures_failed),
+    draftWaiting = resources.getString(R.string.recipekeeper_draft_waiting),
+    draftTitleFound = { t -> resources.getString(R.string.recipekeeper_draft_title_found, t) },
+    draftIngredientsFound = { n -> resources.getQuantityString(R.plurals.recipekeeper_draft_ingredients_found, n, n) },
+    draftStepsFound = { n -> resources.getQuantityString(R.plurals.recipekeeper_draft_steps_found, n, n) },
+    delete = resources.getString(R.string.recipekeeper_delete),
+    cancel = resources.getString(R.string.recipekeeper_cancel),
+    deleteTitle = resources.getString(R.string.recipekeeper_delete_title),
+    deleteMessage = resources.getString(R.string.recipekeeper_delete_message),
+    recipeDeleted = resources.getString(R.string.recipekeeper_recipe_deleted),
+    undo = resources.getString(R.string.recipekeeper_undo),
+    undoDeleteFailed = resources.getString(R.string.recipekeeper_undo_delete_failed),
+)

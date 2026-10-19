@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App chrome -->
+    <string name="recipekeeper_library_title">Your recipes</string>
+    <string name="recipekeeper_models_title">Models</string>
+    <string name="recipekeeper_manage_models_description">Manage models</string>
+    <string name="recipekeeper_back">Back</string>
+
+    <!-- Library screen -->
+    <string name="recipekeeper_open_browser">Open browser</string>
+    <string name="recipekeeper_library_empty_title">No recipes yet</string>
+    <string name="recipekeeper_library_empty_message">Browse any cooking site and tap Clip. The recipe is extracted on your phone and saved here.</string>
+    <string name="recipekeeper_search_hint">Search recipes or ingredients</string>
+    <string name="recipekeeper_search_action_description">Search</string>
+    <string name="recipekeeper_search_close">Close search</string>
+    <string name="recipekeeper_search_clear">Clear search</string>
+    <string name="recipekeeper_search_empty_title">Nothing matches “%1$s”</string>
+    <string name="recipekeeper_tile_description">%1$s, from %2$s</string>
+    <string name="recipekeeper_meta_separator">" · "</string>
+    <string name="recipekeeper_downloading_model_description">%1$s, %2$d%%</string>
+    <string name="recipekeeper_recipe_menu_description">Recipe options</string>
+    <string name="recipekeeper_library_no_model_title">Choose a model to start clipping</string>
+    <string name="recipekeeper_library_no_model_subtitle">Recipes are extracted on your phone by a local language model. Pick one in Models; it works offline afterwards.</string>
+    <string name="recipekeeper_choose_model_action">Open models</string>
+    <string name="recipekeeper_downloading_model">Downloading %1$s…</string>
+    <string name="recipekeeper_tap_to_manage_models">Tap to manage models</string>
+
+    <!-- Detail screen -->
+    <string name="recipekeeper_share_recipe">Share recipe</string>
+    <string name="recipekeeper_more_options">More options</string>
+    <plurals name="recipekeeper_servings">
+        <item quantity="one">%d serving</item>
+        <item quantity="other">%d servings</item>
+    </plurals>
+    <string name="recipekeeper_prep_minutes">Prep %1$d min</string>
+    <string name="recipekeeper_cook_minutes">Cook %1$d min</string>
+    <string name="recipekeeper_total_minutes">%1$d min total</string>
+    <string name="recipekeeper_minutes">%1$d min</string>
+    <string name="recipekeeper_clipped_on">Clipped %1$s</string>
+    <string name="recipekeeper_open_original">Open original</string>
+    <string name="recipekeeper_ingredients_header">Ingredients</string>
+    <string name="recipekeeper_steps_header">Steps</string>
+    <string name="recipekeeper_notes_header">Notes</string>
+    <string name="recipekeeper_pictures_header">Pictures</string>
+    <string name="recipekeeper_reset_checks">Reset</string>
+    <string name="recipekeeper_checked_count">%1$d of %2$d checked</string>
+    <string name="recipekeeper_step_description">Step %1$d of %2$d</string>
+    <string name="recipekeeper_step_spoken_description">%1$s. %2$s</string>
+    <string name="recipekeeper_picture_description">Picture %1$d of %2$d</string>
+    <string name="recipekeeper_keep_screen_on">Keep screen on</string>
+    <string name="recipekeeper_re_extract">Re-extract from source</string>
+    <string name="recipekeeper_hero_image_description">Photo of %1$s</string>
+    <string name="recipekeeper_share_template">%1$s\n%2$s</string>
+    <string name="recipekeeper_incomplete_chip">Possibly incomplete</string>
+    <string name="recipekeeper_recipe_not_found">This recipe is no longer in your library</string>
+    <string name="recipekeeper_pictures_unavailable">Pictures unavailable</string>
+    <string name="recipekeeper_retry_pictures">Retry pictures</string>
+    <string name="recipekeeper_retry_pictures_failed">Still couldn\'t download the pictures — check your connection</string>
+
+    <!-- Streamed draft card -->
+    <string name="recipekeeper_draft_waiting">Waiting for the first words from the model…</string>
+    <string name="recipekeeper_draft_title_found">Recipe found: %1$s</string>
+    <plurals name="recipekeeper_draft_ingredients_found">
+        <item quantity="one">%d ingredient found</item>
+        <item quantity="other">%d ingredients found</item>
+    </plurals>
+    <plurals name="recipekeeper_draft_steps_found">
+        <item quantity="one">%d step found</item>
+        <item quantity="other">%d steps found</item>
+    </plurals>
+
+    <!-- Delete / undo -->
+    <string name="recipekeeper_delete">Delete</string>
+    <string name="recipekeeper_cancel">Cancel</string>
+    <string name="recipekeeper_delete_title">Delete this recipe?</string>
+    <string name="recipekeeper_delete_message">Its saved pictures are removed too.</string>
+    <string name="recipekeeper_recipe_deleted">Recipe deleted</string>
+    <string name="recipekeeper_undo">Undo</string>
+    <string name="recipekeeper_undo_delete_failed">Too late to undo — the recipe was already deleted</string>
+</resources>

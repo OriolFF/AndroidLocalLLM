@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.recipekeeper.recipes.presentation.DefaultRecipeKeeperLibraryLabels
+import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryFab
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
@@ -22,15 +22,16 @@ import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryState
  */
 @Composable
 private fun LibraryPreviewSurface(state: LibraryState, darkTheme: Boolean = false) {
+    val labels = rememberRecipeKeeperLibraryLabels()
     AppTheme(tokens = RecipeKeeperTokens, darkTheme = darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
             AppScaffold(
-                title = DefaultRecipeKeeperLibraryLabels.libraryTitle,
-                floatingActionButton = { LibraryFab(state = state, labels = DefaultRecipeKeeperLibraryLabels, onIntent = {}) },
+                title = labels.libraryTitle,
+                floatingActionButton = { LibraryFab(state = state, labels = labels, onIntent = {}) },
             ) { padding ->
                 LibraryScreen(
                     state = state,
-                    labels = DefaultRecipeKeeperLibraryLabels,
+                    labels = labels,
                     onIntent = {},
                     modifier = Modifier.padding(padding),
                 )

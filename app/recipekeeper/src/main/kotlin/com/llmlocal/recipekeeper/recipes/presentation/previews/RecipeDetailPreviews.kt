@@ -8,7 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.recipekeeper.recipes.presentation.DefaultRecipeKeeperLibraryLabels
+import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailScreen
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailState
@@ -25,7 +25,7 @@ private fun DetailPreviewSurface(state: RecipeDetailState, darkTheme: Boolean = 
         Surface(modifier = Modifier.fillMaxSize()) {
             RecipeDetailScreen(
                 state = state,
-                labels = DefaultRecipeKeeperLibraryLabels,
+                labels = rememberRecipeKeeperLibraryLabels(),
                 snackbarHostState = remember { SnackbarHostState() },
                 onIntent = {},
                 onBack = {},
