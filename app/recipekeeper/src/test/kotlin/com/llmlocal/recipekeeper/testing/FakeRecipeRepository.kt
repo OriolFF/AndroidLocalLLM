@@ -1,8 +1,8 @@
 package com.llmlocal.recipekeeper.testing
 
-import com.llmlocal.recipekeeper.domain.ClippedRecipe
-import com.llmlocal.recipekeeper.domain.RecipeRepository
-import com.llmlocal.recipekeeper.domain.RecipeSummary
+import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
+import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map

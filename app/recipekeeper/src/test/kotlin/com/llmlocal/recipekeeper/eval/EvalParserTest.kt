@@ -3,10 +3,10 @@ package com.llmlocal.recipekeeper.eval
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.llmlocal.feature.webclipper.ClipCandidate
-import com.llmlocal.recipekeeper.domain.ClippedRecipe
-import com.llmlocal.recipekeeper.parser.RecipeKeeperDraftParser
-import com.llmlocal.recipekeeper.parser.RecipeKeeperParser
-import com.llmlocal.recipekeeper.parser.RecipeLineGrammar
+import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperDraftParser
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperParser
+import com.llmlocal.recipekeeper.clip.domain.RecipeLineGrammar
 import kotlin.math.abs
 import kotlin.math.ceil
 import org.json.JSONObject

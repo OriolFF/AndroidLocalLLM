@@ -9,9 +9,9 @@ import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
 import com.llmlocal.feature.webclipper.wholePageCandidate
-import com.llmlocal.recipekeeper.clip.RecipeKeeperClipConfig
-import com.llmlocal.recipekeeper.clip.SchemaOrgRecipeMapper
-import com.llmlocal.recipekeeper.prompt.RecipeKeeperPromptBuilder
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperClipConfig
+import com.llmlocal.recipekeeper.clip.domain.SchemaOrgRecipeMapper
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperPromptBuilder
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
