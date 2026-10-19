@@ -33,6 +33,7 @@ import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
 import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailRoute
+import com.llmlocal.recipekeeper.recipes.presentation.editor.EditorMode
 import com.llmlocal.recipekeeper.recipes.presentation.editor.RecipeEditorRoute
 import com.llmlocal.recipekeeper.recipes.presentation.editor.rememberRecipeEditorLabels
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryRoute
@@ -68,7 +69,23 @@ fun RecipeKeeperNavHost() {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val labels = rememberRecipeKeeperLibraryLabels()
+    val editorLabels = rememberRecipeEditorLabels()
     val deleteWithUndo = koinInject<DeleteRecipeWithUndoUseCase>()
+
+    // Create lands on the new recipe's detail (the editor leaves the back stack, so back
+    // returns to the library); edit pops to wherever it was opened from. The edit
+    // confirmation is shown in the root scope so it outlives the popped editor.
+    fun onEditorSaved(nav: NavHostController, id: String, mode: EditorMode) {
+        when (mode) {
+            EditorMode.CREATE -> nav.navigate(Route.Recipe.build(id)) {
+                popUpTo(Route.Library.pattern)
+            }
+            EditorMode.EDIT -> {
+                nav.popBackStack()
+                scope.launch { snackbarHostState.showSnackbar(labels.changesSaved) }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -81,6 +98,7 @@ fun RecipeKeeperNavHost() {
                 onOpenRecipe = { id -> navController.navigate(Route.Recipe.build(id)) },
                 onOpenBrowser = { url -> navController.navigateToBrowser(url) },
                 onOpenModelManagement = { navController.navigateToModelManagement() },
+                onOpenEditor = { id -> navController.navigateToEditor(id) },
             )
         }
 
@@ -149,6 +167,7 @@ fun RecipeKeeperNavHost() {
                 snackbarHostState = snackbarHostState,
                 onBack = { navController.popBackStack() },
                 onOpenBrowser = { url -> navController.navigateToBrowser(url) },
+                onEdit = { id -> navController.navigateToEditor(id) },
                 onDeleted = { id ->
                     navController.popBackStack()
                     // Launched in the root scope so the snackbar outlives the popped screen.
@@ -167,13 +186,12 @@ fun RecipeKeeperNavHost() {
             )
         }
 
-        // F0: declared but not reachable yet — `onOpenEditor` / `onEdit` are not wired (stream F3).
         composable(Route.NewRecipe.pattern) {
             RecipeEditorRoute(
                 recipeId = null,
-                labels = rememberRecipeEditorLabels(),
+                labels = editorLabels,
                 snackbarHostState = snackbarHostState,
-                onSaved = { _, _ -> navController.popBackStack() },
+                onSaved = { id, mode -> onEditorSaved(navController, id, mode) },
                 onClosed = { navController.popBackStack() },
             )
         }
@@ -184,9 +202,9 @@ fun RecipeKeeperNavHost() {
         ) { entry ->
             RecipeEditorRoute(
                 recipeId = entry.arguments?.getString(Route.EditRecipe.ARG_ID).orEmpty(),
-                labels = rememberRecipeEditorLabels(),
+                labels = editorLabels,
                 snackbarHostState = snackbarHostState,
-                onSaved = { _, _ -> navController.popBackStack() },
+                onSaved = { id, mode -> onEditorSaved(navController, id, mode) },
                 onClosed = { navController.popBackStack() },
             )
         }
@@ -244,6 +262,13 @@ private sealed class Route(val pattern: String) {
 /** Browser entry: `launchSingleTop` so re-opening from Detail or the FAB never stacks browsers. */
 private fun NavHostController.navigateToBrowser(url: String?) {
     navigate(Route.Browser.build(url)) {
+        launchSingleTop = true
+    }
+}
+
+/** Editor entry: `null` creates a recipe, an id edits it; `launchSingleTop` so a double tap never stacks editors. */
+private fun NavHostController.navigateToEditor(id: String?) {
+    navigate(if (id == null) Route.NewRecipe.pattern else Route.EditRecipe.build(id)) {
         launchSingleTop = true
     }
 }
