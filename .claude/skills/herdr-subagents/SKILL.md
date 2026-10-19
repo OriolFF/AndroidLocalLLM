@@ -58,7 +58,7 @@ Base the worktree on the branch the stream must build on (for Recipe Keeper that
 
 Root pane is `.result.root_pane.pane_id`; the new worktree path is `.result.worktree.path`. **Copy `local.properties` into the new worktree** — it is untracked and gitignored, so Gradle fails without it. In this repo that file is also under `app/<name>/` if any app needs SDK paths there.
 
-Reference untracked docs in the main checkout by **absolute path** — the worktree clone does not see them.
+Commit the brief before spawning into a worktree and prompt with the **worktree-relative path**; a read outside the agent's working directory triggers Claude Code's "Allow this read outside the working directories?" prompt and blocks the agent. Only reference the main checkout by absolute path for files that cannot be committed, and expect to answer that prompt (option 4, one-time Yes) when you do.
 
 ## Brief-file pattern
 

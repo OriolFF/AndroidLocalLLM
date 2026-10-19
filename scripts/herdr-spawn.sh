@@ -160,7 +160,19 @@ herdr agent start "$NAME" --kind claude \
 # ---- prompt with brief ---------------------------------------------------
 
 if [[ $SKIP_PROMPT -eq 0 ]]; then
-  herdr agent prompt "$NAME" "Read $BRIEF and execute it completely." \
+  # Inside a worktree, prefer the brief's path within that checkout: a read
+  # outside the agent's working directory triggers a permission prompt and
+  # blocks the agent until someone answers it.
+  PROMPT_BRIEF="$BRIEF"
+  if [[ -n "${WT_PATH:-}" && "$BRIEF" == "$PWD/"* ]]; then
+    REL="${BRIEF#"$PWD/"}"
+    if [[ -f "$WT_PATH/$REL" ]]; then
+      PROMPT_BRIEF="$REL"
+    else
+      echo "herdr-spawn: warning: $REL is not committed in the worktree; the agent will ask permission to read it from the main checkout" >&2
+    fi
+  fi
+  herdr agent prompt "$NAME" "Read $PROMPT_BRIEF and execute it completely." \
     --wait --until working --timeout 20000 \
     || die "herdr agent prompt failed (agent may be blocked — inspect with 'herdr agent get $NAME')"
 
