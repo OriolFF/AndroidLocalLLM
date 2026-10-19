@@ -62,7 +62,13 @@ class RecipeDetailViewModel(
     init {
         observeRecipe(recipeId)
             .flowOn(dispatchers.io)
-            .onEach { recipe -> _state.update { it.copy(recipe = recipe, isLoading = false) } }
+            .onEach { recipe ->
+                _state.update {
+                    // A re-edit can shorten the step list under the highlighted step.
+                    val step = it.currentStep?.takeIf { s -> recipe != null && s < recipe.steps.size }
+                    it.copy(recipe = recipe, isLoading = false, currentStep = step)
+                }
+            }
             .launchIn(viewModelScope)
     }
 

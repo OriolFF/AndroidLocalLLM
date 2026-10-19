@@ -51,6 +51,8 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ScreenLockPortrait
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AlertDialog
@@ -110,6 +112,8 @@ import coil3.request.crossfade
 import com.llmlocal.core.designsystem.component.AppLoadingIndicator
 import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.core.designsystem.component.GradientHero
+import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
+import com.llmlocal.recipekeeper.recipes.presentation.library.FavouriteToggle
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
 import com.llmlocal.core.designsystem.component.NumberBadge
 import com.llmlocal.core.designsystem.component.SectionHeader
@@ -272,7 +276,7 @@ private fun CompactDetail(
                         Spacer(modifier = Modifier.height(topInset + TopBarHeight))
                         GradientHero(
                             title = recipe.title,
-                            subtitle = recipe.sourceHost,
+                            subtitle = recipe.sourceLabel(labels),
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
@@ -286,6 +290,8 @@ private fun CompactDetail(
             }
             DetailTopBar(
                 labels = labels,
+                created = recipe.origin == RecipeOrigin.CREATED,
+                isFavourite = recipe.isFavourite,
                 backgroundAlpha = barAlpha,
                 overImage = hasPicture && barAlpha < 0.5f,
                 keepScreenOn = state.keepScreenOn,
@@ -313,6 +319,8 @@ private fun WideDetail(
         topBar = {
             DetailTopBar(
                 labels = labels,
+                created = recipe.origin == RecipeOrigin.CREATED,
+                isFavourite = recipe.isFavourite,
                 backgroundAlpha = 1f,
                 overImage = false,
                 keepScreenOn = state.keepScreenOn,
@@ -345,7 +353,7 @@ private fun WideDetail(
                     } else {
                         GradientHero(
                             title = recipe.title,
-                            subtitle = recipe.sourceHost,
+                            subtitle = recipe.sourceLabel(labels),
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
@@ -393,6 +401,8 @@ private fun rememberBarAlpha(listState: LazyListState, hasPicture: Boolean): and
 @Composable
 private fun DetailTopBar(
     labels: RecipeKeeperLibraryLabels,
+    created: Boolean,
+    isFavourite: Boolean,
     backgroundAlpha: Float,
     overImage: Boolean,
     keepScreenOn: Boolean,
@@ -413,8 +423,14 @@ private fun DetailTopBar(
                 }
             },
             actions = {
-                IconButton(onClick = { onIntent(RecipeDetailIntent.Share) }) {
-                    Icon(Icons.Outlined.Share, contentDescription = labels.shareRecipe, tint = tint)
+                FavouriteToggle(
+                    checked = isFavourite,
+                    labels = labels,
+                    onCheckedChange = { onIntent(RecipeDetailIntent.ToggleFavourite) },
+                    tint = tint,
+                )
+                IconButton(onClick = { onIntent(RecipeDetailIntent.Edit) }) {
+                    Icon(Icons.Outlined.Edit, contentDescription = labels.editRecipe, tint = tint)
                 }
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
@@ -422,15 +438,22 @@ private fun DetailTopBar(
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
-                            text = { Text(labels.openOriginal) },
-                            leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
-                            onClick = { menuOpen = false; onIntent(RecipeDetailIntent.OpenOriginal) },
+                            text = { Text(labels.shareRecipe) },
+                            leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                            onClick = { menuOpen = false; onIntent(RecipeDetailIntent.Share) },
                         )
-                        DropdownMenuItem(
-                            text = { Text(labels.reExtract) },
-                            leadingIcon = { Icon(Icons.Outlined.Refresh, contentDescription = null) },
-                            onClick = { menuOpen = false; onIntent(RecipeDetailIntent.ReExtract) },
-                        )
+                        if (!created) {
+                            DropdownMenuItem(
+                                text = { Text(labels.openOriginal) },
+                                leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
+                                onClick = { menuOpen = false; onIntent(RecipeDetailIntent.OpenOriginal) },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(labels.reExtract) },
+                                leadingIcon = { Icon(Icons.Outlined.Refresh, contentDescription = null) },
+                                onClick = { menuOpen = false; onIntent(RecipeDetailIntent.ReExtract) },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(labels.keepScreenOn) },
                             leadingIcon = { Icon(Icons.Outlined.ScreenLockPortrait, contentDescription = null) },
@@ -589,7 +612,8 @@ private fun MetaChips(
         recipe.cookMinutes?.let { add(Icons.Outlined.LocalFireDepartment to labels.cookTemplate(it)) }
         recipe.totalMinutes?.let { add(Icons.Outlined.Schedule to labels.totalTemplate(it)) }
     }
-    if (chips.isEmpty() && !recipe.truncated && !recipe.picturesFailed) return
+    val showIncomplete = recipe.truncated && recipe.origin != RecipeOrigin.CREATED
+    if (chips.isEmpty() && !showIncomplete && !recipe.picturesFailed) return
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -599,7 +623,7 @@ private fun MetaChips(
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         chips.forEach { (icon, text) -> MetaChip(icon = icon, text = text) }
-        if (recipe.truncated) {
+        if (showIncomplete) {
             IncompleteBadge(text = labels.incompleteChip, modifier = Modifier.heightIn(min = 32.dp))
         }
         if (recipe.picturesFailed) {
@@ -657,21 +681,33 @@ private fun SourceRow(
     labels: RecipeKeeperLibraryLabels,
     onIntent: (RecipeDetailIntent) -> Unit,
 ) {
-    val clippedOn = remember(recipe.clippedAt) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(recipe.clippedAt))
+    val created = recipe.origin == RecipeOrigin.CREATED
+    val dates = remember(recipe.clippedAt, recipe.editedAt, created, labels) {
+        val format = DateFormat.getDateInstance(DateFormat.MEDIUM)
+        val first = format.format(Date(recipe.clippedAt)).let { if (created) labels.createdOn(it) else labels.clippedOn(it) }
+        val edited = recipe.editedAt?.let { labels.editedOn(format.format(Date(it))) }
+        listOfNotNull(first, edited).joinToString(labels.metaSeparator)
     }
     ListItem(
-        headlineContent = { Text(recipe.sourceHost) },
-        supportingContent = { Text(labels.clippedOn(clippedOn)) },
-        leadingContent = { Icon(Icons.Outlined.Link, contentDescription = null) },
-        trailingContent = {
-            TextButton(onClick = { onIntent(RecipeDetailIntent.OpenOriginal) }) {
-                Text(labels.openOriginal)
+        headlineContent = { Text(recipe.sourceLabel(labels)) },
+        supportingContent = { Text(dates) },
+        leadingContent = {
+            Icon(if (created) Icons.Outlined.EditNote else Icons.Outlined.Link, contentDescription = null)
+        },
+        trailingContent = if (created) null else {
+            {
+                TextButton(onClick = { onIntent(RecipeDetailIntent.OpenOriginal) }) {
+                    Text(labels.openOriginal)
+                }
             }
         },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
+
+/** Host for clipped recipes, "Created by you" for written ones. */
+private fun ClippedRecipe.sourceLabel(labels: RecipeKeeperLibraryLabels): String =
+    if (origin == RecipeOrigin.CREATED) labels.createdByYou else sourceHost
 
 private fun LazyListScope.ingredientsSection(
     recipe: ClippedRecipe,

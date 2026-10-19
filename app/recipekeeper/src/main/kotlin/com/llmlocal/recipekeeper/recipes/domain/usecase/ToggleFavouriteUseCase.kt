@@ -6,6 +6,6 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 class ToggleFavouriteUseCase(private val repository: RecipeRepository) {
 
     suspend operator fun invoke(id: String, favourite: Boolean) {
-        TODO("F1")
+        repository.setFavourite(id, favourite)
     }
 }

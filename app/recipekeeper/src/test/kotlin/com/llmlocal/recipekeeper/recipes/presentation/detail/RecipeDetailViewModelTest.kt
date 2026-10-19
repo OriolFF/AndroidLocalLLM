@@ -245,4 +245,45 @@ class RecipeDetailViewModelTest {
             assertThat(repository.deleteCalls).isEmpty()
         }
     }
+
+    @Test
+    fun `edit emits NavigateToEditor`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(RecipeDetailIntent.Edit)
+            assertThat(awaitItem()).isEqualTo(RecipeDetailEffect.NavigateToEditor("a"))
+        }
+    }
+
+    @Test
+    fun `toggle favourite persists and flips back`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipe?.isFavourite).isFalse()
+
+        vm.onIntent(RecipeDetailIntent.ToggleFavourite)
+        advanceUntilIdle()
+        assertThat(repository.favouriteCalls).containsExactly("a" to true)
+        assertThat(vm.state.value.recipe?.isFavourite).isTrue()
+
+        vm.onIntent(RecipeDetailIntent.ToggleFavourite)
+        advanceUntilIdle()
+        assertThat(repository.favouriteCalls.last()).isEqualTo("a" to false)
+        assertThat(vm.state.value.recipe?.isFavourite).isFalse()
+    }
+
+    @Test
+    fun `current step is cleared when the steps shrink under it`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onIntent(RecipeDetailIntent.SelectStep(1))
+        assertThat(vm.state.value.currentStep).isEqualTo(1)
+
+        repository.upsert(repository.current.first { it.id == "a" }.copy(steps = listOf("Only step.")))
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.currentStep).isNull()
+    }
 }

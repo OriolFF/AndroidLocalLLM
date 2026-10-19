@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -37,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -87,6 +89,13 @@ fun LibraryScreen(
                 onQueryChange = { onIntent(LibraryIntent.SearchChanged(it)) },
                 onClear = { onIntent(LibraryIntent.ClearSearch) },
                 onClose = { onIntent(LibraryIntent.CloseSearch) },
+            )
+        }
+        if (!state.isLoading && !state.isEmptyLibrary) {
+            LibraryFilterRow(
+                filter = state.filter,
+                labels = labels,
+                onFavouritesChange = { onIntent(LibraryIntent.SetFavouritesFilter(it)) },
             )
         }
         if (state.isLoading) {
@@ -182,11 +191,28 @@ private fun LibraryGrid(
                     actionLabel = labels.openBrowser,
                     onAction = { onIntent(LibraryIntent.ClipRecipe) },
                 )
+                TextButton(
+                    onClick = { onIntent(LibraryIntent.CreateRecipe) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) { Text(labels.writeRecipe) }
+            }
+            state.isFavouritesEmpty -> item(span = { GridItemSpan(maxLineSpan) }, key = "favourites_empty") {
+                EmptyState(
+                    icon = Icons.Outlined.FavoriteBorder,
+                    title = labels.favouritesEmptyTitle,
+                    message = labels.favouritesEmptyMessage,
+                    actionLabel = labels.showAllRecipes,
+                    onAction = { onIntent(LibraryIntent.SetFavouritesFilter(false)) },
+                )
             }
             state.isSearchEmpty -> item(span = { GridItemSpan(maxLineSpan) }, key = "search_empty") {
                 EmptyState(
                     icon = Icons.Outlined.SearchOff,
-                    title = labels.searchEmptyTitle(state.query.trim()),
+                    title = if (state.filter.favouritesOnly) {
+                        labels.searchEmptyFavouritesTitle(state.query.trim())
+                    } else {
+                        labels.searchEmptyTitle(state.query.trim())
+                    },
                     actionLabel = labels.clearSearch,
                     onAction = { onIntent(LibraryIntent.ClearSearch) },
                 )
@@ -199,6 +225,9 @@ private fun LibraryGrid(
                     onDelete = { onIntent(LibraryIntent.DeleteRecipe(summary.id)) },
                     onShare = { onIntent(LibraryIntent.ShareRecipe(summary.id)) },
                     onOpenOriginal = { onIntent(LibraryIntent.OpenOriginal(summary.id)) },
+                    onToggleFavourite = { onIntent(LibraryIntent.ToggleFavourite(summary.id, it)) },
+                    onEdit = { onIntent(LibraryIntent.EditRecipe(summary.id)) },
+                    modifier = Modifier.animateItem(),
                 )
             }
         }

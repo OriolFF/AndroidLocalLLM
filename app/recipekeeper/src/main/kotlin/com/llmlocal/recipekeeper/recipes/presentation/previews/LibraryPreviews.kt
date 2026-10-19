@@ -11,6 +11,7 @@ import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryFab
+import com.llmlocal.recipekeeper.recipes.domain.LibraryFilter
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryScreen
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryState
@@ -96,6 +97,32 @@ private fun LibrarySearchEmptyPreview() = LibraryPreviewSurface(
 @Composable
 private fun LibrarySearchingPreview() = LibraryPreviewSurface(
     gridReady.copy(query = "soup", searchActive = true, recipes = SampleData.summaries.take(1)),
+)
+
+@Preview(name = "Library · favourites on", showBackground = true)
+@Composable
+private fun LibraryFavouritesPreview() = LibraryPreviewSurface(
+    gridReady.copy(recipes = SampleData.favouriteSummaries, filter = LibraryFilter(favouritesOnly = true)),
+)
+
+@Preview(name = "Library · favourites on · dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun LibraryFavouritesDarkPreview() = LibraryPreviewSurface(
+    gridReady.copy(recipes = SampleData.favouriteSummaries, filter = LibraryFilter(favouritesOnly = true)),
+    darkTheme = true,
+)
+
+@Preview(name = "Library · favourites empty", showBackground = true)
+@Composable
+private fun LibraryFavouritesEmptyPreview() = LibraryPreviewSurface(
+    gridReady.copy(recipes = emptyList(), filter = LibraryFilter(favouritesOnly = true)),
+)
+
+@Preview(name = "Library · favourites + search empty · dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun LibraryFavouritesSearchEmptyPreview() = LibraryPreviewSurface(
+    gridReady.copy(recipes = emptyList(), query = "ramen", searchActive = true, filter = LibraryFilter(favouritesOnly = true)),
+    darkTheme = true,
 )
 
 @Preview(name = "Library · loading", showBackground = true)

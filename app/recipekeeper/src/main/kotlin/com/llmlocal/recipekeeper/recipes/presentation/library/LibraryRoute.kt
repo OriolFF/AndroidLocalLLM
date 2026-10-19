@@ -2,6 +2,7 @@ package com.llmlocal.recipekeeper.recipes.presentation.library
 
 import android.content.Intent
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
@@ -80,6 +81,9 @@ fun LibraryRoute(
                 IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenSearch) }) {
                     Icon(Icons.Outlined.Search, contentDescription = labels.searchActionDescription)
                 }
+            }
+            IconButton(onClick = { viewModel.onIntent(LibraryIntent.CreateRecipe) }) {
+                Icon(Icons.Outlined.Add, contentDescription = labels.newRecipe)
             }
             IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenModelManagement) }) {
                 Icon(Icons.Outlined.Psychology, contentDescription = labels.manageModelsDescription)

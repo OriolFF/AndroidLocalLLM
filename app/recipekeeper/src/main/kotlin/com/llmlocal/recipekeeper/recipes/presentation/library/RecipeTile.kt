@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Share
@@ -36,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,6 +48,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.llmlocal.core.designsystem.theme.designTokens
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
+import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
 import java.io.File
 
@@ -53,8 +58,9 @@ import java.io.File
  * `host · time` meta, and the "Possibly incomplete" badge when the model
  * output was cut off.
  *
- * Tap opens the recipe; long-press opens a menu (Delete / Share / Open
- * original) anchored to the card. The card is one semantics node whose
+ * Tap opens the recipe; long-press opens a menu (Favourite / Edit / Share /
+ * Open original* / Delete; * hidden for created recipes) anchored to the card.
+ * A heart toggle sits top-end of the hero. The card is one semantics node whose
  * description is `title, from host`, so TalkBack reads it as a single row
  * and announces the long-press action label.
  */
@@ -67,10 +73,18 @@ fun RecipeTile(
     onDelete: () -> Unit,
     onShare: () -> Unit,
     onOpenOriginal: () -> Unit,
+    onToggleFavourite: (favourite: Boolean) -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    val tileDescription = labels.recipeTileDescription(summary.title, summary.sourceHost)
+    val created = summary.origin == RecipeOrigin.CREATED
+    val tileDescription = if (created) {
+        labels.recipeTileDescriptionCreated(summary.title)
+    } else {
+        labels.recipeTileDescription(summary.title, summary.sourceHost)
+    }
+    val favouriteState = if (summary.isFavourite) labels.favouriteStateOn else null
 
     Box(modifier = modifier) {
         Card(
@@ -83,7 +97,10 @@ fun RecipeTile(
                     onLongClick = { menuOpen = true },
                     onLongClickLabel = labels.recipeMenuDescription,
                 )
-                .semantics(mergeDescendants = true) { contentDescription = tileDescription },
+                .semantics(mergeDescendants = true) {
+                    contentDescription = tileDescription
+                    favouriteState?.let { stateDescription = it }
+                },
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -112,20 +129,46 @@ fun RecipeTile(
             }
         }
 
+        // Sibling of the merged card node so TalkBack gets two nodes: tile + toggle.
+        FavouriteToggle(
+            checked = summary.isFavourite,
+            labels = labels,
+            onCheckedChange = onToggleFavourite,
+            scrim = true,
+            modifier = Modifier.align(Alignment.TopEnd),
+        )
+
         DropdownMenu(
             expanded = menuOpen,
             onDismissRequest = { menuOpen = false },
         ) {
             DropdownMenuItem(
-                text = { Text(labels.openOriginal) },
-                leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
-                onClick = { menuOpen = false; onOpenOriginal() },
+                text = { Text(if (summary.isFavourite) labels.favouriteRemove else labels.favouriteAdd) },
+                leadingIcon = {
+                    Icon(
+                        if (summary.isFavourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = null,
+                    )
+                },
+                onClick = { menuOpen = false; onToggleFavourite(!summary.isFavourite) },
+            )
+            DropdownMenuItem(
+                text = { Text(labels.editRecipe) },
+                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                onClick = { menuOpen = false; onEdit() },
             )
             DropdownMenuItem(
                 text = { Text(labels.shareRecipe) },
                 leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
                 onClick = { menuOpen = false; onShare() },
             )
+            if (!created) {
+                DropdownMenuItem(
+                    text = { Text(labels.openOriginal) },
+                    leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
+                    onClick = { menuOpen = false; onOpenOriginal() },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(labels.delete, color = MaterialTheme.colorScheme.error) },
                 leadingIcon = {
@@ -209,5 +252,6 @@ fun IncompleteBadge(text: String, modifier: Modifier = Modifier) {
 /** `host · 30 min`, omitting the time when unknown. */
 private fun tileMeta(summary: RecipeSummary, labels: RecipeKeeperLibraryLabels): String {
     val time = summary.totalMinutes?.let { labels.minutesTemplate(it) }
-    return listOfNotNull(summary.sourceHost.takeIf { it.isNotBlank() }, time).joinToString(labels.metaSeparator)
+    val source = if (summary.origin == RecipeOrigin.CREATED) labels.createdByYou else summary.sourceHost
+    return listOfNotNull(source.takeIf { it.isNotBlank() }, time).joinToString(labels.metaSeparator)
 }
