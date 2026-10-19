@@ -53,7 +53,7 @@ class ExtractionViewModelTest {
     @get:Rule
     val temp = TemporaryFolder()
 
-    private val labels = WebClipperLabels()
+    private val labels = testWebClipperLabels()
     private val session: ClipSession = InMemoryClipSession()
     private val sink = FakeClipSink()
     private val config = FakeWebClipConfig()
