@@ -3,6 +3,7 @@ package com.llmlocal.recipekeeper.recipes.presentation.library
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
+import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
@@ -188,5 +189,102 @@ class LibraryViewModelTest {
 
         assertThat(vm.state.value.isEmptyLibrary).isTrue()
         assertThat(vm.state.value.isSearchEmpty).isFalse()
+    }
+
+    private fun favouritesRepository() = FakeRecipeRepository(
+        listOf(
+            FakeRecipeRepository.recipe("a", "Tomato soup", clippedAt = 3L, ingredients = listOf("tomatoes", "basil"))
+                .copy(isFavourite = true),
+            FakeRecipeRepository.recipe("b", "Pancakes", clippedAt = 2L),
+            FakeRecipeRepository.recipe("c", "Basil pesto", clippedAt = 1L, ingredients = listOf("basil"))
+                .copy(isFavourite = true, origin = RecipeOrigin.CREATED, sourceUrl = "", sourceHost = ""),
+        ),
+    )
+
+    @Test
+    fun `favourites filter narrows the list and turning it off restores it`() = runTest {
+        val vm = viewModel(repository = favouritesRepository())
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipes).hasSize(3)
+
+        vm.onIntent(LibraryIntent.SetFavouritesFilter(true))
+        advanceUntilIdle()
+        assertThat(vm.state.value.filter.favouritesOnly).isTrue()
+        assertThat(vm.state.value.recipes.map { it.id }).containsExactly("a", "c").inOrder()
+
+        vm.onIntent(LibraryIntent.SetFavouritesFilter(false))
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipes.map { it.id }).containsExactly("a", "b", "c").inOrder()
+    }
+
+    @Test
+    fun `favourites filter ANDs with search`() = runTest {
+        val vm = viewModel(repository = favouritesRepository())
+        advanceUntilIdle()
+
+        vm.onIntent(LibraryIntent.SetFavouritesFilter(true))
+        vm.onIntent(LibraryIntent.SearchChanged("pesto"))
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipes.map { it.id }).containsExactly("c")
+
+        vm.onIntent(LibraryIntent.SearchChanged("pancakes"))
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipes).isEmpty()
+        assertThat(vm.state.value.isSearchEmpty).isTrue()
+        assertThat(vm.state.value.isFavouritesEmpty).isFalse()
+    }
+
+    @Test
+    fun `no favourites reports isFavouritesEmpty and not the onboarding state`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onIntent(LibraryIntent.SetFavouritesFilter(true))
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.recipes).isEmpty()
+        assertThat(vm.state.value.isFavouritesEmpty).isTrue()
+        assertThat(vm.state.value.isEmptyLibrary).isFalse()
+    }
+
+    @Test
+    fun `toggle favourite goes through the use case and the list reflects it`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipes.first { it.id == "b" }.isFavourite).isFalse()
+
+        vm.onIntent(LibraryIntent.ToggleFavourite("b", true))
+        advanceUntilIdle()
+
+        assertThat(repository.favouriteCalls).containsExactly("b" to true)
+        assertThat(vm.state.value.recipes.first { it.id == "b" }.isFavourite).isTrue()
+
+        vm.onIntent(LibraryIntent.ToggleFavourite("b", false))
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipes.first { it.id == "b" }.isFavourite).isFalse()
+    }
+
+    @Test
+    fun `create and edit emit NavigateToEditor`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(LibraryIntent.CreateRecipe)
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.NavigateToEditor(null))
+
+            vm.onIntent(LibraryIntent.EditRecipe("a"))
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.NavigateToEditor("a"))
+        }
+    }
+
+    @Test
+    fun `created rows keep their origin in state`() = runTest {
+        val vm = viewModel(repository = favouritesRepository())
+        advanceUntilIdle()
+
+        val byId = vm.state.value.recipes.associateBy { it.id }
+        assertThat(byId.getValue("c").origin).isEqualTo(RecipeOrigin.CREATED)
+        assertThat(byId.getValue("a").origin).isEqualTo(RecipeOrigin.CLIPPED)
     }
 }

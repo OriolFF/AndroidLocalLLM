@@ -50,6 +50,25 @@ private fun DetailPhotoPreview() = DetailPreviewSurface(
     loaded.copy(recipe = SampleData.recipeWithPictures),
 )
 
+@Preview(name = "Detail · favourite + edited", showBackground = true)
+@Composable
+private fun DetailEditedPreview() = DetailPreviewSurface(
+    loaded.copy(recipe = SampleData.editedRecipe, currentStep = null),
+)
+
+@Preview(name = "Detail · created", showBackground = true)
+@Composable
+private fun DetailCreatedPreview() = DetailPreviewSurface(
+    loaded.copy(recipe = SampleData.createdRecipe, currentStep = null),
+)
+
+@Preview(name = "Detail · created · dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun DetailCreatedDarkPreview() = DetailPreviewSurface(
+    loaded.copy(recipe = SampleData.createdRecipe, currentStep = null),
+    darkTheme = true,
+)
+
 @Preview(name = "Detail · truncated", showBackground = true)
 @Composable
 private fun DetailTruncatedPreview() = DetailPreviewSurface(

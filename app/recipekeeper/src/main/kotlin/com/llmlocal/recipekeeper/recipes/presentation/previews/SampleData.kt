@@ -4,6 +4,7 @@ import com.llmlocal.core.llm.download.DownloadState
 import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.llm.model.LlmModelCatalog
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
 
 /** Hand-built data shared by the `@Preview`s in this package. */
@@ -67,12 +68,38 @@ internal object SampleData {
         notes = null,
     )
 
+    val favouriteRecipe = recipe.copy(isFavourite = true)
+
+    val createdRecipe = recipe.copy(
+        id = "r6",
+        title = "Grandma's lentil soup",
+        origin = RecipeOrigin.CREATED,
+        sourceUrl = "",
+        sourceHost = "",
+        pictures = emptyList(),
+        truncated = false,
+        editedAt = CLIPPED_AT + DAY_MS,
+    )
+
+    val editedRecipe = recipe.copy(editedAt = CLIPPED_AT + DAY_MS, isFavourite = true)
+
+    val createdSummary = RecipeSummary(
+        "r6", createdRecipe.title, "", 45, null, false, CLIPPED_AT - 4 * DAY_MS,
+        isFavourite = true, origin = RecipeOrigin.CREATED,
+    )
+
+    val favouriteSummaries: List<RecipeSummary> = listOf(
+        RecipeSummary("r1", recipe.title, "example.com", 55, null, false, CLIPPED_AT, isFavourite = true),
+        createdSummary,
+    )
+
     val summaries: List<RecipeSummary> = listOf(
-        RecipeSummary("r1", recipe.title, "example.com", 55, null, false, CLIPPED_AT),
+        RecipeSummary("r1", recipe.title, "example.com", 55, null, false, CLIPPED_AT, isFavourite = true),
         RecipeSummary("r2", truncatedRecipe.title, "breakfast.blog", 20, null, true, CLIPPED_AT - DAY_MS),
         RecipeSummary("r3", "Pan con tomate", "tapas.example", 10, null, false, CLIPPED_AT - 2 * DAY_MS),
         RecipeSummary("r4", "Slow-cooked lamb shoulder with anchovies, rosemary and garlic", "sunday.example", 240, null, false, CLIPPED_AT - 3 * DAY_MS),
         RecipeSummary("r5", "Miso brown butter cookies", "bakes.example", null, null, false, CLIPPED_AT - 5 * DAY_MS),
+        createdSummary,
     )
 
     val downloading = PerModelProgress(
