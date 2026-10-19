@@ -52,14 +52,9 @@ class EvalPromptRenderingTest(private val fixture: EvalFixture) {
     @Test
     fun `rendered input fits the budget and the full prompt is written`() {
         val snapshot = EvalFixtures.load(fixture)
+        // NONE fixtures render the "Extract anyway" whole-page candidate (see EvalFixtures.topCandidate).
         val top = EvalFixtures.topCandidate(snapshot)
         val promptsDir = EvalFixtures.promptsDir.apply { mkdirs() }
-        if (top == null) {
-            assertThat(fixture.tier).isEqualTo(ExpectedTier.NONE)
-            // Nothing to send to the model; make sure a stale prompt does not linger.
-            promptFile(promptsDir).delete()
-            return
-        }
 
         val rendered = EvalFixtures.renderedInput(top, snapshot)
         val budget = EvalFixtures.clipConfig.budgetChars

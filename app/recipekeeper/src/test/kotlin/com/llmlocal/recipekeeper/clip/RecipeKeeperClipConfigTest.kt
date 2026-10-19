@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.llmlocal.core.web.JsonLdNode
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
+import com.llmlocal.feature.webclipper.wholePageCandidate
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.testing.image
 import com.llmlocal.recipekeeper.testing.loadJsonLd
@@ -114,16 +115,20 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
-    fun `no recipe and short readable text yields nothing, long readable text yields WholePage`() {
+    fun `a page with no recipe yields nothing, however long its readable text`() {
+        // WS10 bug 2: a WholePage candidate from detect() made single-candidate
+        // routing skip the "No recipe found" sheet on list / home pages.
         val none = snapshot(url = "https://news.example.com/x", sections = listOf(section("News", 1, "Short.", top = 0)), readable = readable("Short."))
         assertThat(config.detect(none)).isEmpty()
 
-        val long = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
-        val whole = config.detect(long).single()
-        assertThat(whole.id).isEqualTo(RecipeKeeperClipConfig.WHOLE_PAGE_ID)
+        val long = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(2_000), title = "Long article"))
+        assertThat(config.detect(long)).isEmpty()
+
+        // "Extract anyway" is the feature's synthetic candidate; the config still renders it.
+        val whole = wholePageCandidate(long)
         assertThat(whole.payload).isEqualTo(CandidatePayload.WholePage)
-        assertThat(whole.title).isEqualTo("Long article")
         assertThat(whole.source).isEqualTo(CandidateSource.TEXT)
+        assertThat(config.renderLlmInput(whole, long, config.budgetChars)).startsWith("Page: news.example.com — Long article\n\nword word")
     }
 
     // -----------------------------------------------------------------------
@@ -241,7 +246,7 @@ class RecipeKeeperClipConfigTest {
     fun `whole page rendering uses readable text and is budget-trimmed at a paragraph boundary`() {
         val paragraphs = (1..60).joinToString("\n\n") { i -> "Paragraph $i. " + "lorem ipsum dolor sit amet ".repeat(8).trim() }
         val page = snapshot(url = "https://news.example.com/x", readable = readable(paragraphs, title = "Long"))
-        val whole = config.detect(page).single()
+        val whole = wholePageCandidate(page)
 
         val rendered = config.renderLlmInput(whole, page, budgetChars = 2_000)
 
@@ -255,7 +260,7 @@ class RecipeKeeperClipConfigTest {
     @Test
     fun `rendering under budget is returned whole and budget respected for huge single paragraphs`() {
         val tiny = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(150).trim(), title = "T"))
-        val candidate = config.detect(tiny).single()
+        val candidate = wholePageCandidate(tiny)
         val whole = config.renderLlmInput(candidate, tiny, config.budgetChars)
         assertThat(whole).doesNotContain(RecipeKeeperClipConfig.TRUNCATION_MARKER)
         assertThat(whole).endsWith("word")
@@ -313,7 +318,7 @@ class RecipeKeeperClipConfigTest {
     @Test
     fun `accept requires two quantity ingredients for whole-page results and nothing for detected candidates`() {
         val page = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
-        val whole = config.detect(page).single()
+        val whole = wholePageCandidate(page)
         val invented = recipe(ingredients = listOf("Chicken", "Breadcrumbs", "Onion", "Garlic", "Egg"))
         val oneQuantity = recipe(ingredients = listOf("2 eggs", "flour", "milk"))
         val real = recipe(ingredients = listOf("2 eggs", "1 cup flour", "milk"))

@@ -25,10 +25,13 @@ import kotlin.math.abs
  * at least [MIN_QUANTITY_LINES] quantity-unit lines, or its heading is an
  * "ingredients" word and an "instructions" word follows within the next
  * sections. A recipe-ish URL path relaxes the line threshold by one. When
- * neither tier finds anything and the readable text is at least
- * [MIN_WHOLE_PAGE_CHARS] long, a single `WholePage` candidate is offered
- * ("Extract anyway" also uses it). Ranking: STRUCTURED first in document
- * order, then TEXT by heading level, then position. Capped at 10.
+ * neither tier finds anything the list is **empty**: the feature then shows
+ * its "No recipe found" sheet, whose "Extract anyway" builds the `WholePage`
+ * candidate itself (`wholePageCandidate(snapshot)`); `detect` never offers
+ * it, otherwise list and category pages would skip the sheet and go
+ * straight to a 9,000-char extraction (WS10 bug 2). Ranking: STRUCTURED
+ * first in document order, then TEXT by heading level, then position.
+ * Capped at 10.
  *
  * **Render.** STRUCTURED → compact field rendering (`Name / Description /
  * Yield / Times / Ingredients / Instructions / Images: n`). TEXT → the
@@ -66,7 +69,7 @@ class RecipeKeeperClipConfig(
         val text = detectText(snapshot)
         if (text.isNotEmpty()) return text.take(MAX_CANDIDATES)
 
-        return listOfNotNull(wholePageCandidate(snapshot))
+        return emptyList()
     }
 
     private fun detectStructured(snapshot: PageSnapshot): List<ClipCandidate> {
@@ -166,22 +169,6 @@ class RecipeKeeperClipConfig(
         return snapshot.readable?.title?.takeIf { it.isNotBlank() }
             ?: snapshot.title?.takeIf { it.isNotBlank() }
             ?: heading.ifBlank { DEFAULT_TITLE }
-    }
-
-    private fun wholePageCandidate(snapshot: PageSnapshot): ClipCandidate? {
-        val readable = snapshot.readable
-        val length = readable?.textContent?.length ?: snapshot.sections.sumOf { it.text.length }
-        if (length < MIN_WHOLE_PAGE_CHARS) return null
-        return ClipCandidate(
-            id = WHOLE_PAGE_ID,
-            title = readable?.title?.takeIf { it.isNotBlank() } ?: snapshot.title?.takeIf { it.isNotBlank() } ?: DEFAULT_TITLE,
-            thumbnailUrl = snapshot.openGraph["og:image"] ?: snapshot.openGraph["twitter:image"],
-            snippet = readable?.excerpt?.let { snippet(it) } ?: readable?.textContent?.let { snippet(it) },
-            source = CandidateSource.TEXT,
-            ingredientCount = null,
-            totalMinutes = null,
-            payload = CandidatePayload.WholePage,
-        )
     }
 
     // -----------------------------------------------------------------------
@@ -428,12 +415,10 @@ class RecipeKeeperClipConfig(
 
     companion object {
         const val MAX_CANDIDATES = 10
-        const val WHOLE_PAGE_ID = "page"
         const val TRUNCATION_MARKER = "\n[…truncated]"
         const val HEAD_MARKER = "[…]\n"
         const val MIN_PRECEDING_PROSE_CHARS = 300
         const val MIN_QUANTITY_LINES = 3
-        const val MIN_WHOLE_PAGE_CHARS = 500
         const val MIN_WHOLE_PAGE_QUANTITY_LINES = 2
         const val MIN_COMPLETE_INGREDIENTS = 3
         const val MIN_COMPLETE_STEPS = 2

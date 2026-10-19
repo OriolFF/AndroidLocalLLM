@@ -2,6 +2,7 @@ package com.llmlocal.recipekeeper.eval
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.llmlocal.feature.webclipper.ClipCandidate
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.parser.RecipeKeeperDraftParser
 import com.llmlocal.recipekeeper.parser.RecipeKeeperParser
@@ -68,7 +69,7 @@ class EvalParserTest(private val fixture: EvalFixture) {
 
         val parsedOnly = parser.parse(golden)
         val top = row.topCandidate
-        row.rejectedByAccept = parsedOnly != null && top != null && !EvalFixtures.clipConfig.accept(top, parsedOnly)
+        row.rejectedByAccept = parsedOnly != null && !EvalFixtures.clipConfig.accept(top, parsedOnly)
         val recipe = parsedOnly?.takeUnless { row.rejectedByAccept }
         row.parsed = recipe
         row.refused = parsedOnly == null && golden.trim().startsWith(RecipeKeeperParser.NO_RECIPE_TEXT, ignoreCase = true)
@@ -219,11 +220,12 @@ object EvalReport {
     class Row(val fixture: EvalFixture) {
         val snapshot = EvalFixtures.load(fixture)
         val candidates = EvalFixtures.candidates(snapshot)
-        val topCandidate = candidates.firstOrNull()
+        /** Detected top candidate, or the "Extract anyway" whole page when nothing was detected. */
+        val topCandidate: ClipCandidate = EvalFixtures.topCandidate(snapshot)
         val tier = EvalFixtures.tierOf(topCandidate)
-        val rendered: String? = topCandidate?.let { EvalFixtures.renderedInput(it, snapshot) }
-        val promptChars: Int = rendered?.let { EvalFixtures.fullPrompt(it).length } ?: 0
-        val fallback: ClippedRecipe? = topCandidate?.let { EvalFixtures.clipConfig.fallback(it, snapshot) }
+        val rendered: String = EvalFixtures.renderedInput(topCandidate, snapshot)
+        val promptChars: Int = EvalFixtures.fullPrompt(rendered).length
+        val fallback: ClippedRecipe? = EvalFixtures.clipConfig.fallback(topCandidate, snapshot)
         var status: String = "NOT RUN"
         var goldenChars: Int? = null
         var timing: JSONObject? = null
