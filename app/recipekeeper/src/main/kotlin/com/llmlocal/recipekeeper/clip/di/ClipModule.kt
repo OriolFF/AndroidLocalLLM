@@ -7,6 +7,8 @@ import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperClipConfig
 import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperTaskConfig
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
 import org.koin.core.module.Module
+import com.llmlocal.recipekeeper.R
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 /**
@@ -17,6 +19,11 @@ import org.koin.dsl.module
  */
 val clipModule: Module = module {
     single { RecipeKeeperTaskConfig }
-    single<WebClipConfig<ClippedRecipe>> { RecipeKeeperClipConfig() }
-    single<ClipSink<ClippedRecipe>> { RecipeKeeperClipSink(repository = get(), pictures = get(), dispatchers = get()) }
+    single<WebClipConfig<ClippedRecipe>> { RecipeKeeperClipConfig(untitledTitle = androidContext().getString(R.string.recipekeeper_untitled_recipe)) }
+    single<ClipSink<ClippedRecipe>> {
+        RecipeKeeperClipSink(
+            repository = get(), pictures = get(), dispatchers = get(),
+            untitledTitle = androidContext().getString(R.string.recipekeeper_untitled_recipe),
+        )
+    }
 }

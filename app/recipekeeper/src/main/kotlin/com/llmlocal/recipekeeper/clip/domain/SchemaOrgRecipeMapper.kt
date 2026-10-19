@@ -22,11 +22,13 @@ import java.util.UUID
  *  - `recipeYield`: Text | number | array | QuantitativeValue
  *  - `prepTime` / `cookTime` / `totalTime`: ISO-8601 via [durationParser]
  *
+ * @param untitledTitle title used when the node has no name (user-visible; from resources)
  * @param durationParser ISO/free-text duration → minutes. Defaults to
  *   `IsoDuration.toMinutes` from `:core:web` (implemented by WS2); tests
  *   pass their own lambda.
  */
 class SchemaOrgRecipeMapper(
+    private val untitledTitle: String,
     private val durationParser: (String?) -> Int? = IsoDuration::toMinutes,
 ) {
 
@@ -50,7 +52,7 @@ class SchemaOrgRecipeMapper(
         val cook = minutes(raw, "cookTime")
         return ClippedRecipe(
             id = id,
-            title = name(raw).ifBlank { "Untitled recipe" },
+            title = name(raw).ifBlank { untitledTitle },
             description = description(raw),
             servings = yieldText(raw),
             prepMinutes = prep,

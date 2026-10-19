@@ -209,5 +209,5 @@ fun IncompleteBadge(text: String, modifier: Modifier = Modifier) {
 /** `host · 30 min`, omitting the time when unknown. */
 private fun tileMeta(summary: RecipeSummary, labels: RecipeKeeperLibraryLabels): String {
     val time = summary.totalMinutes?.let { labels.minutesTemplate(it) }
-    return listOfNotNull(summary.sourceHost.takeIf { it.isNotBlank() }, time).joinToString(" · ")
+    return listOfNotNull(summary.sourceHost.takeIf { it.isNotBlank() }, time).joinToString(labels.metaSeparator)
 }

@@ -48,14 +48,16 @@ import kotlin.math.abs
  * `Page: <host> — <title>` and are trimmed to `budgetChars` at a paragraph
  * boundary with a `[…truncated]` marker.
  *
+ * @param untitledTitle title for recipes with no name (user-visible; from resources)
  * @param durationParser ISO-8601/free-text → minutes; `IsoDuration.toMinutes`
  *   (WS2) in production, a lambda in tests
  * @param idFactory id for saved recipes (the fallback path); UUID by default
  * @param clock epoch millis for `clippedAt`
  */
 class RecipeKeeperClipConfig(
+    untitledTitle: String,
     durationParser: (String?) -> Int? = IsoDuration::toMinutes,
-    private val mapper: SchemaOrgRecipeMapper = SchemaOrgRecipeMapper(durationParser),
+    private val mapper: SchemaOrgRecipeMapper = SchemaOrgRecipeMapper(untitledTitle, durationParser),
     private val idFactory: () -> String = { java.util.UUID.randomUUID().toString() },
     private val clock: () -> Long = System::currentTimeMillis,
 ) : WebClipConfig<ClippedRecipe> {

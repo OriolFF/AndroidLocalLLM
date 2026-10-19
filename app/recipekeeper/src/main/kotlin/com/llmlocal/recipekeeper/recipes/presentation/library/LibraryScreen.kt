@@ -269,7 +269,7 @@ private fun DownloadCard(
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClickLabel = labels.tapToManageModels, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = "$title, ${status.percent}%" },
+            .semantics(mergeDescendants = true) { contentDescription = labels.downloadingModelDescription(title, status.percent) },
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.secondaryContainer,
     ) {

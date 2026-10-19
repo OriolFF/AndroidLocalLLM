@@ -766,7 +766,7 @@ private fun StepRow(
     labels: RecipeKeeperLibraryLabels,
     onClick: () -> Unit,
 ) {
-    val description = "${labels.stepDescription(number, total)}. $text"
+    val description = labels.stepSpokenDescription(labels.stepDescription(number, total), text)
     Row(
         modifier = Modifier
             .fillMaxWidth()

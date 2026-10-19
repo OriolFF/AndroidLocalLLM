@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 import com.llmlocal.recipekeeper.clip.presentation.ClipDraftCard
+import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 
 /**
  * `@Preview`s for the streamed draft card: all-skeleton (no tokens yet),
@@ -23,6 +24,7 @@ private fun DraftPreviewSurface(streamedText: String, isRunning: Boolean, darkTh
             ClipDraftCard(
                 streamedText = streamedText,
                 isRunning = isRunning,
+                labels = rememberRecipeKeeperLibraryLabels(),
                 modifier = Modifier.padding(16.dp),
             )
         }

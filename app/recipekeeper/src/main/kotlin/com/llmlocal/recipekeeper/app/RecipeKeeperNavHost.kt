@@ -31,7 +31,7 @@ import com.llmlocal.recipekeeper.clip.presentation.ClipDraftCard
 import com.llmlocal.recipekeeper.clip.presentation.RecipeKeeperClipperLabels
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
-import com.llmlocal.recipekeeper.recipes.presentation.DefaultRecipeKeeperLibraryLabels
+import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailRoute
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryRoute
 import com.llmlocal.recipekeeper.recipes.presentation.library.showRecipeDeleted
@@ -63,7 +63,7 @@ fun RecipeKeeperNavHost() {
     val snackbarHostState = remember { SnackbarHostState() }
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
-    val labels = DefaultRecipeKeeperLibraryLabels
+    val labels = rememberRecipeKeeperLibraryLabels()
     val deleteWithUndo = koinInject<DeleteRecipeWithUndoUseCase>()
 
     NavHost(

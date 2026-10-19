@@ -38,7 +38,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.llmlocal.recipekeeper.recipes.presentation.DefaultRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
 import com.llmlocal.core.designsystem.component.NumberBadge
 import com.llmlocal.core.designsystem.component.SectionHeader
@@ -73,7 +72,7 @@ fun ClipDraftCard(
     streamedText: String,
     isRunning: Boolean,
     parseDraft: (String) -> RecipeDraft = StubDraftParser::parse,
-    labels: RecipeKeeperLibraryLabels = DefaultRecipeKeeperLibraryLabels,
+    labels: RecipeKeeperLibraryLabels,
     modifier: Modifier = Modifier,
 ) {
     val initial = remember { parseDraft(streamedText) }

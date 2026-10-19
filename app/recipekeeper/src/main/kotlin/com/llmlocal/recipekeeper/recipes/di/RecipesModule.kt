@@ -21,7 +21,7 @@ import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleIngredientCheckedUseCase
-import com.llmlocal.recipekeeper.recipes.presentation.DefaultRecipeKeeperLibraryLabels
+import com.llmlocal.recipekeeper.recipes.presentation.recipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailViewModel
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -71,7 +71,7 @@ val recipesModule: Module = module {
     factory { ToggleIngredientCheckedUseCase(repository = get()) }
     factory { ResetChecksUseCase(repository = get()) }
     factory { RetryRecipePicturesUseCase(repository = get(), fetcher = get(), store = get(), dispatchers = get()) }
-    factory { ShareRecipeUseCase(repository = get(), template = DefaultRecipeKeeperLibraryLabels.shareTemplate) }
+    factory { ShareRecipeUseCase(repository = get(), template = recipeKeeperLibraryLabels(androidContext().resources).shareTemplate) }
 
     // ---- presentation ----------------------------------------------------
     viewModel {

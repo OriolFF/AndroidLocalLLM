@@ -10,7 +10,7 @@ import org.junit.Test
 
 class SchemaOrgRecipeMapperTest {
 
-    private val mapper = SchemaOrgRecipeMapper(testDurationParser)
+    private val mapper = SchemaOrgRecipeMapper("Untitled recipe", testDurationParser)
     private val url = "https://www.example.com/recipes/banana-bread"
 
     @Test
