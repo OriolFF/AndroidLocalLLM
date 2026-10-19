@@ -103,7 +103,7 @@ fun LibraryScreen(
 }
 
 /**
- * "Clip a recipe" FAB → browser, for the `AppScaffold.floatingActionButton`
+ * "Open browser" FAB → browser, for the `AppScaffold.floatingActionButton`
  * slot (so the undo-delete snackbar is placed above it, not over it —
  * WS10 bug 11). Hidden on the onboarding empty state, whose own button is
  * already the single primary action, and while loading.

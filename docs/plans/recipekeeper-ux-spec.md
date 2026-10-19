@@ -169,7 +169,7 @@ truncatedWarning = "The recipe may be incomplete"; tryAgain = "Try again"; tryWh
 picturesUnavailable = "Pictures unavailable"; retryPictures = "Retry pictures"
 
 // ---- RecipeKeeperLibraryLabels (app) ----
-libraryTitle = "Your recipes"; libraryFabClip = "Clip a recipe"; libraryEmptyTitle = "No recipes yet"
+libraryTitle = "Your recipes"; libraryFabClip = "Open browser"; libraryEmptyTitle = "No recipes yet"
 libraryEmptyMessage = "Browse any cooking site and tap Clip. The recipe is extracted on your phone and saved here."
 openBrowser = "Open browser"; searchHint = "Search recipes or ingredients"; searchEmptyTitle: (String) -> String = { q -> "Nothing matches “$q”" }; clearSearch = "Clear search"
 recipeTileDescription: (title, host) -> String = { t, h -> "$t, from $h" }

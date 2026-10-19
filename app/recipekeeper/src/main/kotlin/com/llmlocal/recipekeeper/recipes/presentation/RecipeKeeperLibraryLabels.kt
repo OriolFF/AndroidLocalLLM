@@ -26,7 +26,7 @@ data class RecipeKeeperLibraryLabels(
     val back: String = "Back",
 
     // ---- Library screen --------------------------------------------------
-    val libraryFabClip: String = "Clip a recipe",
+    val libraryFabClip: String = "Open browser",
     val libraryEmptyTitle: String = "No recipes yet",
     val libraryEmptyMessage: String =
         "Browse any cooking site and tap Clip. The recipe is extracted " +
