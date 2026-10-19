@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement
+package com.llmlocal.feature.modelmanagement.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,12 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.EmptyState
-import com.llmlocal.feature.modelmanagement.components.FilterBar
-import com.llmlocal.feature.modelmanagement.components.ModelCard
-import com.llmlocal.feature.modelmanagement.components.ModelDetailSheet
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementIntent
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementState
-import com.llmlocal.feature.modelmanagement.mvi.modelManagementLabels
+import com.llmlocal.feature.modelmanagement.presentation.components.FilterBar
+import com.llmlocal.feature.modelmanagement.presentation.components.ModelCard
+import com.llmlocal.feature.modelmanagement.presentation.components.ModelDetailSheet
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementIntent
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementState
+import com.llmlocal.feature.modelmanagement.presentation.mvi.modelManagementLabels
 
 /**
  * Stateless model-management screen. Receives [state] + [onIntent]; does

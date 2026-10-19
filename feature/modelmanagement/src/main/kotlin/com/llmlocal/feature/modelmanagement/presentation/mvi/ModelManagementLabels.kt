@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.mvi
+package com.llmlocal.feature.modelmanagement.presentation.mvi
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable

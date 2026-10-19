@@ -1,8 +1,9 @@
-package com.llmlocal.feature.modelmanagement.mvi
+package com.llmlocal.feature.modelmanagement.presentation.mvi
 
 import androidx.compose.runtime.Immutable
-import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.model.LlmModelDescriptor
+import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
+import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 
 /**
  * Aggregated UI state for the model management screen.
@@ -33,7 +34,7 @@ data class ModelManagementState(
     val catalog: List<LlmModelDescriptor> = emptyList(),
     val installedIds: Set<String> = emptySet(),
     val selectedId: String? = null,
-    val downloading: Map<String, PerModelProgress> = emptyMap(),
+    val downloading: Map<String, DownloadProgress> = emptyMap(),
     val filters: ModelFilters = ModelFilters.DEFAULT,
     val filteredCatalog: List<LlmModelDescriptor> = emptyList(),
     val lastError: String? = null,

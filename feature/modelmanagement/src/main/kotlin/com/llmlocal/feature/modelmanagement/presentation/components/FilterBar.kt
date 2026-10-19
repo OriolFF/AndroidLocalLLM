@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.components
+package com.llmlocal.feature.modelmanagement.presentation.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -27,10 +27,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.model.ModelFamily
-import com.llmlocal.feature.modelmanagement.mvi.ModelFilters
-import com.llmlocal.feature.modelmanagement.mvi.QuantFilter
-import com.llmlocal.feature.modelmanagement.mvi.SizeBucket
-import com.llmlocal.feature.modelmanagement.mvi.StatusFilter
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelFilters
+import com.llmlocal.feature.modelmanagement.presentation.mvi.QuantFilter
+import com.llmlocal.feature.modelmanagement.presentation.mvi.SizeBucket
+import com.llmlocal.feature.modelmanagement.presentation.mvi.StatusFilter
 
 /**
  * Sticky-feeling filter bar for the model catalog. Renders four vertical

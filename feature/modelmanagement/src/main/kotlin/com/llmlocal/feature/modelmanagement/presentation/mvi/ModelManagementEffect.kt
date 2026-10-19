@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.mvi
+package com.llmlocal.feature.modelmanagement.presentation.mvi
 
 /**
  * One-shot side effects emitted by the model management ViewModel.

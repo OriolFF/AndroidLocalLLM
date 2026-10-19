@@ -1,4 +1,6 @@
-package com.llmlocal.feature.modelmanagement.mvi
+package com.llmlocal.feature.modelmanagement.presentation.mvi
+
+import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 
 /**
  * User-originated actions for the model management screen.

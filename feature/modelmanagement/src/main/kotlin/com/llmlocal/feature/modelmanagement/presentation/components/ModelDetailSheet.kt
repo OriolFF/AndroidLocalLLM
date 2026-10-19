@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.components
+package com.llmlocal.feature.modelmanagement.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llmlocal.core.llm.download.LlmModelManager
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
 
@@ -120,7 +119,7 @@ fun ModelDetailSheet(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    DetailRow("Size", LlmModelManager.humanReadableBytes(descriptor.sizeBytes))
+                    DetailRow("Size", formatBytes(descriptor.sizeBytes))
                     DetailRow("Family", descriptor.family.displayName)
                     DetailRow("Min RAM", "${descriptor.minRamMb} MB")
                     DetailRow("File", descriptor.filename)

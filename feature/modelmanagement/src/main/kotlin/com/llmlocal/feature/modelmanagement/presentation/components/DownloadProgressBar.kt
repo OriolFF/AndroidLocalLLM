@@ -1,4 +1,4 @@
-package com.llmlocal.feature.modelmanagement.components
+package com.llmlocal.feature.modelmanagement.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,8 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llmlocal.core.llm.download.LlmModelManager
+import com.llmlocal.core.llm.download.DownloadState
 import com.llmlocal.core.llm.download.PerModelProgress
+import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
+import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
 import kotlin.math.roundToInt
 
 /**
@@ -30,7 +32,7 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun DownloadProgressBar(
-    progress: PerModelProgress,
+    progress: DownloadProgress,
     modifier: Modifier = Modifier,
 ) {
     val percent = progress.totalBytes?.takeIf { it > 0 }
@@ -62,12 +64,12 @@ fun DownloadProgressBar(
         }
         Text(
             text = buildString {
-                append(LlmModelManager.humanReadableBytes(progress.bytesRead))
+                append(formatBytes(progress.bytesRead))
                 append(" / ")
-                append(progress.totalBytes?.let { LlmModelManager.humanReadableBytes(it) } ?: "?")
+                append(progress.totalBytes?.let { formatBytes(it) } ?: "?")
                 if (progress.speedBytesPerSec > 0) {
                     append(" · ")
-                    append(LlmModelManager.humanReadableBytes(progress.speedBytesPerSec))
+                    append(formatBytes(progress.speedBytesPerSec))
                     append("/s")
                 }
                 progress.etaSeconds?.let { secs ->
@@ -80,4 +82,32 @@ fun DownloadProgressBar(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+/**
+ * Overload for callers that hold the `:core:llm` snapshot directly (the
+ * Recipe Keeper library banner, via `ModelReadiness.Downloading`).
+ */
+@Composable
+fun DownloadProgressBar(
+    progress: PerModelProgress,
+    modifier: Modifier = Modifier,
+) {
+    DownloadProgressBar(
+        progress = DownloadProgress(
+            modelId = progress.modelId,
+            status = when (progress.state) {
+                DownloadState.IDLE -> DownloadStatus.IDLE
+                DownloadState.RUNNING -> DownloadStatus.RUNNING
+                DownloadState.SUCCEEDED -> DownloadStatus.SUCCEEDED
+                DownloadState.FAILED -> DownloadStatus.FAILED
+                DownloadState.CANCELLED -> DownloadStatus.CANCELLED
+            },
+            bytesRead = progress.bytesRead,
+            totalBytes = progress.totalBytes,
+            speedBytesPerSec = progress.speedBytesPerSec,
+            etaSeconds = progress.etaSeconds,
+            failureReason = progress.failureReason,
+        ),
+        modifier = modifier,
+    )
 }
