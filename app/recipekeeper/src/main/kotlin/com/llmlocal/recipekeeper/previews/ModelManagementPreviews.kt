@@ -6,8 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.core.llm.download.DownloadState
-import com.llmlocal.core.llm.download.PerModelProgress
+import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
+import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
 import com.llmlocal.core.llm.model.LlmModelCatalog
 import com.llmlocal.feature.modelmanagement.ModelManagementScreen
 import com.llmlocal.feature.modelmanagement.mvi.ModelFilters
@@ -63,28 +63,26 @@ private val fullCatalogState = ModelManagementState(
 
 private val downloadingState = fullCatalogState.copy(
     downloading = mapOf(
-        LlmModelCatalog.ALL[1].id to PerModelProgress(
+        LlmModelCatalog.ALL[1].id to DownloadProgress(
             modelId = LlmModelCatalog.ALL[1].id,
-            state = DownloadState.RUNNING,
+            status = DownloadStatus.RUNNING,
             bytesRead = 420L * 1024 * 1024,
             totalBytes = 980L * 1024 * 1024,
             speedBytesPerSec = 4L * 1024 * 1024,
             etaSeconds = 142,
-            updatedAt = 0L,
         ),
     ),
 )
 
 private val failedState = fullCatalogState.copy(
     downloading = mapOf(
-        LlmModelCatalog.ALL[2].id to PerModelProgress(
+        LlmModelCatalog.ALL[2].id to DownloadProgress(
             modelId = LlmModelCatalog.ALL[2].id,
-            state = DownloadState.FAILED,
+            status = DownloadStatus.FAILED,
             bytesRead = 100L * 1024 * 1024,
             totalBytes = 2_300L * 1024 * 1024,
             speedBytesPerSec = 0L,
             etaSeconds = null,
-            updatedAt = 0L,
             failureReason = "Network error — check your connection and try again.",
         ),
     ),
