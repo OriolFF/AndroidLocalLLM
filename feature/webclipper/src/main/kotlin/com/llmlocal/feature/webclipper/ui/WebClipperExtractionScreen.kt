@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -78,6 +81,11 @@ import com.llmlocal.feature.webclipper.mvi.PictureStatus
  * strip, [PhaseProgress], the app's draft slot (or an error state), the
  * picture strip with keep checkboxes and the Stop button.
  *
+ * On compact windows the action (Stop while running, "View recipe" once
+ * saved) sits in the scaffold's `bottomBar`, so it is reachable without
+ * scrolling past the draft (WS10 bug 8). Wide windows keep it in the
+ * left column under the phases.
+ *
  * Accessibility: phase changes are announced through one invisible polite
  * live region (the streaming card is **not** a live region); the raw tail
  * is hidden from services while running; skeletons are invisible.
@@ -108,26 +116,33 @@ fun WebClipperExtractionScreen(
         else -> ""
     }
 
-    Scaffold(
-        modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
-            TopAppBar(
-                title = { Text(labels.extractionTitle) },
-                navigationIcon = {
-                    IconButton(onClick = { onIntent(ExtractionIntent.Cancel) }) {
-                        Icon(Icons.Outlined.Close, contentDescription = labels.cancelExtraction)
-                    }
-                },
-            )
-        },
-    ) { innerPadding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            val wide = maxWidth >= 600.dp && maxWidth > maxHeight
+    BoxWithConstraints(modifier = modifier) {
+        val wide = maxWidth >= 600.dp && maxWidth > maxHeight
+        val hasAction = state.isRunning || state.savedId != null
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = WindowInsets.safeDrawing,
+            topBar = {
+                TopAppBar(
+                    title = { Text(labels.extractionTitle) },
+                    navigationIcon = {
+                        IconButton(onClick = { onIntent(ExtractionIntent.Cancel) }) {
+                            Icon(Icons.Outlined.Close, contentDescription = labels.cancelExtraction)
+                        }
+                    },
+                )
+            },
+            bottomBar = {
+                if (!wide && hasAction) {
+                    ActionBar(state, labels, onIntent, onViewSaved)
+                }
+            },
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            ) {
             // One polite live region for milestones only.
             Text(
                 text = announcement,
@@ -169,9 +184,36 @@ fun WebClipperExtractionScreen(
                     item("source") { SourceStrip(state, labels, onIntent) }
                     item("phases") { PhaseList(state, labels, elapsedSeconds) }
                     bodyItems(state, labels, renderDraft, onIntent, onNavigateToModelManagement)
-                    item("action") { ActionButton(state, labels, onIntent, onViewSaved) }
                 }
             }
+            }
+        }
+    }
+}
+
+/**
+ * Compact-window action dock: Stop while running, "View recipe" once
+ * saved. Lives in the scaffold's `bottomBar`, so it pads the navigation
+ * bar itself (the scaffold hands the content only the bar's height).
+ */
+@Composable
+private fun ActionBar(
+    state: ExtractionState,
+    labels: WebClipperLabels,
+    onIntent: (ExtractionIntent) -> Unit,
+    onViewSaved: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            ActionButton(state, labels, onIntent, onViewSaved)
         }
     }
 }
