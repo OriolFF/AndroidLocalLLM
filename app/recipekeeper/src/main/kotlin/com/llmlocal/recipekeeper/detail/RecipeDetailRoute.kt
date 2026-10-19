@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.llmlocal.recipekeeper.config.RecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.library.shareText
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -42,6 +43,7 @@ fun RecipeDetailRoute(
                 )
                 is RecipeDetailEffect.NavigateToBrowser -> onOpenBrowser(effect.url)
                 is RecipeDetailEffect.Deleted -> onDeleted(effect.id)
+                RecipeDetailEffect.PicturesRetryFailed -> launch { snackbarHostState.showSnackbar(labels.retryPicturesFailed) }
             }
         }
     }

@@ -14,6 +14,11 @@ package com.llmlocal.recipekeeper.domain
  *   "Possibly incomplete"
  * @property clippedAt epoch millis
  * @property checkedIngredients indices into [ingredients] the user ticked off
+ * @property picturesFailed pictures were proposed at clip time but none
+ *   could be downloaded (offline); detail shows "Pictures unavailable" +
+ *   "Retry pictures"
+ * @property pictureCandidates the picture URLs proposed at clip time, in
+ *   rank order, so a retry needs no page capture
  */
 data class ClippedRecipe(
     val id: String,
@@ -32,4 +37,6 @@ data class ClippedRecipe(
     val truncated: Boolean,
     val clippedAt: Long,
     val checkedIngredients: Set<Int> = emptySet(),
+    val picturesFailed: Boolean = false,
+    val pictureCandidates: List<String> = emptyList(),
 )

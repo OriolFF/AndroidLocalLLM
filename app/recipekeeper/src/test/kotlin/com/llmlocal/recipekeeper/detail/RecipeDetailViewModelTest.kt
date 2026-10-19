@@ -2,7 +2,9 @@ package com.llmlocal.recipekeeper.detail
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import com.llmlocal.recipekeeper.data.RecipePictureStore
 import com.llmlocal.recipekeeper.library.PendingRecipeDeletes
+import com.llmlocal.recipekeeper.testing.FakePictureDownloader
 import com.llmlocal.recipekeeper.testing.FakeRecipeRepository
 import com.llmlocal.recipekeeper.testing.MainDispatcherRule
 import com.llmlocal.recipekeeper.testing.TestDispatchers
@@ -11,6 +13,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecipeDetailViewModelTest {
@@ -18,6 +22,12 @@ class RecipeDetailViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    @get:Rule
+    val temp = TemporaryFolder()
+
+    private val offlineCandidates = listOf(
+        "https://img.example/hero.jpg", "https://img.example/2.jpg", "https://img.example/3.jpg", "https://img.example/4.jpg",
+    )
     private val repository = FakeRecipeRepository(
         listOf(
             FakeRecipeRepository.recipe(
@@ -27,13 +37,30 @@ class RecipeDetailViewModelTest {
                 ingredients = listOf("tomatoes", "basil", "oil"),
                 checked = setOf(0),
             ),
+            FakeRecipeRepository.recipe(
+                id = "offline",
+                title = "Clipped on a plane",
+                clippedAt = 2L,
+                picturesFailed = true,
+                pictureCandidates = offlineCandidates,
+            ),
         ),
     )
     private val dispatchers = TestDispatchers(mainDispatcherRule.dispatcher)
     private val pendingDeletes = PendingRecipeDeletes(repository, dispatchers)
+    private val downloader = FakePictureDownloader()
+    private val pictureStore by lazy { RecipePictureStore(File(temp.root, "recipes")) }
 
-    private fun viewModel(id: String = "a") =
-        RecipeDetailViewModel(id, repository, pendingDeletes, dispatchers)
+    private fun viewModel(id: String = "a", downloader: FakePictureDownloader = this.downloader) =
+        RecipeDetailViewModel(
+            recipeId = id,
+            repository = repository,
+            pendingDeletes = pendingDeletes,
+            dispatchers = dispatchers,
+            pictureDownloader = downloader,
+            pictureStore = pictureStore,
+            tempDir = File(temp.root, "tmp"),
+        )
 
     @Test
     fun `loads the recipe`() = runTest {
@@ -66,7 +93,7 @@ class RecipeDetailViewModelTest {
         vm.onIntent(RecipeDetailIntent.ToggleIngredient(0))
         advanceUntilIdle()
         assertThat(vm.state.value.recipe?.checkedIngredients).containsExactly(2)
-        assertThat(repository.current.single().checkedIngredients).containsExactly(2)
+        assertThat(repository.current.single { it.id == "a" }.checkedIngredients).containsExactly(2)
     }
 
     @Test
@@ -125,6 +152,62 @@ class RecipeDetailViewModelTest {
             vm.onIntent(RecipeDetailIntent.ReExtract)
             assertThat(awaitItem()).isEqualTo(RecipeDetailEffect.NavigateToBrowser("https://example.com/a"))
         }
+    }
+
+    @Test
+    fun `retry pictures downloads the first three candidates into the recipe folder and clears the flag`() = runTest {
+        val vm = viewModel("offline")
+        advanceUntilIdle()
+        assertThat(vm.state.value.recipe?.picturesFailed).isTrue()
+
+        vm.effects.test {
+            vm.onIntent(RecipeDetailIntent.RetryPictures)
+            assertThat(vm.state.value.retryingPictures).isTrue()
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+
+        assertThat(downloader.requests).isEqualTo(offlineCandidates.take(RecipeDetailViewModel.RETRY_PICTURES))
+        val (id, paths, failed) = repository.replacePicturesCalls.single()
+        assertThat(id).isEqualTo("offline")
+        assertThat(failed).isFalse()
+        assertThat(paths).hasSize(3)
+        assertThat(paths.map { File(it).name }).containsExactly("001.jpg", "002.jpg", "003.jpg").inOrder()
+        paths.forEach { assertThat(File(it).parentFile).isEqualTo(pictureStore.dirFor("offline")) }
+        assertThat(File(temp.root, "tmp").listFiles().orEmpty()).isEmpty() // temp files were moved
+        val state = vm.state.value
+        assertThat(state.retryingPictures).isFalse()
+        assertThat(state.recipe?.picturesFailed).isFalse()
+        assertThat(state.recipe?.pictures).isEqualTo(paths)
+    }
+
+    @Test
+    fun `retry pictures that fails again keeps the flag and reports it`() = runTest {
+        val stillOffline = FakePictureDownloader(failing = offlineCandidates.toSet())
+        val vm = viewModel("offline", stillOffline)
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(RecipeDetailIntent.RetryPictures)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(RecipeDetailEffect.PicturesRetryFailed)
+        }
+        assertThat(repository.replacePicturesCalls.single().third).isTrue()
+        assertThat(vm.state.value.recipe?.picturesFailed).isTrue()
+        assertThat(vm.state.value.retryingPictures).isFalse()
+    }
+
+    @Test
+    fun `retry pictures without stored candidates only reports failure`() = runTest {
+        val vm = viewModel("a")
+        advanceUntilIdle()
+        vm.effects.test {
+            vm.onIntent(RecipeDetailIntent.RetryPictures)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(RecipeDetailEffect.PicturesRetryFailed)
+        }
+        assertThat(downloader.requests).isEmpty()
+        assertThat(repository.replacePicturesCalls).isEmpty()
     }
 
     @Test

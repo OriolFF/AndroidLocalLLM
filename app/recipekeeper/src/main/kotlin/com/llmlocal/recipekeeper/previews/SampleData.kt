@@ -51,6 +51,14 @@ internal object SampleData {
         checkedIngredients = emptySet(),
     )
 
+    /** Clipped offline: no pictures came through, the detail offers a retry. */
+    val picturesFailedRecipe = recipe.copy(
+        id = "r3",
+        picturesFailed = true,
+        pictureCandidates = listOf("https://example.com/img/soup-hero.jpg", "https://example.com/img/soup-bowl.jpg"),
+        checkedIngredients = emptySet(),
+    )
+
     val truncatedRecipe = recipe.copy(
         id = "r2",
         title = "Overnight oats with roasted plums",

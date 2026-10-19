@@ -3,6 +3,7 @@ package com.llmlocal.recipekeeper.clip
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.core.web.PageSnapshot
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.ClipSaveOptions
 import com.llmlocal.feature.webclipper.ClipSink
 import com.llmlocal.recipekeeper.data.RecipePictureStore
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
@@ -35,6 +36,15 @@ class RecipeKeeperClipSink(
         candidate: ClipCandidate,
         pictures: List<File>,
         truncated: Boolean,
+    ): String = save(item, snapshot, candidate, pictures, truncated, ClipSaveOptions())
+
+    override suspend fun save(
+        item: ClippedRecipe,
+        snapshot: PageSnapshot,
+        candidate: ClipCandidate,
+        pictures: List<File>,
+        truncated: Boolean,
+        options: ClipSaveOptions,
     ): String {
         val id = item.id.ifBlank { idFactory() }
         val paths = withContext(dispatchers.io) { this@RecipeKeeperClipSink.pictures.moveIn(id, pictures) }
@@ -46,6 +56,8 @@ class RecipeKeeperClipSink(
             pictures = paths,
             truncated = item.truncated || truncated,
             clippedAt = if (item.clippedAt > 0) item.clippedAt else clock(),
+            picturesFailed = options.picturesFailed && paths.isEmpty(),
+            pictureCandidates = options.pictureCandidates,
         )
         repository.upsert(recipe)
         return id

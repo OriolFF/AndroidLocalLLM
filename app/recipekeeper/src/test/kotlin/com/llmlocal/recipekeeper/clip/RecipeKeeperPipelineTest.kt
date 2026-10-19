@@ -6,6 +6,7 @@ import com.llmlocal.core.data.repository.LlmTaskRepositoryImpl
 import com.llmlocal.core.domain.model.LlmTaskEvent
 import com.llmlocal.core.domain.usecase.GenerateLlmTaskUseCase
 import com.llmlocal.core.llm.engine.LlmRequest
+import com.llmlocal.feature.webclipper.ClipSaveOptions
 import com.llmlocal.recipekeeper.data.RecipePictureStore
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.parser.RecipeKeeperParserTest
@@ -135,5 +136,28 @@ class RecipeKeeperPipelineTest {
         val id2 = sink.save(fromFallback, page, candidate, emptyList(), truncated = false)
         assertThat(id2).isEqualTo(fromFallback.id)
         assertThat(repository.recipes.single { it.id == id2 }.truncated).isFalse()
+        assertThat(repository.recipes.single { it.id == id2 }.picturesFailed).isFalse()
+    }
+
+    @Test
+    fun `sink records failed pictures and the candidate urls for a later retry`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        val candidate = config.detect(page).single()
+        val repository = FakeRecipeRepository()
+        val sink = RecipeKeeperClipSink(repository, RecipePictureStore(temp.newFolder()), TestDispatcherProvider(dispatcher), idFactory = { "offline" })
+        val parsed = config.llmConfig.parser.parse(RecipeKeeperParserTest.FULL_OUTPUT)!!
+        val urls = listOf("https://cdn.example.com/a.jpg", "https://cdn.example.com/b.jpg")
+
+        sink.save(parsed, page, candidate, emptyList(), truncated = false, ClipSaveOptions(pictureCandidates = urls, picturesFailed = true))
+        val saved = repository.recipes.single()
+        assertThat(saved.picturesFailed).isTrue()
+        assertThat(saved.pictureCandidates).isEqualTo(urls)
+        assertThat(saved.pictures).isEmpty()
+
+        // A picture that did make it to disk wins over the flag.
+        val file = temp.newFile("ok.jpg").apply { writeText("x") }
+        val id = sink.save(parsed.copy(id = "second"), page, candidate, listOf(file), truncated = false, ClipSaveOptions(pictureCandidates = urls, picturesFailed = true))
+        assertThat(repository.recipes.single { it.id == id }.picturesFailed).isFalse()
     }
 }

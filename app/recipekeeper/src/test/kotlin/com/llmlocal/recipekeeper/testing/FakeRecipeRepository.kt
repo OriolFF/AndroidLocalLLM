@@ -67,6 +67,16 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
         }
     }
 
+    val replacePicturesCalls = mutableListOf<Triple<String, List<String>, Boolean>>()
+
+    override suspend fun replacePictures(id: String, pictures: List<String>, picturesFailed: Boolean) {
+        replacePicturesCalls += Triple(id, pictures, picturesFailed)
+        rows.update { map ->
+            val recipe = map[id] ?: return@update map
+            map + (id to recipe.copy(pictures = pictures, picturesFailed = picturesFailed))
+        }
+    }
+
     override fun search(query: String): Flow<List<RecipeSummary>> = rows.map { map ->
         val q = query.trim().lowercase()
         map.values
@@ -92,6 +102,8 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
             clippedAt: Long,
             ingredients: List<String> = listOf("flour", "eggs"),
             checked: Set<Int> = emptySet(),
+            picturesFailed: Boolean = false,
+            pictureCandidates: List<String> = emptyList(),
         ) = ClippedRecipe(
             id = id,
             title = title,
@@ -109,6 +121,8 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
             truncated = false,
             clippedAt = clippedAt,
             checkedIngredients = checked,
+            picturesFailed = picturesFailed,
+            pictureCandidates = pictureCandidates,
         )
     }
 }

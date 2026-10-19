@@ -11,6 +11,7 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.ClipSaveOptions
 import com.llmlocal.feature.webclipper.ClipSink
 import com.llmlocal.feature.webclipper.PicturePick
 import com.llmlocal.feature.webclipper.WebClipConfig
@@ -108,7 +109,13 @@ class FakeWebClipConfig(
 }
 
 class FakeClipSink : ClipSink<Parsed> {
-    data class Saved(val item: Parsed, val candidate: ClipCandidate, val pictures: List<File>, val truncated: Boolean)
+    data class Saved(
+        val item: Parsed,
+        val candidate: ClipCandidate,
+        val pictures: List<File>,
+        val truncated: Boolean,
+        val options: ClipSaveOptions = ClipSaveOptions(),
+    )
 
     val saved = mutableListOf<Saved>()
     var failWith: Throwable? = null
@@ -119,9 +126,18 @@ class FakeClipSink : ClipSink<Parsed> {
         candidate: ClipCandidate,
         pictures: List<File>,
         truncated: Boolean,
+    ): String = save(item, snapshot, candidate, pictures, truncated, ClipSaveOptions())
+
+    override suspend fun save(
+        item: Parsed,
+        snapshot: PageSnapshot,
+        candidate: ClipCandidate,
+        pictures: List<File>,
+        truncated: Boolean,
+        options: ClipSaveOptions,
     ): String {
         failWith?.let { throw it }
-        saved += Saved(item, candidate, pictures, truncated)
+        saved += Saved(item, candidate, pictures, truncated, options)
         return "saved-${saved.size}"
     }
 }

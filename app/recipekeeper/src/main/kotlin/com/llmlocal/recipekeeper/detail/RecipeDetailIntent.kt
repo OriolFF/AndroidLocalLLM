@@ -11,6 +11,9 @@ sealed interface RecipeDetailIntent {
 
     data object ToggleKeepScreenOn : RecipeDetailIntent
     data object Share : RecipeDetailIntent
+
+    /** "Retry pictures" after an offline clip: re-download the stored picture candidates. */
+    data object RetryPictures : RecipeDetailIntent
     data object OpenOriginal : RecipeDetailIntent
     data object ReExtract : RecipeDetailIntent
 

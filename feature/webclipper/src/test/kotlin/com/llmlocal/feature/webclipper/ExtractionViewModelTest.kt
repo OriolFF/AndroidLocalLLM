@@ -22,6 +22,7 @@ import com.llmlocal.feature.webclipper.mvi.Phase
 import com.llmlocal.feature.webclipper.mvi.PhaseStatus
 import com.llmlocal.feature.webclipper.mvi.PictureStatus
 import com.llmlocal.feature.webclipper.PicturePick
+import com.llmlocal.feature.webclipper.ClipSaveOptions
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -294,6 +295,33 @@ class ExtractionViewModelTest {
         assertThat(saved.pictures.all { it.exists() }).isTrue()
         // Unkept temp file was removed.
         assertThat(tempFiles()).hasSize(2)
+        // A partial failure is not "pictures unavailable"; the picks are still recorded for a later retry.
+        assertThat(saved.options.picturesFailed).isFalse()
+        assertThat(saved.options.pictureCandidates).isEqualTo(config.pictureUrls)
+    }
+
+    @Test
+    fun `when every download fails the save is flagged picturesFailed with the picks`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.pictureUrls = listOf("https://img.example/1.jpg", "https://img.example/2.jpg")
+        val offline = FakePictureDownloader(failing = config.pictureUrls.toSet())
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5), offline)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.phases[Phase.Pictures]).isEqualTo(PhaseStatus.Warning)
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+        val saved = sink.saved.single()
+        assertThat(saved.pictures).isEmpty()
+        assertThat(saved.options.picturesFailed).isTrue()
+        assertThat(saved.options.pictureCandidates).containsExactly("https://img.example/1.jpg", "https://img.example/2.jpg").inOrder()
+    }
+
+    @Test
+    fun `no proposed pictures is not a failure`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(sink.saved.single().options).isEqualTo(ClipSaveOptions())
     }
 
     @Test

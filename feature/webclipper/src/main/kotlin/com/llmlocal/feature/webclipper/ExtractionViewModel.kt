@@ -274,10 +274,17 @@ class ExtractionViewModel(
         setPhase(Phase.Pictures, if (anyPictureFailed) PhaseStatus.Warning else PhaseStatus.Done)
 
         setPhase(Phase.Saving, PhaseStatus.Active)
-        val kept = _state.value.pictures.filter { it.keep && it.status == PictureStatus.Done }
-            .mapNotNull { it.localFile }
+        val drafts = _state.value.pictures
+        val kept = drafts.filter { it.keep && it.status == PictureStatus.Done }.mapNotNull { it.localFile }
+        // "Unavailable" = something was proposed and nothing came through
+        // (offline, blocked CDN). A user who unticked every picture is not
+        // told their pictures failed.
+        val picturesFailed = anyPictureFailed && drafts.none { it.status == PictureStatus.Done }
         val savedId = withContext(dispatchers.io) {
-            sink.save(result, snapshot, candidate, kept, truncated)
+            sink.save(
+                result, snapshot, candidate, kept, truncated,
+                ClipSaveOptions(pictureCandidates = drafts.map { it.url }, picturesFailed = picturesFailed),
+            )
         }
         deleteTempFiles(except = kept)
         setPhase(Phase.Saving, PhaseStatus.Done)

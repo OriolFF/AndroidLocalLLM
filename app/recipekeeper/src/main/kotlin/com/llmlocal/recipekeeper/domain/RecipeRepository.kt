@@ -46,6 +46,13 @@ interface RecipeRepository {
     /** Persists the ticked-off ingredient indices for [id]. */
     suspend fun setChecked(id: String, checked: Set<Int>)
 
+    /**
+     * Replaces the picture list of [id] (local paths, hero first) and the
+     * `picturesFailed` flag; used by "Retry pictures" on the detail screen.
+     * No-op when the recipe does not exist.
+     */
+    suspend fun replacePictures(id: String, pictures: List<String>, picturesFailed: Boolean)
+
     /** Title / ingredient `LIKE` search over non-deleted recipes, newest first. */
     fun search(query: String): Flow<List<RecipeSummary>>
 }

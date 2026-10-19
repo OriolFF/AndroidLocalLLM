@@ -80,6 +80,21 @@ interface RecipeDao {
     @Query("UPDATE recipes SET checkedIngredients = :checked WHERE id = :id")
     suspend fun setChecked(id: String, checked: Set<Int>)
 
+    @Query("UPDATE recipes SET picturesFailed = :picturesFailed WHERE id = :id")
+    suspend fun setPicturesFailed(id: String, picturesFailed: Boolean)
+
+    @Query("SELECT COUNT(*) FROM recipes WHERE id = :id")
+    suspend fun exists(id: String): Int
+
+    /** Replaces the picture rows of an existing recipe and its `picturesFailed` flag in one transaction. */
+    @Transaction
+    suspend fun replacePictures(id: String, pictures: List<PictureEntity>, picturesFailed: Boolean) {
+        if (exists(id) == 0) return
+        deletePictures(id)
+        if (pictures.isNotEmpty()) insertPictures(pictures)
+        setPicturesFailed(id, picturesFailed)
+    }
+
     @Query("SELECT deletedAt FROM recipes WHERE id = :id")
     suspend fun deletedAtOf(id: String): Long?
 }

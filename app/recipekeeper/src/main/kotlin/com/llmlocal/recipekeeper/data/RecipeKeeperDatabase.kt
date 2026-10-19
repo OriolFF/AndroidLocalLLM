@@ -9,7 +9,11 @@ import androidx.room.TypeConverters
  * exported to `app/recipekeeper/schemas/` by the `llmlocal.android.room`
  * convention plugin; version 1 is the first shipped schema (WS0's trivial
  * table was never released, so it was replaced in place rather than
- * migrated).
+ * migrated). WS11 added `picturesFailed` / `pictureCandidates` to
+ * `recipes` **still as version 1** — nothing has shipped, so `1.json` was
+ * regenerated instead of adding a migration. QA installs that hold a
+ * pre-WS11 database must be cleared (`pm clear` / reinstall), otherwise
+ * Room refuses to open it (identity hash mismatch).
  */
 @Database(
     entities = [RecipeEntity::class, PictureEntity::class],
