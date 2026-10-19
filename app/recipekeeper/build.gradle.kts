@@ -53,4 +53,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation(libs.litert.lm)
+
+    // F2: MigrationTestHelper for the v1 → v2 migration test.
+    androidTestImplementation(libs.androidx.room.testing)
 }

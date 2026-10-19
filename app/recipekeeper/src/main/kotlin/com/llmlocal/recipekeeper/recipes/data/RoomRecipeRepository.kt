@@ -22,9 +22,8 @@ class RoomRecipeRepository(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : RecipeRepository {
 
-    // F2: apply `filter.favouritesOnly` in the DAO queries.
     override fun observeAll(filter: LibraryFilter): Flow<List<RecipeSummary>> =
-        dao.observeSummaries().map { rows -> rows.map(RecipeSummaryRow::toDomain) }
+        dao.observeSummaries(filter.favouritesOnly).map { rows -> rows.map(RecipeSummaryRow::toDomain) }
 
     override fun observe(id: String): Flow<ClippedRecipe?> =
         dao.observeWithPictures(id).map { it?.toDomain() }
@@ -70,11 +69,11 @@ class RoomRecipeRepository(
     override fun search(query: String, filter: LibraryFilter): Flow<List<RecipeSummary>> {
         val q = query.trim()
         if (q.isEmpty()) return observeAll(filter)
-        return dao.searchSummaries(q).map { rows -> rows.map(RecipeSummaryRow::toDomain) }
+        return dao.searchSummaries(q, filter.favouritesOnly).map { rows -> rows.map(RecipeSummaryRow::toDomain) }
     }
 
     override suspend fun setFavourite(id: String, favourite: Boolean) {
-        TODO("F2")
+        dao.setFavourite(id, favourite)
     }
 
     override suspend fun findIdBySourceUrl(url: String): String? = dao.findIdBySourceUrl(url)

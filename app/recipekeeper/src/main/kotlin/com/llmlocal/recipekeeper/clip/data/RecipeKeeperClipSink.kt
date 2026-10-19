@@ -6,9 +6,11 @@ import com.llmlocal.feature.webclipper.domain.ClipCandidate
 import com.llmlocal.feature.webclipper.domain.ClipSaveOptions
 import com.llmlocal.feature.webclipper.domain.ClipSink
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.RecipePictureStore
 import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 import com.llmlocal.recipekeeper.clip.domain.TextCleaner
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
@@ -51,6 +53,8 @@ class RecipeKeeperClipSink(
         options: ClipSaveOptions,
     ): String {
         val id = options.replaceId ?: item.id.ifBlank { idFactory() }
+        // Replace keeps the user's favourite flag; the re-clip is a pristine clip again.
+        val wasFavourite = options.replaceId != null && repository.observe(id).first()?.isFavourite == true
         val paths = withContext(dispatchers.io) {
             if (options.replaceId != null) this@RecipeKeeperClipSink.pictures.deleteAll(id)
             this@RecipeKeeperClipSink.pictures.moveIn(id, pictures)
@@ -65,6 +69,9 @@ class RecipeKeeperClipSink(
             clippedAt = if (item.clippedAt > 0) item.clippedAt else clock(),
             picturesFailed = options.picturesFailed && paths.isEmpty(),
             pictureCandidates = options.pictureCandidates,
+            isFavourite = wasFavourite,
+            origin = RecipeOrigin.CLIPPED,
+            editedAt = null,
         )
         repository.upsert(recipe)
         return id

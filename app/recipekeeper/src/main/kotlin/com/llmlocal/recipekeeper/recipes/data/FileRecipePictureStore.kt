@@ -15,17 +15,19 @@ class FileRecipePictureStore(private val root: File) : RecipePictureStore {
     override fun dirFor(recipeId: String): File = File(root, recipeId)
 
     /**
-     * Moves [files] into the recipe's folder as `001.jpg`, `002.jpg`, …
-     * (keeping each source's extension when it has one) and returns the
-     * new absolute paths in the same order. Falls back to copy + delete
+     * Moves [files] into the recipe's folder as `NNN.ext`, numbered after the
+     * highest existing `NNN` (so pictures already there are never clobbered;
+     * `001` in an empty folder), keeping each source's extension when it has
+     * one, and returns the new absolute paths in the same order. Falls back to copy + delete
      * when a rename crosses file systems. Sources that do not exist are
      * skipped.
      */
     override fun moveIn(recipeId: String, files: List<File>): List<String> {
         val dir = dirFor(recipeId).apply { mkdirs() }
+        val highest = dir.listFiles().orEmpty().mapNotNull { it.nameWithoutExtension.toIntOrNull() }.maxOrNull() ?: 0
         return files.filter { it.isFile }.mapIndexedNotNull { index, source ->
             val ext = source.extension.takeIf { it.isNotBlank() } ?: "jpg"
-            val target = File(dir, "%03d.%s".format(index + 1, ext))
+            val target = File(dir, "%03d.%s".format(highest + index + 1, ext))
             if (target.exists()) target.delete()
             val moved = source.renameTo(target) || runCatching {
                 source.copyTo(target, overwrite = true)
@@ -35,8 +37,13 @@ class FileRecipePictureStore(private val root: File) : RecipePictureStore {
         }
     }
 
+    /** Deletes exactly [paths] when they are files directly inside the recipe's folder; anything else is ignored. */
     override fun delete(recipeId: String, paths: List<String>) {
-        TODO("F2")
+        val dir = dirFor(recipeId).canonicalFile
+        paths.forEach { path ->
+            val file = File(path).canonicalFile
+            if (file.parentFile == dir && file.isFile) file.delete()
+        }
     }
 
     /** Deletes the recipe's folder and everything in it. Safe when absent. */
