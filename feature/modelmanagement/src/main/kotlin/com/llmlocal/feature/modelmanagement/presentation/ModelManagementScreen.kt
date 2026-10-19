@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.EmptyState
+import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 import com.llmlocal.feature.modelmanagement.presentation.components.FilterBar
 import com.llmlocal.feature.modelmanagement.presentation.components.ModelCard
 import com.llmlocal.feature.modelmanagement.presentation.components.ModelDetailSheet

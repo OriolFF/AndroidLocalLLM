@@ -53,7 +53,7 @@ import com.llmlocal.core.designsystem.component.AppLoadingIndicator
 import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.core.designsystem.component.GradientHero
 import com.llmlocal.core.llm.model.LlmModelCatalog
-import com.llmlocal.feature.modelmanagement.components.DownloadProgressBar
+import com.llmlocal.feature.modelmanagement.presentation.components.DownloadProgressBar
 import com.llmlocal.recipekeeper.config.RecipeKeeperLibraryLabels
 
 /**

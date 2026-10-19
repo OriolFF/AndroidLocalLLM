@@ -1,6 +1,6 @@
 package com.llmlocal.medical.config
 
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementLabels
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabels
 
 /**
  * Medical-themed copy for the model-management screen. Provides every

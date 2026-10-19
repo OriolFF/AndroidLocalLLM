@@ -9,9 +9,9 @@ import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
 import com.llmlocal.core.llm.model.LlmModelCatalog
-import com.llmlocal.feature.modelmanagement.ModelManagementScreen
-import com.llmlocal.feature.modelmanagement.mvi.ModelFilters
-import com.llmlocal.feature.modelmanagement.mvi.ModelManagementState
+import com.llmlocal.feature.modelmanagement.presentation.ModelManagementScreen
+import com.llmlocal.feature.modelmanagement.domain.ModelFilters
+import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementState
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 
 /**

@@ -27,10 +27,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.model.ModelFamily
-import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelFilters
-import com.llmlocal.feature.modelmanagement.presentation.mvi.QuantFilter
-import com.llmlocal.feature.modelmanagement.presentation.mvi.SizeBucket
-import com.llmlocal.feature.modelmanagement.presentation.mvi.StatusFilter
+import com.llmlocal.feature.modelmanagement.domain.ModelFilters
+import com.llmlocal.feature.modelmanagement.domain.QuantFilter
+import com.llmlocal.feature.modelmanagement.domain.SizeBucket
+import com.llmlocal.feature.modelmanagement.domain.StatusFilter
 
 /**
  * Sticky-feeling filter bar for the model catalog. Renders four vertical
