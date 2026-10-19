@@ -14,6 +14,7 @@ import com.llmlocal.feature.webclipper.mvi.ExtractionEffect
 import com.llmlocal.feature.webclipper.mvi.ExtractionIntent
 import com.llmlocal.feature.webclipper.ui.WebClipperExtractionScreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -31,7 +32,9 @@ import org.koin.core.parameter.parametersOf
  * @param onSaved called with the saved item id
  * @param onCancelled called when the user stops or goes back to the page
  * @param snackbarHostState optional host for "Clip cancelled" / "Saved";
- *   `null` drops those messages
+ *   `null` drops those messages. Pass the app-wide host: the messages are
+ *   emitted right before this screen pops, so a host that lives inside it
+ *   would vanish with it.
  */
 @Composable
 fun <T : Any> WebClipperExtractionRoute(
@@ -66,7 +69,12 @@ fun <T : Any> WebClipperExtractionRoute(
             when (effect) {
                 is ExtractionEffect.NavigateToSaved -> onSaved(effect.id)
                 ExtractionEffect.PopToBrowser -> onCancelled()
-                is ExtractionEffect.ShowSnackbar -> snackbarHostState?.showSnackbar(effect.message)
+                // Launched, not awaited: showSnackbar suspends until the
+                // snackbar is dismissed, and the pop / navigation effect that
+                // follows it in the channel must not wait those seconds.
+                is ExtractionEffect.ShowSnackbar -> snackbarHostState?.let { host ->
+                    launch { host.showSnackbar(effect.message) }
+                }
             }
         }
     }
