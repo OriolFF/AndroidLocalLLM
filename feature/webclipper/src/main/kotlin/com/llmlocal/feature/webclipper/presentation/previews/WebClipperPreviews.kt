@@ -31,7 +31,7 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.domain.CandidatePayload
 import com.llmlocal.feature.webclipper.domain.CandidateSource
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
-import com.llmlocal.feature.webclipper.presentation.WebClipperLabels
+import com.llmlocal.feature.webclipper.presentation.defaultWebClipperLabels
 import com.llmlocal.feature.webclipper.presentation.mvi.BrowserState
 import com.llmlocal.feature.webclipper.presentation.mvi.ClipFabState
 import com.llmlocal.feature.webclipper.domain.ExtractionError
@@ -85,8 +85,6 @@ private fun PreviewTheme(dark: Boolean, content: @Composable () -> Unit) {
 // ---------------------------------------------------------------------------
 // Sample data
 // ---------------------------------------------------------------------------
-
-private val LABELS = WebClipperLabels()
 
 private fun candidate(id: String, title: String, structured: Boolean, ingredients: Int?, minutes: Int?) = ClipCandidate(
     id = id,
@@ -214,9 +212,9 @@ private fun ClipFabGallery() {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ClipFab(state = state, expanded = true, labels = LABELS, onClick = {})
-                ClipFab(state = state, expanded = false, labels = LABELS, onClick = {})
-                Text(text = state.label(LABELS), style = MaterialTheme.typography.labelMedium)
+                ClipFab(state = state, expanded = true, labels = defaultWebClipperLabels(), onClick = {})
+                ClipFab(state = state, expanded = false, labels = defaultWebClipperLabels(), onClick = {})
+                Text(text = state.label(defaultWebClipperLabels()), style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -237,25 +235,25 @@ private fun ClipFabDarkPreview() = PreviewTheme(dark = true) { ClipFabGallery() 
 @Preview(name = "Candidate sheet — light", showBackground = true)
 @Composable
 private fun CandidateSheetLightPreview() = PreviewTheme(dark = false) {
-    CandidateSheetContent(candidates = CANDIDATES, host = "cooking.example", labels = LABELS, onPick = {})
+    CandidateSheetContent(candidates = CANDIDATES, host = "cooking.example", labels = defaultWebClipperLabels(), onPick = {})
 }
 
 @Preview(name = "Candidate sheet — dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun CandidateSheetDarkPreview() = PreviewTheme(dark = true) {
-    CandidateSheetContent(candidates = CANDIDATES, host = "cooking.example", labels = LABELS, onPick = {})
+    CandidateSheetContent(candidates = CANDIDATES, host = "cooking.example", labels = defaultWebClipperLabels(), onPick = {})
 }
 
 @Preview(name = "Nothing detected — light", showBackground = true)
 @Composable
 private fun NothingDetectedLightPreview() = PreviewTheme(dark = false) {
-    NothingDetectedSheetContent(labels = LABELS, onExtractAnyway = {}, onKeepBrowsing = {})
+    NothingDetectedSheetContent(labels = defaultWebClipperLabels(), onExtractAnyway = {}, onKeepBrowsing = {})
 }
 
 @Preview(name = "Nothing detected — dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun NothingDetectedDarkPreview() = PreviewTheme(dark = true) {
-    NothingDetectedSheetContent(labels = LABELS, onExtractAnyway = {}, onKeepBrowsing = {})
+    NothingDetectedSheetContent(labels = defaultWebClipperLabels(), onExtractAnyway = {}, onKeepBrowsing = {})
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +274,7 @@ private fun BrowserPreview(fab: ClipFabState, loading: Boolean) {
             fab = fab,
             readiness = ModelReadiness.Checking,
         ),
-        labels = LABELS,
+        labels = defaultWebClipperLabels(),
         onIntent = {},
         onBackToLibrary = {},
         snackbarHostState = snackbar,
@@ -284,9 +282,7 @@ private fun BrowserPreview(fab: ClipFabState, loading: Boolean) {
             Box(
                 modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow),
                 contentAlignment = Alignment.Center,
-            ) {
-                Text("WebView", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            ) {}
         },
     )
 }
@@ -307,7 +303,7 @@ private fun BrowserLoadingDarkPreview() = PreviewTheme(dark = true) { BrowserPre
 private fun ExtractionPreview(state: ExtractionState) {
     WebClipperExtractionScreen(
         state = state,
-        labels = LABELS,
+        labels = defaultWebClipperLabels(),
         elapsedSeconds = 12,
         renderDraft = { text, running -> PreviewDraft(text, running) },
         onIntent = {},

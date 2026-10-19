@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand overrides of :feature:webclipper strings (same names win on merge). -->
+    <string name="webclipper_browser_back_to_library">Back to your recipes</string>
+    <string name="webclipper_extraction_recipe_saved">Saved to your recipes</string>
+    <string name="webclipper_extraction_extracting_hint">Reading the recipe on your phone — this takes a moment</string>
+</resources>

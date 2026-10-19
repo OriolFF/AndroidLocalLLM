@@ -41,7 +41,7 @@ class BrowserViewModelTest {
         id = "m", displayName = "M", description = "", url = "https://x/m", sizeBytes = 1, filename = "m.litertlm",
         tags = emptyList(), license = "", author = "", minRamMb = 1, family = ModelFamily.INSTRUCT,
     )
-    private val labels = WebClipperLabels(searchUrlTemplate = { q -> "https://search.example/?q=$q" })
+    private val labels = testWebClipperLabels()
     private val session: ClipSession = InMemoryClipSession()
     private val readiness = FakeReadinessSource(ModelReadiness.Ready(descriptor))
     private val scanner = FakePageScanner()

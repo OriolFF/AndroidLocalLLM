@@ -22,7 +22,9 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
-import com.llmlocal.feature.webclipper.presentation.WebClipperLabels
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.llmlocal.feature.webclipper.presentation.webClipperLabels
 import com.llmlocal.feature.webclipper.presentation.mvi.BrowserIntent
 import com.llmlocal.feature.webclipper.presentation.mvi.BrowserState
 import org.junit.Rule
@@ -43,7 +45,7 @@ class BrowserTopBarTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val labels = WebClipperLabels()
+    private val labels = webClipperLabels(ApplicationProvider.getApplicationContext<Context>().resources)
     private val intents = mutableListOf<BrowserIntent>()
 
     /** Minimal stand-in for `BrowserViewModel.onIntent`: focus + draft only. */
