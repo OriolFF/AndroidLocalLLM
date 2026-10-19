@@ -353,14 +353,32 @@ class ExtractionViewModelTest {
     }
 
     @Test
-    fun `empty session pops straight back`() = runTest {
+    fun `empty session explains itself and pops straight back`() = runTest {
         val engine = FakeLlmEngine.streaming(goodOutput)
         val vm = viewModel("ghost", engine)
         vm.effects.test {
             advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.scanFailed))
             assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
         }
         assertThat(engine.requests).isEmpty()
+        assertThat(vm.state.value.isRunning).isFalse()
+    }
+
+    @Test
+    fun `retry after the page was dropped from the session pops with the snackbar`() = runTest {
+        session.set(snapshot(), listOf(candidate("t")))
+        val vm = viewModel("t", FakeLlmEngine.streaming("nope", chunkSize = 4))
+        advanceUntilIdle()
+        assertThat(vm.state.value.error).isInstanceOf(ExtractionError.ParseFailed::class.java)
+
+        session.clearPage()
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.Retry)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.scanFailed))
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
+        }
         assertThat(vm.state.value.isRunning).isFalse()
     }
 

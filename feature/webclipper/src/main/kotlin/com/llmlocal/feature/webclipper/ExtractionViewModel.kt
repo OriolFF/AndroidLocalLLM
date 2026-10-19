@@ -64,7 +64,9 @@ import java.util.UUID
  *
  * Cancel stops the job **and** the engine, deletes the temp pictures and
  * pops to the browser. The candidate is read once from [ClipSession]; if
- * the session is empty (process death) the screen pops immediately.
+ * the session is empty (process death, or a stale "Recipe found" button
+ * after a save) the screen says so with [WebClipperLabels.scanFailed] and
+ * pops immediately — never silently.
  *
  * The app's result type is erased to `Any` here, exactly like
  * `LlmTaskViewModel` does with `LlmTaskConfig<*>`.
@@ -107,7 +109,7 @@ class ExtractionViewModel(
         )
         state = _state.asStateFlow()
         if (candidate == null) {
-            send(ExtractionEffect.PopToBrowser)
+            popWithoutPage()
         } else {
             start()
         }
@@ -137,7 +139,7 @@ class ExtractionViewModel(
         if (job?.isActive == true || _state.value.savedId != null) return
         val snapshot = session.current.value?.snapshot
         if (snapshot == null) {
-            send(ExtractionEffect.PopToBrowser)
+            popWithoutPage()
             return
         }
         val candidate = _state.value.candidate
@@ -373,6 +375,12 @@ class ExtractionViewModel(
     }
 
     // -- helpers -------------------------------------------------------------
+
+    /** No captured page to work on: say why (snackbar) and leave. */
+    private fun popWithoutPage() {
+        send(ExtractionEffect.ShowSnackbar(labels.scanFailed))
+        send(ExtractionEffect.PopToBrowser)
+    }
 
     private fun fail(error: ExtractionError) {
         deleteTempFiles()
