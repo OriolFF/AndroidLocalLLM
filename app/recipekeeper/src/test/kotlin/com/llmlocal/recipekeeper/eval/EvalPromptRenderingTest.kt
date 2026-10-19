@@ -1,8 +1,9 @@
 package com.llmlocal.recipekeeper.eval
 
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperClipConfig
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import com.llmlocal.feature.webclipper.CandidateSource
+import com.llmlocal.feature.webclipper.domain.CandidateSource
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,7 +40,7 @@ class EvalPromptRenderingTest(private val fixture: EvalFixture) {
             .that(candidates.size).isAtMost(fixture.maxCandidates)
         assertWithMessage("${fixture.name}: top candidate tier")
             .that(EvalFixtures.tierOf(candidates.firstOrNull())).isEqualTo(fixture.tier)
-        assertThat(candidates.size).isAtMost(com.llmlocal.recipekeeper.clip.RecipeKeeperClipConfig.MAX_CANDIDATES)
+        assertThat(candidates.size).isAtMost(RecipeKeeperClipConfig.MAX_CANDIDATES)
 
         if (fixture.tier == ExpectedTier.STRUCTURED) {
             assertThat(candidates.all { it.source == CandidateSource.STRUCTURED }).isTrue()
@@ -78,7 +79,7 @@ class EvalPromptRenderingTest(private val fixture: EvalFixture) {
             .put("candidates", EvalFixtures.candidates(snapshot).size)
             .put("renderedChars", rendered.length)
             .put("promptChars", prompt.length)
-            .put("truncated", rendered.endsWith(com.llmlocal.recipekeeper.clip.RecipeKeeperClipConfig.TRUNCATION_MARKER))
+            .put("truncated", rendered.endsWith(RecipeKeeperClipConfig.TRUNCATION_MARKER))
         java.io.File(promptsDir, "${fixture.name}.meta.json").writeText(meta.toString(2) + "\n")
     }
 

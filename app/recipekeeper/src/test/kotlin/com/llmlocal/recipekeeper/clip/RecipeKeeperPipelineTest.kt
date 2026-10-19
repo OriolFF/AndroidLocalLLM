@@ -6,10 +6,12 @@ import com.llmlocal.core.data.repository.LlmTaskRepositoryImpl
 import com.llmlocal.core.domain.model.LlmTaskEvent
 import com.llmlocal.core.domain.usecase.GenerateLlmTaskUseCase
 import com.llmlocal.core.llm.engine.LlmRequest
-import com.llmlocal.feature.webclipper.ClipSaveOptions
-import com.llmlocal.recipekeeper.data.RecipePictureStore
-import com.llmlocal.recipekeeper.domain.ClippedRecipe
-import com.llmlocal.recipekeeper.parser.RecipeKeeperParserTest
+import com.llmlocal.feature.webclipper.domain.ClipSaveOptions
+import com.llmlocal.recipekeeper.clip.data.RecipeKeeperClipSink
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperClipConfig
+import com.llmlocal.recipekeeper.recipes.data.FileRecipePictureStore
+import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperParserTest
 import com.llmlocal.recipekeeper.testing.FakeLlmEngine
 import com.llmlocal.recipekeeper.testing.FakeRecipeRepository
 import com.llmlocal.recipekeeper.testing.TestDispatcherProvider
@@ -69,7 +71,7 @@ class RecipeKeeperPipelineTest {
 
         // Save through the sink.
         val repository = FakeRecipeRepository()
-        val store = RecipePictureStore(temp.newFolder("recipes"))
+        val store = FileRecipePictureStore(temp.newFolder("recipes"))
         val sink = RecipeKeeperClipSink(repository, store, TestDispatcherProvider(dispatcher), idFactory = { "saved-1" }, clock = { 99L })
         val tempPictures = listOf(temp.newFile("a.jpg").apply { writeText("A") }, temp.newFile("b.jpg").apply { writeText("B") })
 
@@ -121,7 +123,7 @@ class RecipeKeeperPipelineTest {
         val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
         val candidate = config.detect(page).single()
         val repository = FakeRecipeRepository()
-        val sink = RecipeKeeperClipSink(repository, RecipePictureStore(temp.newFolder()), TestDispatcherProvider(dispatcher), idFactory = { "minted" })
+        val sink = RecipeKeeperClipSink(repository, FileRecipePictureStore(temp.newFolder()), TestDispatcherProvider(dispatcher), idFactory = { "minted" })
 
         val detached = RecipeKeeperParserTest.FULL_OUTPUT.lines().filterNot { it.startsWith("Title:") }.joinToString("\n")
         val parsed = config.llmConfig.parser.parse(detached)!!
@@ -145,7 +147,7 @@ class RecipeKeeperPipelineTest {
         val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
         val candidate = config.detect(page).single()
         val repository = FakeRecipeRepository()
-        val store = RecipePictureStore(temp.newFolder("recipes"))
+        val store = FileRecipePictureStore(temp.newFolder("recipes"))
         var minted = 0
         val sink = RecipeKeeperClipSink(repository, store, TestDispatcherProvider(dispatcher), idFactory = { "id-${++minted}" }, clock = { 10L })
         val parsed = config.llmConfig.parser.parse(RecipeKeeperParserTest.FULL_OUTPUT)!!
@@ -177,7 +179,7 @@ class RecipeKeeperPipelineTest {
         val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
         val candidate = config.detect(page).single()
         val repository = FakeRecipeRepository()
-        val sink = RecipeKeeperClipSink(repository, RecipePictureStore(temp.newFolder()), TestDispatcherProvider(dispatcher), idFactory = { "offline" })
+        val sink = RecipeKeeperClipSink(repository, FileRecipePictureStore(temp.newFolder()), TestDispatcherProvider(dispatcher), idFactory = { "offline" })
         val parsed = config.llmConfig.parser.parse(RecipeKeeperParserTest.FULL_OUTPUT)!!
         val urls = listOf("https://cdn.example.com/a.jpg", "https://cdn.example.com/b.jpg")
 

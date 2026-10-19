@@ -1,0 +1,265 @@
+package com.llmlocal.recipekeeper.clip.domain
+
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
+import org.junit.Test
+
+class RecipeKeeperParserTest {
+
+    private val parser = RecipeKeeperParser()
+
+    @Test
+    fun `complete output parses every field and is detached`() {
+        val recipe = parser.parse(FULL_OUTPUT)!!
+
+        assertThat(recipe.title).isEqualTo("Classic Banana Bread")
+        assertThat(recipe.description).isEqualTo("Moist banana bread with a crackly sugar top.")
+        assertThat(recipe.servings).isEqualTo("1 loaf (10 slices)")
+        assertThat(recipe.prepMinutes).isEqualTo(15)
+        assertThat(recipe.cookMinutes).isEqualTo(60)
+        assertThat(recipe.totalMinutes).isEqualTo(75)
+        assertThat(recipe.ingredients).containsExactly(
+            "3 ripe bananas, mashed",
+            "1/3 cup melted butter",
+            "3/4 cup sugar",
+            "1 egg, beaten",
+            "1 1/2 cups all-purpose flour",
+        ).inOrder()
+        assertThat(recipe.steps).containsExactly(
+            "Preheat the oven to 175°C and butter a loaf pan.",
+            "Stir the butter into the bananas, then mix in the sugar, egg and vanilla.",
+            "Add the flour and mix until just combined.",
+            "Bake for 60 minutes.",
+        ).inOrder()
+        assertThat(recipe.notes).isEqualTo("Let it cool before slicing. Freezes well.")
+        assertThat(recipe.truncated).isFalse()
+        // Detached: the sink fills these in.
+        assertThat(recipe.id).isEmpty()
+        assertThat(recipe.sourceUrl).isEmpty()
+        assertThat(recipe.sourceHost).isEmpty()
+        assertThat(recipe.pictures).isEmpty()
+    }
+
+    @Test
+    fun `missing optional fields are null and title blank when omitted`() {
+        val recipe = parser.parse(
+            """
+            Ingredients:
+            - 2 eggs
+            - salt
+            Steps:
+            1. Beat the eggs.
+            2. Cook them.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.title).isEmpty()
+        assertThat(recipe.description).isNull()
+        assertThat(recipe.servings).isNull()
+        assertThat(recipe.prepMinutes).isNull()
+        assertThat(recipe.cookMinutes).isNull()
+        assertThat(recipe.totalMinutes).isNull()
+        assertThat(recipe.notes).isNull()
+        assertThat(recipe.ingredients).containsExactly("2 eggs", "salt")
+        assertThat(recipe.steps).hasSize(2)
+    }
+
+    @Test
+    fun `only cook time known gives total equal to cook`() {
+        val recipe = parser.parse("Title: X\nCookMinutes: 30\nIngredients:\n- a\n")!!
+        assertThat(recipe.cookMinutes).isEqualTo(30)
+        assertThat(recipe.totalMinutes).isEqualTo(30)
+    }
+
+    @Test
+    fun `explicit TotalMinutes wins over prep plus cook, and alone it is kept`() {
+        val explicit = parser.parse("Title: X\nPrepMinutes: 10\nCookMinutes: 20\nTotalMinutes: 45\nIngredients:\n- a\n")!!
+        assertThat(explicit.prepMinutes).isEqualTo(10)
+        assertThat(explicit.cookMinutes).isEqualTo(20)
+        assertThat(explicit.totalMinutes).isEqualTo(45)
+
+        val totalOnly = parser.parse("Title: X\nTotalMinutes: 30\nIngredients:\n- a\n")!!
+        assertThat(totalOnly.prepMinutes).isNull()
+        assertThat(totalOnly.cookMinutes).isNull()
+        assertThat(totalOnly.totalMinutes).isEqualTo(30)
+
+        val emptyTotal = parser.parse("Title: X\nPrepMinutes: 10\nCookMinutes: 20\nTotalMinutes:\nIngredients:\n- a\n")!!
+        assertThat(emptyTotal.totalMinutes).isEqualTo(30)
+    }
+
+    @Test
+    fun `truncated mid-step is flagged and still parses`() {
+        val text = FULL_OUTPUT.substringBefore("3. Add the flour") + "3. Add the flour and mix unt"
+        val recipe = parser.parse(text)!!
+
+        assertThat(recipe.steps).hasSize(3)
+        assertThat(recipe.steps.last()).isEqualTo("Add the flour and mix unt")
+        assertThat(recipe.truncated).isTrue()
+    }
+
+    @Test
+    fun `complete step without trailing newline is not flagged truncated`() {
+        val recipe = parser.parse("Ingredients:\n- a\nSteps:\n1. Mix.\n2. Bake until golden.")!!
+        assertThat(recipe.truncated).isFalse()
+    }
+
+    @Test
+    fun `header synonyms, markdown decoration and other languages are accepted`() {
+        val recipe = parser.parse(
+            """
+            **Name:** Tortilla de patatas
+            Yield: 4 raciones
+            Prep time: 20 minutes
+            Cook time: 1 hour 5 min
+            ## Ingredientes:
+            • 6 huevos
+            • 4 patatas
+            Instrucciones:
+            Step 1: Pelar las patatas.
+            Step 2: Freír.
+            Tips:
+            Servir templada.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.title).isEqualTo("Tortilla de patatas")
+        assertThat(recipe.servings).isEqualTo("4 raciones")
+        assertThat(recipe.prepMinutes).isEqualTo(20)
+        assertThat(recipe.cookMinutes).isEqualTo(65)
+        assertThat(recipe.ingredients).containsExactly("6 huevos", "4 patatas").inOrder()
+        assertThat(recipe.steps).containsExactly("Pelar las patatas.", "Freír.").inOrder()
+        assertThat(recipe.notes).isEqualTo("Servir templada.")
+    }
+
+    @Test
+    fun `bullet variants, numbered ingredients, paren steps and continuation lines`() {
+        val recipe = parser.parse(
+            """
+            Title: Soup
+            Ingredients:
+            * 1 onion
+            – 2 carrots
+            1. 3 cups stock
+            Steps:
+            1) Sweat the onion
+            and carrots for 5 minutes.
+            2) Add stock and simmer.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.ingredients).containsExactly("1 onion", "2 carrots", "3 cups stock").inOrder()
+        assertThat(recipe.steps).containsExactly("Sweat the onion and carrots for 5 minutes.", "Add stock and simmer.").inOrder()
+    }
+
+    @Test
+    fun `decimal quantities keep their integer part while dotted step numbers still parse`() {
+        val recipe = parser.parse(
+            """
+            Title: Rösti
+            Ingredients:
+            - 250.0g potatoes
+            - 2.5 cups flour
+            - 1.5 tsp salt
+            - 6.0tbsp olive oil
+            - 10 eggs
+            Steps:
+            2. Preheat the oven.
+            2.Grate the potatoes.
+            3) Fry 2.5 minutes per side.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.ingredients).containsExactly("250.0g potatoes", "2.5 cups flour", "1.5 tsp salt", "6.0tbsp olive oil", "10 eggs").inOrder()
+        assertThat(recipe.steps).containsExactly("Preheat the oven.", "Grate the potatoes.", "Fry 2.5 minutes per side.").inOrder()
+    }
+
+    @Test
+    fun `preamble chatter before the first header is ignored`() {
+        val recipe = parser.parse("Sure! Here is the recipe:\n\nTitle: Toast\nIngredients:\n- bread\nSteps:\n1. Toast it.\n")!!
+        assertThat(recipe.title).isEqualTo("Toast")
+        assertThat(recipe.ingredients).containsExactly("bread")
+    }
+
+    @Test
+    fun `notes that repeat a step sentence are dropped, genuine notes stay`() {
+        val recipe = parser.parse(
+            """
+            Title: Cookies
+            Ingredients:
+            - 1 egg
+            Steps:
+            1. Bake for 9-11 minutes. Warning: DO NOT OVERBAKE. They'll be pale and puffy.
+            2. Let them cool. These should stay soft for many days if kept in an airtight container. I also like to freeze them.
+            Notes:
+            - These should stay soft for many days if kept in an airtight container.
+            - I also like to freeze them!
+            - Do not overbake to keep them soft.
+            Use salted butter.
+            """.trimIndent(),
+        )!!
+
+        assertThat(recipe.steps).hasSize(2)
+        assertThat(recipe.notes).isEqualTo("- Do not overbake to keep them soft. Use salted butter.")
+
+        val inline = parser.parse("Ingredients:\n- 1 egg\nSteps:\n1. Serve warm with cream.\nNotes: Serve warm with cream.\n")!!
+        assertThat(inline.notes).isNull()
+        // Short notes are never treated as duplicates of a step that happens to contain the words.
+        val short = parser.parse("Ingredients:\n- 1 egg\nSteps:\n1. Serve warm.\nNotes:\nServe warm.\n")!!
+        assertThat(short.notes).isEqualTo("Serve warm.")
+    }
+
+    @Test
+    fun `NO RECIPE refusal returns null even when a format follows`() {
+        assertThat(parser.parse("NO RECIPE")).isNull()
+        assertThat(parser.parse("no recipe.\n")).isNull()
+        assertThat(parser.parse("**NO RECIPE**")).isNull()
+        assertThat(parser.parse("\nNO RECIPE\nTitle: Invented\nIngredients:\n- 1 egg\nSteps:\n1. Cook.")).isNull()
+        // Only the first line counts as a refusal; the words inside a recipe are fine.
+        assertThat(parser.parse("Title: No recipe left behind\nIngredients:\n- 1 egg\n")).isNotNull()
+    }
+
+    @Test
+    fun `null when there are neither ingredients nor steps`() {
+        assertThat(parser.parse("")).isNull()
+        assertThat(parser.parse("Title: Nothing here\nDescription: just words")).isNull()
+        assertThat(parser.parse("I could not find a recipe on this page.")).isNull()
+    }
+
+    @Test
+    fun `minutes parsing table`() {
+        val cases = mapOf(
+            "45" to 45, "45 minutes" to 45, "1 hour" to 60, "1 hour 15 min" to 75, "1h30" to 90, "2 hrs" to 120,
+            "PT1H30M" to 90, "P0DT0H20M" to 20, "20-25 min" to 25, "about 10 mins" to 10, "unknown" to null, "" to null,
+            // vulgar fractions, mixed numbers and ranges containing them
+            "1-1¼ hours" to 75, "1½ h" to 90, "1 ½ hours" to 90, "½ hour" to 30, "¾ h" to 45, "1 1/4 hours" to 75,
+            "1/2 hour" to 30, "1 - 1 1/2 hours" to 90, "2⅓ hours" to 140, "1,5 h" to 90, "1½" to 2,
+        )
+        for ((input, expected) in cases) {
+            assertWithMessage(input).that(RecipeLineGrammar.parseMinutes(input)).isEqualTo(expected)
+        }
+    }
+
+    companion object {
+        val FULL_OUTPUT = """
+            Title: Classic Banana Bread
+            Description: Moist banana bread with a crackly sugar top.
+            Servings: 1 loaf (10 slices)
+            PrepMinutes: 15
+            CookMinutes: 60
+            Ingredients:
+            - 3 ripe bananas, mashed
+            - 1/3 cup melted butter
+            - 3/4 cup sugar
+            - 1 egg, beaten
+            - 1 1/2 cups all-purpose flour
+            Steps:
+            1. Preheat the oven to 175°C and butter a loaf pan.
+            2. Stir the butter into the bananas, then mix in the sugar, egg and vanilla.
+            3. Add the flour and mix until just combined.
+            4. Bake for 60 minutes.
+            Notes:
+            Let it cool before slicing. Freezes well.
+            
+        """.trimIndent()
+    }
+}

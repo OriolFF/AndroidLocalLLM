@@ -6,9 +6,9 @@ import com.llmlocal.core.web.PageImage
 import com.llmlocal.core.web.PageSnapshot
 import com.llmlocal.core.web.ReadableContent
 import com.llmlocal.core.web.TextSection
-import com.llmlocal.recipekeeper.domain.ClippedRecipe
-import com.llmlocal.recipekeeper.domain.RecipeRepository
-import com.llmlocal.recipekeeper.domain.RecipeSummary
+import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
+import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
