@@ -1,9 +1,9 @@
 package com.llmlocal.recipe.config
 
 import com.llmlocal.core.domain.task.LlmTaskConfig
-import com.llmlocal.recipe.domain.Recipe
-import com.llmlocal.recipe.parser.RecipeParser
-import com.llmlocal.recipe.prompt.RecipePromptBuilder
+import com.llmlocal.recipe.recipe.domain.Recipe
+import com.llmlocal.recipe.recipe.domain.RecipeParser
+import com.llmlocal.recipe.recipe.domain.RecipePromptBuilder
 
 /**
  * The recipe app's [LlmTaskConfig] — binds the prompt builder and parser

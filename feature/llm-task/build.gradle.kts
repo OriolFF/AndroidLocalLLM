@@ -10,3 +10,9 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:llm"))
 }
+dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
+}

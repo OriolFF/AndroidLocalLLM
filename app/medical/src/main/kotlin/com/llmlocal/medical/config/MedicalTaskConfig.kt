@@ -1,9 +1,9 @@
 package com.llmlocal.medical.config
 
 import com.llmlocal.core.domain.task.LlmTaskConfig
-import com.llmlocal.medical.domain.MedicalAdvice
-import com.llmlocal.medical.parser.MedicalParser
-import com.llmlocal.medical.prompt.MedicalPromptBuilder
+import com.llmlocal.medical.medical.domain.MedicalAdvice
+import com.llmlocal.medical.medical.domain.MedicalParser
+import com.llmlocal.medical.medical.domain.MedicalPromptBuilder
 
 /**
  * The medical app's [LlmTaskConfig] — binds the prompt builder and parser

@@ -1,12 +1,12 @@
 package com.llmlocal.recipe.config
 
-import com.llmlocal.feature.llmtask.mvi.LlmTaskLabels
+import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskLabels
 
 /**
  * Recipe-themed copy for the LLM-task scaffold.
  *
  * Implements [LlmTaskLabels] so the consuming app can drop the labels
- * directly into [com.llmlocal.feature.llmtask.LlmTaskRoute] / Screen
+ * directly into [com.llmlocal.feature.llmtask.presentation.LlmTaskRoute] / Screen
  * without per-call overrides.
  */
 val RecipeLabels: LlmTaskLabels = LlmTaskLabels(

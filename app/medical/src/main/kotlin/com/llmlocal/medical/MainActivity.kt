@@ -31,6 +31,7 @@ import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.feature.modelmanagement.ModelManagementRoute
 import com.llmlocal.medical.config.MedicalModelManagementLabels
 import com.llmlocal.medical.designsystem.MedicalTokens
+import com.llmlocal.medical.medical.presentation.MedicalScreen
 
 /**
  * Single Activity for the medical app. Hosts a `NavHost` with two

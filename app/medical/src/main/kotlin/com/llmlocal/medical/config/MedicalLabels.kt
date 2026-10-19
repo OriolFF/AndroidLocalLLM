@@ -1,12 +1,12 @@
 package com.llmlocal.medical.config
 
-import com.llmlocal.feature.llmtask.mvi.LlmTaskLabels
+import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskLabels
 
 /**
  * Medical-themed copy for the LLM-task scaffold.
  *
  * Implements [LlmTaskLabels] so the consuming app can drop the labels
- * directly into [com.llmlocal.feature.llmtask.LlmTaskRoute] / Screen
+ * directly into [com.llmlocal.feature.llmtask.presentation.LlmTaskRoute] / Screen
  * without per-call overrides.
  */
 val MedicalLabels: LlmTaskLabels = LlmTaskLabels(
