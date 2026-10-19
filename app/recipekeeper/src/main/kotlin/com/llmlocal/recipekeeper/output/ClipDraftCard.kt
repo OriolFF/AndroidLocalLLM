@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,11 +36,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import com.llmlocal.feature.webclipper.WebClipperLabels
 import com.llmlocal.recipekeeper.config.DefaultRecipeKeeperLibraryLabels
-import com.llmlocal.recipekeeper.config.RecipeKeeperClipperLabels
 import com.llmlocal.recipekeeper.config.RecipeKeeperLibraryLabels
 import com.llmlocal.core.designsystem.component.NumberBadge
 import com.llmlocal.core.designsystem.component.SectionHeader
@@ -57,7 +53,9 @@ import kotlinx.coroutines.withContext
  * whose sections — Title → Meta → Ingredients → Steps → Notes — start as
  * skeleton lines and fill in as [parseDraft] promotes completed lines of
  * [streamedText]. The not-yet-parsed tail renders dimmed with a
- * [StreamingCursor]; a text button toggles the raw monospace output.
+ * [StreamingCursor]. The raw-output toggle is the feature's
+ * (`WebClipperExtractionScreen`, driven by `ExtractionIntent.ToggleRaw`);
+ * the card deliberately has none of its own (WS10 bug 5).
  *
  * Parsing is debounced ~80 ms off the main thread while the model is
  * running, and immediate once it stops. The card is **not** a live
@@ -76,14 +74,12 @@ fun ClipDraftCard(
     parseDraft: (String) -> RecipeDraft = StubDraftParser::parse,
     labels: RecipeKeeperLibraryLabels = DefaultRecipeKeeperLibraryLabels,
     modifier: Modifier = Modifier,
-    clipperLabels: WebClipperLabels = RecipeKeeperClipperLabels,
 ) {
     val initial = remember { parseDraft(streamedText) }
     val draft by produceState(initialValue = initial, streamedText, isRunning) {
         if (isRunning) delay(PARSE_DEBOUNCE_MS)
         value = withContext(Dispatchers.Default) { parseDraft(streamedText) }
     }
-    var showRaw by remember { mutableStateOf(false) }
     val announcement = rememberMilestoneAnnouncement(draft, isRunning, labels)
 
     Surface(
@@ -105,21 +101,6 @@ fun ClipDraftCard(
             StepsBlock(draft, isRunning, labels)
             NotesBlock(draft, labels)
             TailBlock(streamedText, draft.tail, isRunning, labels)
-
-            TextButton(onClick = { showRaw = !showRaw }) {
-                Text(if (showRaw) clipperLabels.hideRawOutput else clipperLabels.showRawOutput)
-            }
-            if (showRaw) {
-                Text(
-                    text = streamedText,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
-                        .padding(12.dp),
-                )
-            }
 
             // Milestone live region — the only thing TalkBack hears unprompted.
             Text(
