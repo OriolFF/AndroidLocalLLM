@@ -317,6 +317,25 @@ class ExtractionViewModelTest {
     }
 
     @Test
+    fun `pictures phase settles as soon as the downloads finish, while the model is still running`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.pictureUrls = listOf("https://img.example/1.jpg", "https://img.example/bad.jpg")
+        val slowEngine = FakeLlmEngine(tokenDelayMs = 1_000) { FakeLlmEngine.chunks(goodOutput, 5) }
+        val vm = viewModel("a", slowEngine, FakePictureDownloader(failing = setOf("https://img.example/bad.jpg"), delayMs = 50))
+
+        advanceTimeBy(200)
+        val mid = vm.state.value
+        assertThat(mid.isRunning).isTrue()
+        assertThat(mid.savedId).isNull()
+        assertThat(mid.phases[Phase.Extracting]).isEqualTo(PhaseStatus.Active)
+        assertThat(mid.phases[Phase.Pictures]).isEqualTo(PhaseStatus.Warning)
+
+        advanceUntilIdle()
+        assertThat(vm.state.value.phases[Phase.Pictures]).isEqualTo(PhaseStatus.Warning)
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+    }
+
+    @Test
     fun `no proposed pictures is not a failure`() = runTest {
         session.set(snapshot(), listOf(candidate("a")))
         viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))

@@ -270,8 +270,9 @@ class ExtractionViewModel(
         pictures: Deferred<Boolean>,
         truncated: Boolean,
     ) {
+        // The phase itself was settled by startPictures() the moment the
+        // downloads finished (WS10 bug 9); only the result is read here.
         val anyPictureFailed = pictures.await()
-        setPhase(Phase.Pictures, if (anyPictureFailed) PhaseStatus.Warning else PhaseStatus.Done)
 
         setPhase(Phase.Saving, PhaseStatus.Active)
         val drafts = _state.value.pictures
@@ -297,15 +298,21 @@ class ExtractionViewModel(
 
     /**
      * Downloads the config's picture picks concurrently, each into its own
-     * temp file. Returns `true` when at least one download failed. Never
-     * throws for a single failure; cancellation propagates.
+     * temp file, and marks [Phase.Pictures] Done / Warning as soon as they
+     * have all settled — usually long before the model finishes, so the
+     * ring does not spin for the whole run. Returns `true` when at least one
+     * download failed. Never throws for a single failure; cancellation
+     * propagates.
      */
     private fun CoroutineScope.startPictures(candidate: ClipCandidate, snapshot: PageSnapshot): Deferred<Boolean> =
         async {
             val picks = withContext(dispatchers.default) {
                 config.rankPictures(candidate, snapshot, config.maxPictures)
             }.distinctBy { it.url }
-            if (picks.isEmpty()) return@async false
+            if (picks.isEmpty()) {
+                setPhase(Phase.Pictures, PhaseStatus.Done) // nothing to download
+                return@async false
+            }
             val urls = picks.map { it.url }
             var checked = 0
             _state.update { state ->
@@ -322,7 +329,9 @@ class ExtractionViewModel(
             val results = urls.mapIndexed { index, url ->
                 async(dispatchers.io) { downloadOne(url, snapshot.url, File(tempDir, "$runId-$index.jpg")) }
             }.awaitAll()
-            results.any { !it }
+            val anyFailed = results.any { !it }
+            setPhase(Phase.Pictures, if (anyFailed) PhaseStatus.Warning else PhaseStatus.Done)
+            anyFailed
         }
 
     private suspend fun downloadOne(url: String, referer: String, into: File): Boolean {
