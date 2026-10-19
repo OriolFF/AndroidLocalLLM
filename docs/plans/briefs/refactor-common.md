@@ -12,6 +12,7 @@ You are one of four parallel refactor agents. Base: `recipekeeper/main` (your wo
 Dependency direction: `presentation → domain ← data`; `presentation` never imports `data`; `domain` never imports `presentation`/`data`/`android.*`/`org.koin.*`.
 
 ## Rules
+- **No hardcoded user-visible strings, ever** (CLAUDE.md Architecture rule 0): all copy from `strings.xml`; label classes built from resources in the app module, no default literals.
 - **ViewModels take use cases only** (+ `DispatcherProvider`, labels/config, route parameters). No repository, store, manager, engine, scheduler, observer, downloader, session or WebView type in a ViewModel constructor. A ViewModel maps use-case results/flows to `State`/`Effect`; it does not orchestrate I/O.
 - **Use case = one responsibility (SRP)**, a class with `operator fun invoke(...)` (suspend or returning `Flow`), depending on **domain interfaces** (DIP), never on `:core:*` concrete classes. Name them by intent: `ObserveModelReadiness`, `ClipRecipe`, `RetryRecipePictures`, `DeleteRecipeWithUndo`, … (suffix `UseCase` is fine and consistent with `GenerateLlmTaskUseCase`).
 - **Interfaces are small (ISP)**: split a wide source into the facets each use case needs (`ModelInstallSource`, `ModelSelectionSource`, `DownloadProgressSource`, …) rather than one god interface; implementations may be a single adapter class in `data/` implementing several.
