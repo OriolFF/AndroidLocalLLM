@@ -1,0 +1,16 @@
+# Brief — QA: clip a variety of recipe sites and compare with the originals (android-ux persona, Sonnet)
+You are the **qa-sites agent**, acting as the project's `android-ux` engineer (read `.claude/agents/android-ux.md`). Main checkout, branch `recipekeeper/main`. Read `CLAUDE.md` (Recipe Keeper pipeline, emulator gotcha, rule 0), `docs/plans/briefs/ws12-report.md` (known open findings A–D) and `tools/eval/fixtures.tsv` (sites already covered by the offline eval — prefer *new* sites here).
+
+**Device: `emulator-5556`** (AVD `LlmPhone_API_36`, model installed, engine verified; latest build installed by the lead). Always `-s emulator-5556`. Never `pm clear` (deletes the model). Structured pages now **skip the model** when the page data is complete (expect "Read directly from the page's recipe data" and a 1–2 s save); text pages run the model (~10 s on an idle host).
+
+## Task
+Clip **12–15 recipe pages** of different kinds through the app UI (library → Open browser → type URL → wait for the FAB → clip → detail), then **compare the saved recipe with the real page**. Cover: big US/UK sites with JSON-LD (BBC Good Food, Serious Eats or a Dotdash site if it loads in the WebView, King Arthur, Smitten Kitchen, Sally's Baking Addiction), WordPress recipe-plugin blogs (WPRM, Tasty Recipes, Mediavine Create), non-English sites (Spanish: recetasgratis.net / directoalpaladar; Catalan: cuina.cat or receptes.cat; German: chefkoch.de; French: marmiton.org; Italian: giallozafferano.it), a plain-text blog without structured data, a round-up page with several recipes, and one page with microdata only. Note sites that refuse the WebView (403/consent walls) and move on.
+
+For each page record in `docs/plans/briefs/qa-sites-report.md`:
+1. URL, language, detection tier (badge text / sheet), whether the model ran, time tap → detail.
+2. **Comparison with the source**: fetch the page on the Mac (`curl -L -A "Mozilla/5.0 …"` to `/private/tmp/claude-501/-Users-oriol-Documents-development-projectes-AndroidLocalLLM/6d100e70-7137-46b6-ad09-7c1e8dd3fa5f/scratchpad/qa5/html/`), extract its JSON-LD / visible ingredients and steps (python3 + `json` is fine; the repo's `core/web/tools/capture-harness` can also render a `PageSnapshot`), and compare field by field with the saved row (pull `databases/recipekeeper.db*` via `run-as … cat` + host `sqlite3`): title exact?, ingredient count and text (list every missing/extra/garbled line), step count and order (missing/merged/invented), servings, prep/cook/total minutes, pictures (count, is the hero the recipe's photo?), notes (invented?). Score each recipe: **exact / minor (≤ 2 small diffs) / wrong**.
+3. Screenshots: FAB state, extraction, detail (`qa5/<nn>-<site>-*.png`).
+
+Then a summary table (site × tier × model-ran × time × score) and a ranked list of **systematic defects** (e.g. "fractions like ½ lost on WPRM sites", "steps merged on sites with HowToSection", "Spanish 'Elaboración' heading not recognised"), each with the file:line in `app/recipekeeper/.../clip/domain/` or `core/web` that causes it and a proposed fix. Also confirm whether WS12 findings A–D still reproduce.
+
+Rules: no code edits, no `git` writes; restore anything you change on the emulator. Reply `qa-sites done — see qa-sites-report.md`.
