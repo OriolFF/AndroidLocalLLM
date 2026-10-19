@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="llm_download_channel_name">Model downloads</string>
+    <string name="llm_download_channel_description">Progress for on-device LLM model downloads</string>
+    <string name="llm_download_notification_title">Downloading %1$s</string>
+    <string name="llm_download_notification_text">%1$s · %2$d%%</string>
+    <string name="llm_download_done_title">%1$s downloaded</string>
+    <string name="llm_download_done_text">Ready to use</string>
+    <string name="llm_download_failed_generic">Download failed</string>
+    <string name="llm_download_foreground_failed_store">Background download needs a foreground service. Disable battery optimization for this app and try again.</string>
+    <string name="llm_download_foreground_failed_result">Could not start foreground service. Disable battery optimization for this app and retry.</string>
+</resources>

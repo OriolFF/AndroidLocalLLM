@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Download progress -->
+    <string name="modelmanagement_progress_seconds_left">%1$ds left</string>
+    <string name="modelmanagement_progress_minutes_left">%1$dm left</string>
+
+    <!-- Model families -->
+    <string name="modelmanagement_family_general">General</string>
+    <string name="modelmanagement_family_chat">Chat</string>
+    <string name="modelmanagement_family_instruct">Instruct</string>
+    <string name="modelmanagement_family_code">Code</string>
+    <string name="modelmanagement_family_multimodal">Multimodal</string>
+
+    <!-- Filter options -->
+    <string name="modelmanagement_status_all">All</string>
+    <string name="modelmanagement_status_installed">Installed</string>
+    <string name="modelmanagement_status_available">Available</string>
+    <string name="modelmanagement_status_downloading">Downloading</string>
+    <string name="modelmanagement_size_compact">Compact (&lt; 1 GB)</string>
+    <string name="modelmanagement_size_small">Small (1–2 GB)</string>
+    <string name="modelmanagement_size_full">Full (&gt; 2 GB)</string>
+    <string name="modelmanagement_quant_all">All</string>
+    <string name="modelmanagement_quant_quantised">Quantised</string>
+    <string name="modelmanagement_quant_full_precision">Full precision</string>
+
+    <!-- Defaults used by previews (defaultModelManagementLabels) -->
+    <string name="modelmanagement_default_screen_title">Available models</string>
+    <string name="modelmanagement_default_count">%1$d of %2$d models · %3$d installed</string>
+    <string name="modelmanagement_default_count_filtered">Showing %1$d of %2$d models · %3$d installed</string>
+    <string name="modelmanagement_default_intro">Tap a model to download, view details, or select it. Downloads run in the background and survive closing the app.</string>
+    <string name="modelmanagement_default_empty_title">No models match your filters</string>
+    <string name="modelmanagement_default_empty_message">Try widening the size bucket or clearing the family / status filter.</string>
+    <string name="modelmanagement_default_empty_action">Clear filters</string>
+    <string name="modelmanagement_default_filter_by">Filter by</string>
+    <string name="modelmanagement_default_clear">Clear</string>
+    <string name="modelmanagement_default_filter_status">Status</string>
+    <string name="modelmanagement_default_filter_family">Family</string>
+    <string name="modelmanagement_default_filter_size">Size</string>
+    <string name="modelmanagement_default_filter_quant">Quant</string>
+    <string name="modelmanagement_default_filter_all">All</string>
+    <string name="modelmanagement_default_active">Active</string>
+    <string name="modelmanagement_default_installed">Installed</string>
+    <string name="modelmanagement_default_details">Details</string>
+    <string name="modelmanagement_default_cancel">Cancel</string>
+    <string name="modelmanagement_default_use">Use this model</string>
+    <string name="modelmanagement_default_remove">Remove</string>
+    <string name="modelmanagement_default_download">Download</string>
+    <string name="modelmanagement_default_failure_fallback">Download failed — tap Download to retry</string>
+    <string name="modelmanagement_default_detail_by">by %1$s · %2$s</string>
+    <string name="modelmanagement_default_detail_size">Size</string>
+    <string name="modelmanagement_default_detail_family">Family</string>
+    <string name="modelmanagement_default_detail_min_ram">Min RAM</string>
+    <string name="modelmanagement_default_detail_min_ram_unit">MB</string>
+    <string name="modelmanagement_default_detail_file">File</string>
+    <string name="modelmanagement_default_detail_url">URL</string>
+    <string name="modelmanagement_default_selected">%1$s selected</string>
+    <string name="modelmanagement_default_removed">%1$s removed</string>
+    <string name="modelmanagement_default_not_downloaded">%1$s is not downloaded yet.</string>
+    <string name="modelmanagement_default_unknown_model">Unknown model: %1$s</string>
+</resources>

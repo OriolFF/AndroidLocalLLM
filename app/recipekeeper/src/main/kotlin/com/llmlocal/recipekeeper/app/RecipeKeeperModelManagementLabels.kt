@@ -1,70 +1,57 @@
 package com.llmlocal.recipekeeper.app
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabels
+import com.llmlocal.recipekeeper.R
 
 /**
- * Recipe Keeper copy for the model-management screen. Provides every
- * string the feature's screens + components need via
- * `LocalModelManagementLabels`; passed to `ModelManagementRoute` from
- * `MainActivity`.
- *
- * Same fields as `RecipeModelManagementLabels` in `:app:recipes` except
- * [ModelManagementLabels.introText], which talks about clipping. WS3 adds
- * the three snackbar templates; WS5b fills them in here.
+ * Model-management copy for this app, built from `strings_modelmanagement.xml`.
+ * Pass the result to `ModelManagementRoute(labels = …)`.
  */
-val RecipeKeeperModelManagementLabels: ModelManagementLabels = ModelManagementLabels(
-    // Screen header
-    screenTitle = "Available models",
-    countLabelDefault = { visible, total, installed ->
-        "$visible of $total models · $installed installed"
-    },
-    countLabelFiltered = { visible, total, installed ->
-        "Showing $visible of $total models · $installed installed"
-    },
-
-    // Intro card
-    introText = "Tap a model to download, view details, or select it for " +
-        "recipe clipping. Downloads run in the background and " +
-        "survive closing the app.",
-
-    // Empty state
-    emptyTitle = "No models match your filters",
-    emptyMessage = "Try widening the size bucket or clearing the family / status filter.",
-    emptyActionLabel = "Clear filters",
-
-    // Filter bar
-    filterByLabel = "Filter by",
-    clearFiltersAction = "Clear",
-    filterStatusLabel = "Status",
-    filterFamilyLabel = "Family",
-    filterSizeLabel = "Size",
-    filterQuantLabel = "Quant",
-    filterAllLabel = "All",
-
-    // Model card
-    activeBadge = "Active",
-    installedBadge = "Installed",
-    detailsActionDescription = "Details",
-    cancelDownloadLabel = "Cancel",
-    useModelLabel = "Use this model",
-    removeLabel = "Remove",
-    downloadLabel = "Download",
-    failureFooterFallback = "Download failed — tap Download to retry",
-
-    // Detail sheet
-    detailByTemplate = { author, license -> "by $author · $license" },
-    detailSizeLabel = "Size",
-    detailFamilyLabel = "Family",
-    detailMinRamLabel = "Min RAM",
-    detailMinRamUnit = "MB",
-    detailFileLabel = "File",
-    detailUrlLabel = "URL",
-
-    // Download progress
-    secondsLeftTemplate = { secs -> "${secs}s left" },
-    minutesLeftTemplate = { mins -> "${mins}m left" },
-    // Snackbar templates (WS3): this brand clips recipes, it does not generate them.
-    modelSelectedSnackbar = { name -> "$name will read your clipped recipes" },
-    modelRemovedSnackbar = { name -> "$name removed" },
-    modelNotDownloadedSnackbar = { name -> "$name is not downloaded yet." },
-)
+@Composable
+fun rememberRecipeKeeperModelManagementLabels(): ModelManagementLabels {
+    val resources = LocalContext.current.resources
+    return ModelManagementLabels(
+        screenTitle = stringResource(R.string.recipekeeper_modelmanagement_screen_title),
+        countLabelDefault = { visible, total, installed ->
+            resources.getString(R.string.recipekeeper_modelmanagement_count, visible, total, installed)
+        },
+        countLabelFiltered = { visible, total, installed ->
+            resources.getString(R.string.recipekeeper_modelmanagement_count_filtered, visible, total, installed)
+        },
+        introText = stringResource(R.string.recipekeeper_modelmanagement_intro),
+        emptyTitle = stringResource(R.string.recipekeeper_modelmanagement_empty_title),
+        emptyMessage = stringResource(R.string.recipekeeper_modelmanagement_empty_message),
+        emptyActionLabel = stringResource(R.string.recipekeeper_modelmanagement_empty_action),
+        filterByLabel = stringResource(R.string.recipekeeper_modelmanagement_filter_by),
+        clearFiltersAction = stringResource(R.string.recipekeeper_modelmanagement_clear),
+        filterStatusLabel = stringResource(R.string.recipekeeper_modelmanagement_filter_status),
+        filterFamilyLabel = stringResource(R.string.recipekeeper_modelmanagement_filter_family),
+        filterSizeLabel = stringResource(R.string.recipekeeper_modelmanagement_filter_size),
+        filterQuantLabel = stringResource(R.string.recipekeeper_modelmanagement_filter_quant),
+        filterAllLabel = stringResource(R.string.recipekeeper_modelmanagement_filter_all),
+        activeBadge = stringResource(R.string.recipekeeper_modelmanagement_active),
+        installedBadge = stringResource(R.string.recipekeeper_modelmanagement_installed),
+        detailsActionDescription = stringResource(R.string.recipekeeper_modelmanagement_details),
+        cancelDownloadLabel = stringResource(R.string.recipekeeper_modelmanagement_cancel),
+        useModelLabel = stringResource(R.string.recipekeeper_modelmanagement_use),
+        removeLabel = stringResource(R.string.recipekeeper_modelmanagement_remove),
+        downloadLabel = stringResource(R.string.recipekeeper_modelmanagement_download),
+        failureFooterFallback = stringResource(R.string.recipekeeper_modelmanagement_failure_fallback),
+        detailByTemplate = { author, license -> resources.getString(R.string.recipekeeper_modelmanagement_detail_by, author, license) },
+        detailSizeLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_size),
+        detailFamilyLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_family),
+        detailMinRamLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_min_ram),
+        detailMinRamUnit = stringResource(R.string.recipekeeper_modelmanagement_detail_min_ram_unit),
+        detailFileLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_file),
+        detailUrlLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_url),
+        secondsLeftTemplate = { resources.getString(R.string.recipekeeper_modelmanagement_seconds_left, it) },
+        minutesLeftTemplate = { resources.getString(R.string.recipekeeper_modelmanagement_minutes_left, it) },
+        modelSelectedSnackbar = { resources.getString(R.string.recipekeeper_modelmanagement_selected, it) },
+        modelRemovedSnackbar = { resources.getString(R.string.recipekeeper_modelmanagement_removed, it) },
+        modelNotDownloadedSnackbar = { resources.getString(R.string.recipekeeper_modelmanagement_not_downloaded, it) },
+        unknownModelError = { resources.getString(R.string.recipekeeper_modelmanagement_unknown_model, it) },
+    )
+}

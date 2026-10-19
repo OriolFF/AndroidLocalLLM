@@ -12,7 +12,6 @@ import com.llmlocal.core.llm.model.LlmModelCatalog
 import com.llmlocal.feature.modelmanagement.presentation.ModelManagementScreen
 import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementState
-import com.llmlocal.medical.config.MedicalModelManagementLabels
 import com.llmlocal.medical.designsystem.MedicalTokens
 
 /**

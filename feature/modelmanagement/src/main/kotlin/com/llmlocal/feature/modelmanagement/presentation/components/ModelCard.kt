@@ -150,7 +150,7 @@ fun ModelCard(
                         }
                         Text(
                             text = "${formatBytes(descriptor.sizeBytes)} · " +
-                                "${descriptor.family.displayName} · ${descriptor.license}",
+                                "${descriptor.family.label()} · ${descriptor.license}",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isActive) {
                                 scheme.onPrimaryContainer.copy(alpha = 0.78f)

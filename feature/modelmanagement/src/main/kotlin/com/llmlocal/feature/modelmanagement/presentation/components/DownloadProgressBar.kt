@@ -11,10 +11,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.llm.download.DownloadState
 import com.llmlocal.core.llm.download.PerModelProgress
+import com.llmlocal.feature.modelmanagement.R
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
 import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
 import kotlin.math.roundToInt
@@ -39,6 +41,7 @@ fun DownloadProgressBar(
         ?.let { ((progress.bytesRead * 100) / it).toInt().coerceIn(0, 100) }
         ?: 0
 
+    val resources = LocalContext.current.resources
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -74,8 +77,8 @@ fun DownloadProgressBar(
                 }
                 progress.etaSeconds?.let { secs ->
                     append(" · ")
-                    if (secs < 60) append("${secs}s left")
-                    else append("${(secs / 60.0).roundToInt()}m left")
+                    if (secs < 60) append(resources.getString(R.string.modelmanagement_progress_seconds_left, secs.toInt()))
+                    else append(resources.getString(R.string.modelmanagement_progress_minutes_left, (secs / 60.0).roundToInt()))
                 }
             },
             style = MaterialTheme.typography.bodyMedium,

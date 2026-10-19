@@ -76,6 +76,10 @@ data class ModelManagementLabels(
     val modelRemovedSnackbar: (modelName: String) -> String,
     /** Shown when the user selects [modelName] before downloading it. */
     val modelNotDownloadedSnackbar: (modelName: String) -> String,
+
+    // Errors
+    /** Shown when a download is requested for an id that is not in the catalog. */
+    val unknownModelError: (modelId: String) -> String,
 )
 
 /**
