@@ -21,6 +21,8 @@ import com.llmlocal.feature.webclipper.mvi.ExtractionIntent
 import com.llmlocal.feature.webclipper.mvi.Phase
 import com.llmlocal.feature.webclipper.mvi.PhaseStatus
 import com.llmlocal.feature.webclipper.mvi.PictureStatus
+import com.llmlocal.feature.webclipper.PicturePick
+import com.llmlocal.feature.webclipper.ClipSaveOptions
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -100,6 +102,96 @@ class ExtractionViewModelTest {
         assertThat(sink.saved.single().truncated).isFalse()
         assertThat(session.current.value).isNull()
         assertThat(session.activeExtraction.value).isNull()
+
+        // The duplicate check ran once, found nothing, and no dialog was shown.
+        assertThat(sink.existingIdCalls).containsExactly(snapshot().url)
+        assertThat(state.duplicateOf).isNull()
+        assertThat(sink.saved.single().options.replaceId).isNull()
+    }
+
+    // -- duplicate warning (WS10 bug 6) ----------------------------------------
+
+    @Test
+    fun `an already clipped page shows the duplicate dialog before anything runs`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        config.pictureUrls = listOf("https://img.example/1.jpg")
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        val state = vm.state.value
+        assertThat(state.duplicateOf).isEqualTo("old-id")
+        assertThat(state.isRunning).isFalse()
+        assertThat(state.phases.values.toSet()).containsExactly(PhaseStatus.Pending)
+        assertThat(engine.requests).isEmpty()
+        assertThat(state.pictures).isEmpty()
+        assertThat(session.activeExtraction.value).isNull()
+    }
+
+    @Test
+    fun `Replace runs the extraction and saves under the existing id`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.ReplaceExisting)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.recipeSaved))
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.NavigateToSaved("saved-1"))
+        }
+        assertThat(vm.state.value.duplicateOf).isNull()
+        assertThat(vm.state.value.replaceId).isEqualTo("old-id")
+        assertThat(engine.requests).hasSize(1)
+        assertThat(sink.saved.single().options.replaceId).isEqualTo("old-id")
+    }
+
+    @Test
+    fun `Keep both runs the extraction as a new item`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        vm.onIntent(ExtractionIntent.KeepBoth)
+        advanceUntilIdle()
+        assertThat(vm.state.value.duplicateOf).isNull()
+        assertThat(vm.state.value.replaceId).isNull()
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+        assertThat(sink.saved.single().options.replaceId).isNull()
+    }
+
+    @Test
+    fun `Cancel on the duplicate dialog pops without running or a cancelled snackbar`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existing = "old-id"
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel("a", engine)
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.Cancel)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
+            expectNoEvents()
+        }
+        assertThat(engine.requests).isEmpty()
+        assertThat(sink.saved).isEmpty()
+        assertThat(vm.state.value.isRunning).isFalse()
+    }
+
+    @Test
+    fun `a failing duplicate check is treated as no duplicate`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        sink.existingIdFailure = IllegalStateException("db locked")
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(vm.state.value.duplicateOf).isNull()
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
     }
 
     @Test
@@ -293,6 +385,84 @@ class ExtractionViewModelTest {
         assertThat(saved.pictures.all { it.exists() }).isTrue()
         // Unkept temp file was removed.
         assertThat(tempFiles()).hasSize(2)
+        // A partial failure is not "pictures unavailable"; the picks are still recorded for a later retry.
+        assertThat(saved.options.picturesFailed).isFalse()
+        assertThat(saved.options.pictureCandidates).isEqualTo(config.pictureUrls)
+    }
+
+    @Test
+    fun `when every download fails the save is flagged picturesFailed with the picks`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.pictureUrls = listOf("https://img.example/1.jpg", "https://img.example/2.jpg")
+        val offline = FakePictureDownloader(failing = config.pictureUrls.toSet())
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5), offline)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.phases[Phase.Pictures]).isEqualTo(PhaseStatus.Warning)
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+        val saved = sink.saved.single()
+        assertThat(saved.pictures).isEmpty()
+        assertThat(saved.options.picturesFailed).isTrue()
+        assertThat(saved.options.pictureCandidates).containsExactly("https://img.example/1.jpg", "https://img.example/2.jpg").inOrder()
+    }
+
+    @Test
+    fun `pictures phase settles as soon as the downloads finish, while the model is still running`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.pictureUrls = listOf("https://img.example/1.jpg", "https://img.example/bad.jpg")
+        val slowEngine = FakeLlmEngine(tokenDelayMs = 1_000) { FakeLlmEngine.chunks(goodOutput, 5) }
+        val vm = viewModel("a", slowEngine, FakePictureDownloader(failing = setOf("https://img.example/bad.jpg"), delayMs = 50))
+
+        advanceTimeBy(200)
+        val mid = vm.state.value
+        assertThat(mid.isRunning).isTrue()
+        assertThat(mid.savedId).isNull()
+        assertThat(mid.phases[Phase.Extracting]).isEqualTo(PhaseStatus.Active)
+        assertThat(mid.phases[Phase.Pictures]).isEqualTo(PhaseStatus.Warning)
+
+        advanceUntilIdle()
+        assertThat(vm.state.value.phases[Phase.Pictures]).isEqualTo(PhaseStatus.Warning)
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+    }
+
+    @Test
+    fun `no proposed pictures is not a failure`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(sink.saved.single().options).isEqualTo(ClipSaveOptions())
+    }
+
+    @Test
+    fun `only preferred picks start checked, at most three, non-preferred stay unchecked`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.picturePicks = listOf(
+            PicturePick("https://img.example/own-1.jpg", preferred = true),
+            PicturePick("https://img.example/neighbour.jpg", preferred = false),
+            PicturePick("https://img.example/own-2.jpg", preferred = true),
+            PicturePick("https://img.example/own-3.jpg", preferred = true),
+            PicturePick("https://img.example/own-4.jpg", preferred = true),
+            PicturePick("https://img.example/own-1.jpg", preferred = false), // duplicate url, dropped
+        )
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+
+        val pictures = vm.state.value.pictures
+        assertThat(pictures.map { it.url }).containsExactly(
+            "https://img.example/own-1.jpg", "https://img.example/neighbour.jpg", "https://img.example/own-2.jpg",
+            "https://img.example/own-3.jpg", "https://img.example/own-4.jpg",
+        ).inOrder()
+        assertThat(pictures.map { it.keep }).containsExactly(true, false, true, true, false).inOrder()
+        assertThat(sink.saved.single().pictures).hasSize(3)
+    }
+
+    @Test
+    fun `a config without preferred information keeps the first three checked`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        config.pictureUrls = listOf("https://img.example/1.jpg", "https://img.example/2.jpg", "https://img.example/3.jpg", "https://img.example/4.jpg")
+        val vm = viewModel("a", FakeLlmEngine.streaming(goodOutput, chunkSize = 5))
+        advanceUntilIdle()
+        assertThat(vm.state.value.pictures.map { it.keep }).containsExactly(true, true, true, false).inOrder()
     }
 
     @Test
@@ -353,14 +523,32 @@ class ExtractionViewModelTest {
     }
 
     @Test
-    fun `empty session pops straight back`() = runTest {
+    fun `empty session explains itself and pops straight back`() = runTest {
         val engine = FakeLlmEngine.streaming(goodOutput)
         val vm = viewModel("ghost", engine)
         vm.effects.test {
             advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.scanFailed))
             assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
         }
         assertThat(engine.requests).isEmpty()
+        assertThat(vm.state.value.isRunning).isFalse()
+    }
+
+    @Test
+    fun `retry after the page was dropped from the session pops with the snackbar`() = runTest {
+        session.set(snapshot(), listOf(candidate("t")))
+        val vm = viewModel("t", FakeLlmEngine.streaming("nope", chunkSize = 4))
+        advanceUntilIdle()
+        assertThat(vm.state.value.error).isInstanceOf(ExtractionError.ParseFailed::class.java)
+
+        session.clearPage()
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.Retry)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.scanFailed))
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
+        }
         assertThat(vm.state.value.isRunning).isFalse()
     }
 

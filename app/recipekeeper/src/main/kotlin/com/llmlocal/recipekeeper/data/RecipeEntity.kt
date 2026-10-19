@@ -16,14 +16,16 @@ import com.llmlocal.recipekeeper.domain.RecipeSummary
  * library summary can pick the hero with a sub-select and the sink can
  * replace the list atomically).
  *
- * `ingredients`, `steps` and `checkedIngredients` are JSON-array columns
- * (see [RecipeKeeperConverters]); storing ingredients as JSON keeps the
- * `LIKE` search in SQL without an extra table. `deletedAt` is the
- * soft-delete flag used by undo-delete (`null` = live).
+ * `ingredients`, `steps`, `checkedIngredients` and `pictureCandidates` are
+ * JSON-array columns (see [RecipeKeeperConverters]); storing ingredients as
+ * JSON keeps the `LIKE` search in SQL without an extra table. `deletedAt`
+ * is the soft-delete flag used by undo-delete (`null` = live).
+ * `picturesFailed` + `pictureCandidates` back "Pictures unavailable / Retry
+ * pictures" on the detail screen (WS11).
  */
 @Entity(
     tableName = "recipes",
-    indices = [Index(value = ["clippedAt"]), Index(value = ["deletedAt"])],
+    indices = [Index(value = ["clippedAt"]), Index(value = ["deletedAt"]), Index(value = ["sourceUrl"])],
 )
 data class RecipeEntity(
     @PrimaryKey val id: String,
@@ -42,6 +44,8 @@ data class RecipeEntity(
     val clippedAt: Long,
     val checkedIngredients: Set<Int>,
     val deletedAt: Long?,
+    @ColumnInfo(defaultValue = "0") val picturesFailed: Boolean = false,
+    @ColumnInfo(defaultValue = "[]") val pictureCandidates: List<String> = emptyList(),
 )
 
 /**
@@ -108,6 +112,8 @@ fun ClippedRecipe.toEntity(deletedAt: Long? = null): RecipeEntity = RecipeEntity
     clippedAt = clippedAt,
     checkedIngredients = checkedIngredients,
     deletedAt = deletedAt,
+    picturesFailed = picturesFailed,
+    pictureCandidates = pictureCandidates,
 )
 
 fun ClippedRecipe.toPictureEntities(): List<PictureEntity> =
@@ -130,6 +136,8 @@ fun RecipeWithPictures.toDomain(): ClippedRecipe = ClippedRecipe(
     truncated = recipe.truncated,
     clippedAt = recipe.clippedAt,
     checkedIngredients = recipe.checkedIngredients,
+    picturesFailed = recipe.picturesFailed,
+    pictureCandidates = recipe.pictureCandidates,
 )
 
 fun RecipeSummaryRow.toDomain(): RecipeSummary = RecipeSummary(

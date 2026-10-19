@@ -87,4 +87,11 @@ data class WebClipperLabels(
     val openModels: String = "Open models",
     val picturesUnavailable: String = "Pictures unavailable",
     val retryPictures: String = "Retry pictures",
+
+    // Duplicate warning (shown before the model runs when the page was clipped before)
+    val duplicateTitle: String = "Already in your library",
+    val duplicateMessage: String = "You clipped this page before. Replace the saved recipe with a fresh clip?",
+    val replace: String = "Replace",
+    val keepBoth: String = "Keep both",
+    val cancel: String = "Cancel",
 )

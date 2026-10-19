@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.dp
  *  - Title is rendered with `titleLarge` weight + ellipsis on overflow so a
  *    long screen title doesn't push the actions off the bar.
  *  - Exposes the standard slots to the caller: [navigationIcon] (leading),
- *    [actions] (trailing), [snackbarHost].
+ *    [actions] (trailing), [snackbarHost], [floatingActionButton]. Put a
+ *    FAB in the slot rather than overlaying it on the content: the
+ *    scaffold then places snackbars above it instead of over it.
  *
  * `Modifier.consumeWindowInsets(...)` is applied so child screens don't
  * re-handle the same insets the scaffold already absorbed.
@@ -43,6 +45,7 @@ fun AppScaffold(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
@@ -77,6 +80,7 @@ fun AppScaffold(
             )
         },
         snackbarHost = snackbarHost,
+        floatingActionButton = floatingActionButton,
         content = { padding ->
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier

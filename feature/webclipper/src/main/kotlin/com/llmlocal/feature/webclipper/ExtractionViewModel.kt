@@ -56,15 +56,24 @@ import java.util.UUID
  *     [ExtractionState.streamedText] for the app's draft slot. A parser
  *     `null` — or a result `config.accept` rejects — on a STRUCTURED
  *     candidate falls back to `config.fallback`.
- *  3. **Pictures** — `config.pickPictures` downloaded in parallel with the
- *     model (never sent to it); failures only turn the phase to `Warning`.
+ *  3. **Pictures** — `config.rankPictures` downloaded in parallel with the
+ *     model (never sent to it); only the first [DEFAULT_KEEP] *preferred*
+ *     picks start checked; failures only turn the phase to `Warning`.
  *  4. **Saving** — `sink.save` with the kept picture files, then
  *     [ExtractionEffect.NavigateToSaved] after a short beat so the last
  *     tick is visible.
  *
+ * Before anything runs, `sink.existingId(snapshot)` is asked whether the
+ * page was clipped before; if so [ExtractionState.duplicateOf] puts the
+ * "Already in your library" dialog up and the pipeline waits for
+ * [ExtractionIntent.ReplaceExisting] (save under the old id),
+ * [ExtractionIntent.KeepBoth] or Cancel (WS10 bug 6).
+ *
  * Cancel stops the job **and** the engine, deletes the temp pictures and
  * pops to the browser. The candidate is read once from [ClipSession]; if
- * the session is empty (process death) the screen pops immediately.
+ * the session is empty (process death, or a stale "Recipe found" button
+ * after a save) the screen says so with [WebClipperLabels.scanFailed] and
+ * pops immediately — never silently.
  *
  * The app's result type is erased to `Any` here, exactly like
  * `LlmTaskViewModel` does with `LlmTaskConfig<*>`.
@@ -107,9 +116,9 @@ class ExtractionViewModel(
         )
         state = _state.asStateFlow()
         if (candidate == null) {
-            send(ExtractionEffect.PopToBrowser)
+            popWithoutPage()
         } else {
-            start()
+            checkDuplicateThenStart()
         }
     }
 
@@ -128,16 +137,53 @@ class ExtractionViewModel(
             }
             ExtractionIntent.ToggleRaw -> _state.update { it.copy(showRaw = !it.showRaw) }
             ExtractionIntent.BackToCandidates -> backToCandidates()
+            ExtractionIntent.ReplaceExisting -> decideDuplicate(replace = true)
+            ExtractionIntent.KeepBoth -> decideDuplicate(replace = false)
         }
     }
 
     // -- pipeline ------------------------------------------------------------
 
+    /**
+     * Asks the sink whether this page is already in the library; shows the
+     * duplicate dialog if so, otherwise starts right away. A sink that
+     * throws is treated as "no duplicate" — the warning is a courtesy, not
+     * a gate.
+     */
+    private fun checkDuplicateThenStart() {
+        val snapshot = session.current.value?.snapshot ?: run {
+            popWithoutPage()
+            return
+        }
+        viewModelScope.launch {
+            val existing = withContext(dispatchers.io) {
+                try {
+                    sink.existingId(snapshot)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    null
+                }
+            }
+            if (existing != null) {
+                _state.update { it.copy(duplicateOf = existing) }
+            } else {
+                start()
+            }
+        }
+    }
+
+    private fun decideDuplicate(replace: Boolean) {
+        val existing = _state.value.duplicateOf ?: return
+        _state.update { it.copy(duplicateOf = null, replaceId = if (replace) existing else null) }
+        start()
+    }
+
     private fun start() {
         if (job?.isActive == true || _state.value.savedId != null) return
         val snapshot = session.current.value?.snapshot
         if (snapshot == null) {
-            send(ExtractionEffect.PopToBrowser)
+            popWithoutPage()
             return
         }
         val candidate = _state.value.candidate
@@ -267,14 +313,26 @@ class ExtractionViewModel(
         pictures: Deferred<Boolean>,
         truncated: Boolean,
     ) {
+        // The phase itself was settled by startPictures() the moment the
+        // downloads finished (WS10 bug 9); only the result is read here.
         val anyPictureFailed = pictures.await()
-        setPhase(Phase.Pictures, if (anyPictureFailed) PhaseStatus.Warning else PhaseStatus.Done)
 
         setPhase(Phase.Saving, PhaseStatus.Active)
-        val kept = _state.value.pictures.filter { it.keep && it.status == PictureStatus.Done }
-            .mapNotNull { it.localFile }
+        val drafts = _state.value.pictures
+        val kept = drafts.filter { it.keep && it.status == PictureStatus.Done }.mapNotNull { it.localFile }
+        // "Unavailable" = something was proposed and nothing came through
+        // (offline, blocked CDN). A user who unticked every picture is not
+        // told their pictures failed.
+        val picturesFailed = anyPictureFailed && drafts.none { it.status == PictureStatus.Done }
         val savedId = withContext(dispatchers.io) {
-            sink.save(result, snapshot, candidate, kept, truncated)
+            sink.save(
+                result, snapshot, candidate, kept, truncated,
+                ClipSaveOptions(
+                    replaceId = _state.value.replaceId,
+                    pictureCandidates = drafts.map { it.url },
+                    picturesFailed = picturesFailed,
+                ),
+            )
         }
         deleteTempFiles(except = kept)
         setPhase(Phase.Saving, PhaseStatus.Done)
@@ -287,24 +345,40 @@ class ExtractionViewModel(
 
     /**
      * Downloads the config's picture picks concurrently, each into its own
-     * temp file. Returns `true` when at least one download failed. Never
-     * throws for a single failure; cancellation propagates.
+     * temp file, and marks [Phase.Pictures] Done / Warning as soon as they
+     * have all settled — usually long before the model finishes, so the
+     * ring does not spin for the whole run. Returns `true` when at least one
+     * download failed. Never throws for a single failure; cancellation
+     * propagates.
      */
     private fun CoroutineScope.startPictures(candidate: ClipCandidate, snapshot: PageSnapshot): Deferred<Boolean> =
         async {
-            val urls = withContext(dispatchers.default) {
-                config.pickPictures(candidate, snapshot, config.maxPictures)
-            }.distinct()
-            if (urls.isEmpty()) return@async false
+            val picks = withContext(dispatchers.default) {
+                config.rankPictures(candidate, snapshot, config.maxPictures)
+            }.distinctBy { it.url }
+            if (picks.isEmpty()) {
+                setPhase(Phase.Pictures, PhaseStatus.Done) // nothing to download
+                return@async false
+            }
+            val urls = picks.map { it.url }
+            var checked = 0
             _state.update { state ->
-                state.copy(pictures = urls.mapIndexed { i, url -> PictureDraft(url = url, keep = i < DEFAULT_KEEP) })
+                state.copy(
+                    pictures = picks.map { pick ->
+                        val keep = pick.preferred && checked < DEFAULT_KEEP
+                        if (keep) checked++
+                        PictureDraft(url = pick.url, keep = keep)
+                    },
+                )
             }
             setPhase(Phase.Pictures, PhaseStatus.Active)
             val runId = UUID.randomUUID().toString().take(8)
             val results = urls.mapIndexed { index, url ->
                 async(dispatchers.io) { downloadOne(url, snapshot.url, File(tempDir, "$runId-$index.jpg")) }
             }.awaitAll()
-            results.any { !it }
+            val anyFailed = results.any { !it }
+            setPhase(Phase.Pictures, if (anyFailed) PhaseStatus.Warning else PhaseStatus.Done)
+            anyFailed
         }
 
     private suspend fun downloadOne(url: String, referer: String, into: File): Boolean {
@@ -374,6 +448,12 @@ class ExtractionViewModel(
 
     // -- helpers -------------------------------------------------------------
 
+    /** No captured page to work on: say why (snackbar) and leave. */
+    private fun popWithoutPage() {
+        send(ExtractionEffect.ShowSnackbar(labels.scanFailed))
+        send(ExtractionEffect.PopToBrowser)
+    }
+
     private fun fail(error: ExtractionError) {
         deleteTempFiles()
         session.setActiveExtraction(null)
@@ -439,7 +519,7 @@ class ExtractionViewModel(
         /** Beat between the last phase ticking and leaving the screen. */
         const val NAVIGATE_DELAY_MS = 600L
 
-        /** How many pictures start checked. */
+        /** How many *preferred* pictures start checked. */
         const val DEFAULT_KEEP = 3
 
         /** Long-edge resize bound handed to the downloader. */

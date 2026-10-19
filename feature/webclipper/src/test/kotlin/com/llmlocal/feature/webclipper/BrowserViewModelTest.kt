@@ -76,6 +76,55 @@ class BrowserViewModelTest {
     }
 
     @Test
+    fun `a save clears the cached candidates and the next tap re-scans the page`() = runTest {
+        config.candidates = listOf(candidate("only"))
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.loadPage()
+        vm.effects.test {
+            vm.onIntent(BrowserIntent.Scan)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(BrowserEffect.NavigateToExtraction("only"))
+        }
+        assertThat(vm.state.value.fab).isEqualTo(ClipFabState.Found(1))
+        assertThat(scanner.captures).isEqualTo(1)
+
+        // The extraction screen saved the recipe and cleared the session.
+        session.clear()
+        advanceUntilIdle()
+        assertThat(vm.state.value.candidates).isEmpty()
+        assertThat(vm.state.value.fab).isEqualTo(ClipFabState.Idle)
+
+        vm.effects.test {
+            vm.onIntent(BrowserIntent.Scan)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(BrowserEffect.NavigateToExtraction("only"))
+        }
+        assertThat(scanner.captures).isEqualTo(2)
+        assertThat(session.current.value?.candidates?.map { it.id }).containsExactly("only")
+    }
+
+    @Test
+    fun `a cleared session also drops the proactive quick-scan badge`() = runTest {
+        scanner.quickCount = 1
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.loadPage()
+        advanceTimeBy(BrowserViewModel.QUICK_SCAN_DEBOUNCE_MS + 1)
+        advanceUntilIdle()
+        assertThat(vm.state.value.fab).isEqualTo(ClipFabState.Found(1))
+
+        // Capture (populates the session) …
+        config.candidates = listOf(candidate("only"))
+        vm.onIntent(BrowserIntent.Scan)
+        advanceUntilIdle()
+        // … then save (clears it): the badge must not fall back to the stale quick-scan count.
+        session.clear()
+        advanceUntilIdle()
+        assertThat(vm.state.value.fab).isEqualTo(ClipFabState.Idle)
+    }
+
+    @Test
     fun `multiple candidates open the candidate sheet`() = runTest {
         config.candidates = listOf(candidate("a"), candidate("b"), candidate("c"))
         val vm = viewModel()

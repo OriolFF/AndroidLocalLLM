@@ -84,6 +84,19 @@ class BrowserViewModel(
             }
             .launchIn(viewModelScope)
 
+        // A save (`ClipSession.clear()`) or a navigation elsewhere drops the
+        // captured page; the cached candidates then point at nothing, so the
+        // button goes back to "Clip recipe" and the next tap re-scans.
+        session.current
+            .onEach { current ->
+                if (current == null && (_state.value.candidates.isNotEmpty() || quickScanCount > 0)) {
+                    quickScanCount = 0
+                    _state.update { it.copy(candidates = emptyList(), sheet = BrowserSheet.None) }
+                    recomputeFab()
+                }
+            }
+            .launchIn(viewModelScope)
+
         session.reopenCandidates
             .onEach { reopen ->
                 if (reopen) {
@@ -268,7 +281,11 @@ class BrowserViewModel(
             activeExtraction != null -> send(BrowserEffect.NavigateToExtraction(activeExtraction!!))
             current.isLoading -> send(BrowserEffect.ShowSnackbar(labels.waitForPage))
             scanning -> Unit
-            current.candidates.isNotEmpty() -> routeCandidates(current.candidates)
+            // Cached candidates are only valid while the session still holds
+            // the page they were detected on (bug: "Recipe found" did nothing
+            // after coming back from a saved recipe).
+            current.candidates.isNotEmpty() && session.current.value?.snapshot != null ->
+                routeCandidates(current.candidates)
             else -> runFullScan { candidates -> routeCandidates(candidates) }
         }
     }

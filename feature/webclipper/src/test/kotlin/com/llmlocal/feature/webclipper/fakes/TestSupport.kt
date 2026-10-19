@@ -11,7 +11,9 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.ClipSaveOptions
 import com.llmlocal.feature.webclipper.ClipSink
+import com.llmlocal.feature.webclipper.PicturePick
 import com.llmlocal.feature.webclipper.WebClipConfig
 import com.llmlocal.feature.webclipper.capture.PageScanner
 import com.llmlocal.feature.webclipper.capture.PictureDownloader
@@ -56,6 +58,8 @@ class FakeWebClipConfig(
     var candidates: List<ClipCandidate> = emptyList(),
     var fallbackResult: Parsed? = null,
     var pictureUrls: List<String> = emptyList(),
+    /** When set, overrides [pictureUrls] with explicit preferred flags. */
+    var picturePicks: List<PicturePick>? = null,
     override val maxOutputTokens: Int = 1_024,
     override val skipModelWhenStructuredComplete: Boolean = false,
     /** Fallback results that count as complete (direct path); default: every one. */
@@ -99,13 +103,33 @@ class FakeWebClipConfig(
 
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
         pictureUrls.take(max)
+
+    override fun rankPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<PicturePick> =
+        picturePicks?.take(max) ?: super.rankPictures(candidate, snapshot, max)
 }
 
 class FakeClipSink : ClipSink<Parsed> {
-    data class Saved(val item: Parsed, val candidate: ClipCandidate, val pictures: List<File>, val truncated: Boolean)
+    data class Saved(
+        val item: Parsed,
+        val candidate: ClipCandidate,
+        val pictures: List<File>,
+        val truncated: Boolean,
+        val options: ClipSaveOptions = ClipSaveOptions(),
+    )
 
     val saved = mutableListOf<Saved>()
     var failWith: Throwable? = null
+
+    /** What [existingId] answers; `null` = the page was never clipped. */
+    var existing: String? = null
+    var existingIdFailure: Throwable? = null
+    val existingIdCalls = mutableListOf<String>()
+
+    override suspend fun existingId(snapshot: PageSnapshot): String? {
+        existingIdCalls += snapshot.url
+        existingIdFailure?.let { throw it }
+        return existing
+    }
 
     override suspend fun save(
         item: Parsed,
@@ -113,9 +137,18 @@ class FakeClipSink : ClipSink<Parsed> {
         candidate: ClipCandidate,
         pictures: List<File>,
         truncated: Boolean,
+    ): String = save(item, snapshot, candidate, pictures, truncated, ClipSaveOptions())
+
+    override suspend fun save(
+        item: Parsed,
+        snapshot: PageSnapshot,
+        candidate: ClipCandidate,
+        pictures: List<File>,
+        truncated: Boolean,
+        options: ClipSaveOptions,
     ): String {
         failWith?.let { throw it }
-        saved += Saved(item, candidate, pictures, truncated)
+        saved += Saved(item, candidate, pictures, truncated, options)
         return "saved-${saved.size}"
     }
 }

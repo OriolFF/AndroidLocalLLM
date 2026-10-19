@@ -8,6 +8,7 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.wholePageCandidate
 import com.llmlocal.recipekeeper.clip.RecipeKeeperClipConfig
 import com.llmlocal.recipekeeper.clip.SchemaOrgRecipeMapper
 import com.llmlocal.recipekeeper.prompt.RecipeKeeperPromptBuilder
@@ -17,7 +18,11 @@ import org.json.JSONObject
 
 /**
  * The tier `RecipeKeeperClipConfig.detect` is expected to pick for a
- * fixture's top candidate.
+ * fixture's top candidate. `NONE` = `detect` returns nothing and the app
+ * shows the "No recipe found" sheet; the eval then follows "Extract
+ * anyway" ([EvalFixtures.topCandidate] falls back to `wholePageCandidate`)
+ * so the model still gets the whole-page prompt. `WHOLE_PAGE` is what that
+ * fallback reports as the tier actually sent.
  */
 enum class ExpectedTier { STRUCTURED, TEXT, WHOLE_PAGE, NONE }
 
@@ -117,11 +122,12 @@ object EvalFixtures {
         EvalFixture(
             name = "list_pinchofyum_recipes",
             sourceUrl = "https://pinchofyum.com/recipes",
-            tier = ExpectedTier.WHOLE_PAGE,
-            minCandidates = 1,
+            tier = ExpectedTier.NONE,
+            minCandidates = 0,
             expectRecipe = false,
-            notes = "Category/list page with no recipe. Readable text ≥ 500 chars so a single WholePage candidate is offered. " +
-                "The prompt asks for 'NO RECIPE' here; a parsed result must also pass RecipeKeeperClipConfig.accept (≥ 2 quantity ingredients).",
+            notes = "Category/list page with no recipe: detect() finds nothing (WS11, bug 2), so the app shows the 'No recipe found' sheet. " +
+                "The eval follows 'Extract anyway' (wholePageCandidate) so the golden stays a whole-page run; the prompt asks for 'NO RECIPE' " +
+                "here and a parsed result must also pass RecipeKeeperClipConfig.accept (≥ 2 quantity ingredients).",
         ),
         EvalFixture(
             name = "long_theperfectloaf_sourdough",
@@ -241,7 +247,13 @@ object EvalFixtures {
 
     fun candidates(snapshot: PageSnapshot): List<ClipCandidate> = clipConfig.detect(snapshot)
 
-    fun topCandidate(snapshot: PageSnapshot): ClipCandidate? = candidates(snapshot).firstOrNull()
+    /**
+     * What the pipeline would extract: the top detected candidate, or —
+     * exactly like tapping "Extract anyway" on the nothing-detected sheet —
+     * the feature's synthetic whole-page candidate when `detect` is empty.
+     */
+    fun topCandidate(snapshot: PageSnapshot): ClipCandidate =
+        candidates(snapshot).firstOrNull() ?: wholePageCandidate(snapshot)
 
     /** `renderLlmInput` for the top candidate with the production budget. */
     fun renderedInput(candidate: ClipCandidate, snapshot: PageSnapshot): String =

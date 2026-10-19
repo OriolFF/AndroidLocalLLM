@@ -20,6 +20,9 @@ import java.io.File
  * @property savedId set once the sink has saved the item
  * @property sourceHost host of the captured page, for the source strip
  * @property pageTitle title of the captured page, for the source strip
+ * @property duplicateOf id of an item already saved from this page; while
+ *   non-null the duplicate warning dialog is up and nothing runs
+ * @property replaceId the user chose "Replace": the save reuses this id
  */
 @Immutable
 data class ExtractionState(
@@ -36,6 +39,8 @@ data class ExtractionState(
     val savedId: String? = null,
     val sourceHost: String? = null,
     val pageTitle: String? = null,
+    val duplicateOf: String? = null,
+    val replaceId: String? = null,
 )
 
 /** The four extraction phases, in display order. */
@@ -47,7 +52,9 @@ enum class PhaseStatus { Pending, Active, Done, Failed, Warning }
 /**
  * One picture being downloaded for the item.
  *
- * @property keep user checkbox; the first three default to checked
+ * @property keep user checkbox; the first three *preferred* picks
+ *   (`PicturePick.preferred`) default to checked, every other pick starts
+ *   unchecked
  */
 data class PictureDraft(
     val url: String,

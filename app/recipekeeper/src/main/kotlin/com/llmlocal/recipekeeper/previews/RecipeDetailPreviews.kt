@@ -56,6 +56,19 @@ private fun DetailTruncatedPreview() = DetailPreviewSurface(
     loaded.copy(recipe = SampleData.truncatedRecipe, currentStep = null),
 )
 
+@Preview(name = "Detail · pictures unavailable", showBackground = true)
+@Composable
+private fun DetailPicturesUnavailablePreview() = DetailPreviewSurface(
+    loaded.copy(recipe = SampleData.picturesFailedRecipe, currentStep = null),
+)
+
+@Preview(name = "Detail · retrying pictures · dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun DetailRetryingPicturesDarkPreview() = DetailPreviewSurface(
+    loaded.copy(recipe = SampleData.picturesFailedRecipe, currentStep = null, retryingPictures = true),
+    darkTheme = true,
+)
+
 @Preview(name = "Detail · delete dialog", showBackground = true)
 @Composable
 private fun DetailDeleteDialogPreview() = DetailPreviewSurface(loaded.copy(showDeleteDialog = true))

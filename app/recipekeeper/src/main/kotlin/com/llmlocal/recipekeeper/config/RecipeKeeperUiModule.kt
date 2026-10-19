@@ -1,6 +1,7 @@
 package com.llmlocal.recipekeeper.config
 
 import com.llmlocal.core.common.coroutines.DispatcherProvider
+import com.llmlocal.feature.webclipper.di.WEBCLIPPER_TEMP_DIR_QUALIFIER
 import com.llmlocal.recipekeeper.detail.RecipeDetailViewModel
 import com.llmlocal.recipekeeper.library.LibraryViewModel
 import com.llmlocal.recipekeeper.library.ModelStatusSource
@@ -10,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
@@ -21,7 +23,8 @@ import org.koin.dsl.module
  *  - [PendingRecipeDeletes] — app-wide undo window for deletes.
  *  - [ModelStatusSource]   — adapter over the shared `ModelReadinessObserver`.
  *  - [LibraryViewModel]    — no parameters.
- *  - [RecipeDetailViewModel] — `parametersOf(recipeId)` from `RecipeDetailRoute`.
+ *  - [RecipeDetailViewModel] — `parametersOf(recipeId)` from `RecipeDetailRoute`;
+ *    "Retry pictures" reuses the clipper's `PictureDownloader` and temp dir.
  */
 val recipeKeeperUiModule: Module = module {
     single {
@@ -52,6 +55,9 @@ val recipeKeeperUiModule: Module = module {
             repository = get(),
             pendingDeletes = get(),
             dispatchers = get(),
+            pictureDownloader = get(),
+            pictureStore = get(),
+            tempDir = get(named(WEBCLIPPER_TEMP_DIR_QUALIFIER)),
         )
     }
 }

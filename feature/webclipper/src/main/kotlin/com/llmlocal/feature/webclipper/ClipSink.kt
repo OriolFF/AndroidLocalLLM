@@ -25,4 +25,43 @@ interface ClipSink<T : Any> {
         pictures: List<File>,
         truncated: Boolean,
     ): String
+
+    /**
+     * [save] with the extra facts in [options] (WS11). The ViewModel always
+     * calls this overload; the default forwards to the five-argument [save]
+     * so sinks that do not care keep compiling unchanged.
+     */
+    suspend fun save(
+        item: T,
+        snapshot: PageSnapshot,
+        candidate: ClipCandidate,
+        pictures: List<File>,
+        truncated: Boolean,
+        options: ClipSaveOptions,
+    ): String = save(item, snapshot, candidate, pictures, truncated)
+
+    /**
+     * Id of an item already saved from [snapshot]'s page, or `null`. Asked
+     * once at extraction start, before the model runs, so the user can be
+     * warned ("Already in your library — Replace / Keep both / Cancel")
+     * without wasting compute. Default: never a duplicate.
+     */
+    suspend fun existingId(snapshot: PageSnapshot): String? = null
 }
+
+/**
+ * Extra facts handed to [ClipSink.save].
+ *
+ * @property replaceId id of the previously saved item this clip replaces
+ *   (the user chose "Replace" on the duplicate warning); the sink reuses
+ *   that id and discards the old pictures. `null` = save as a new item.
+ * @property pictureCandidates every picture URL the config proposed, in
+ *   rank order, so the app can offer "Retry pictures" later without the page
+ * @property picturesFailed pictures were proposed but none could be
+ *   downloaded (offline, blocked CDN); the app surfaces this on the saved item
+ */
+data class ClipSaveOptions(
+    val replaceId: String? = null,
+    val pictureCandidates: List<String> = emptyList(),
+    val picturesFailed: Boolean = false,
+)

@@ -13,6 +13,7 @@ import com.llmlocal.recipekeeper.domain.ClippedRecipe
  *   place, or `null`
  * @property keepScreenOn whether `FLAG_KEEP_SCREEN_ON` is requested
  * @property showDeleteDialog delete confirmation visible
+ * @property retryingPictures "Retry pictures" download in flight
  */
 @Immutable
 data class RecipeDetailState(
@@ -21,6 +22,7 @@ data class RecipeDetailState(
     val currentStep: Int? = null,
     val keepScreenOn: Boolean = false,
     val showDeleteDialog: Boolean = false,
+    val retryingPictures: Boolean = false,
 ) {
     /** The id no longer resolves (deleted elsewhere, or a stale link). */
     val notFound: Boolean

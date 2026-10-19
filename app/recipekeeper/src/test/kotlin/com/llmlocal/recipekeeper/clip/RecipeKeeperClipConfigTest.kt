@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import com.llmlocal.core.web.JsonLdNode
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
+import com.llmlocal.feature.webclipper.PicturePick
+import com.llmlocal.feature.webclipper.wholePageCandidate
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.testing.image
 import com.llmlocal.recipekeeper.testing.loadJsonLd
@@ -55,6 +57,29 @@ class RecipeKeeperClipConfigTest {
 
         assertThat(candidates).hasSize(1)
         assertThat(candidates.single().title).isEqualTo("Quick Guacamole")
+    }
+
+    @Test
+    fun `collection-page Recipe stubs without ingredients or instructions are not candidates`() {
+        // tasteofhome.com/collection/…: one Recipe node per card with name /
+        // description / image / cookTime only (WS10 bug 3).
+        val card = loadJsonLd("collection_card")
+        val stubs = listOf("Unstuffed Peppers", "Beef Taco Skillet", "Cheeseburger Soup").map { name ->
+            JsonLdNode(listOf("Recipe"), JSONObject(card.raw.toString()).put("name", name))
+        }
+        val collection = snapshot(
+            url = "https://www.example.com/collection/recipes-with-ground-beef/",
+            jsonLd = stubs + website(),
+            readable = readable("word ".repeat(400), title = "40 Recipes with Ground Beef"),
+        )
+
+        assertThat(config.detect(collection)).isEmpty()
+
+        // A real recipe node on the same page is still found, and only it.
+        val mixed = snapshot(jsonLd = stubs + loadJsonLd("single_recipe"))
+        val candidates = config.detect(mixed)
+        assertThat(candidates.map { it.title }).containsExactly("Classic Banana Bread")
+        assertThat(candidates.single().id).isEqualTo("structured-0")
     }
 
     @Test
@@ -114,16 +139,20 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
-    fun `no recipe and short readable text yields nothing, long readable text yields WholePage`() {
+    fun `a page with no recipe yields nothing, however long its readable text`() {
+        // WS10 bug 2: a WholePage candidate from detect() made single-candidate
+        // routing skip the "No recipe found" sheet on list / home pages.
         val none = snapshot(url = "https://news.example.com/x", sections = listOf(section("News", 1, "Short.", top = 0)), readable = readable("Short."))
         assertThat(config.detect(none)).isEmpty()
 
-        val long = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
-        val whole = config.detect(long).single()
-        assertThat(whole.id).isEqualTo(RecipeKeeperClipConfig.WHOLE_PAGE_ID)
+        val long = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(2_000), title = "Long article"))
+        assertThat(config.detect(long)).isEmpty()
+
+        // "Extract anyway" is the feature's synthetic candidate; the config still renders it.
+        val whole = wholePageCandidate(long)
         assertThat(whole.payload).isEqualTo(CandidatePayload.WholePage)
-        assertThat(whole.title).isEqualTo("Long article")
         assertThat(whole.source).isEqualTo(CandidateSource.TEXT)
+        assertThat(config.renderLlmInput(whole, long, config.budgetChars)).startsWith("Page: news.example.com — Long article\n\nword word")
     }
 
     // -----------------------------------------------------------------------
@@ -241,7 +270,7 @@ class RecipeKeeperClipConfigTest {
     fun `whole page rendering uses readable text and is budget-trimmed at a paragraph boundary`() {
         val paragraphs = (1..60).joinToString("\n\n") { i -> "Paragraph $i. " + "lorem ipsum dolor sit amet ".repeat(8).trim() }
         val page = snapshot(url = "https://news.example.com/x", readable = readable(paragraphs, title = "Long"))
-        val whole = config.detect(page).single()
+        val whole = wholePageCandidate(page)
 
         val rendered = config.renderLlmInput(whole, page, budgetChars = 2_000)
 
@@ -255,7 +284,7 @@ class RecipeKeeperClipConfigTest {
     @Test
     fun `rendering under budget is returned whole and budget respected for huge single paragraphs`() {
         val tiny = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(150).trim(), title = "T"))
-        val candidate = config.detect(tiny).single()
+        val candidate = wholePageCandidate(tiny)
         val whole = config.renderLlmInput(candidate, tiny, config.budgetChars)
         assertThat(whole).doesNotContain(RecipeKeeperClipConfig.TRUNCATION_MARKER)
         assertThat(whole).endsWith("word")
@@ -311,9 +340,9 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
-    fun `accept requires two quantity ingredients for whole-page results and nothing for detected candidates`() {
+    fun `accept requires two quantity ingredients for whole-page results`() {
         val page = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
-        val whole = config.detect(page).single()
+        val whole = wholePageCandidate(page)
         val invented = recipe(ingredients = listOf("Chicken", "Breadcrumbs", "Onion", "Garlic", "Egg"))
         val oneQuantity = recipe(ingredients = listOf("2 eggs", "flour", "milk"))
         val real = recipe(ingredients = listOf("2 eggs", "1 cup flour", "milk"))
@@ -321,11 +350,29 @@ class RecipeKeeperClipConfigTest {
         assertThat(config.accept(whole, invented)).isFalse()
         assertThat(config.accept(whole, oneQuantity)).isFalse()
         assertThat(config.accept(whole, real)).isTrue()
+        // Steps alone do not rescue a whole-page result: the model invents those too.
+        assertThat(config.accept(whole, recipe(ingredients = listOf("Chicken", "Onion"), steps = listOf("Brown.", "Simmer.", "Serve.")))).isFalse()
+    }
 
+    @Test
+    fun `accept needs two quantity lines or two steps for detected candidates`() {
         val text = snapshot(url = "https://x.example.com/recipes/a", sections = listOf(section("Cake", 1, SODA_INGREDIENTS, top = 0)))
-        assertThat(config.accept(config.detect(text).single(), invented)).isTrue()
+        val textCandidate = config.detect(text).single()
         val structured = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
-        assertThat(config.accept(config.detect(structured).single(), invented)).isTrue()
+        val structuredCandidate = config.detect(structured).single()
+
+        // The WS10 "Unstuffed Peppers" row: one quantity line, one tip sentence as the step.
+        val stub = recipe(ingredients = listOf("ground beef", "2 cups leftover cooked rice"), steps = listOf("Serve with a dollop of sour cream."))
+        val stepsOnly = recipe(ingredients = listOf("Chicken", "Breadcrumbs", "Onion"), steps = listOf("Coat.", "Fry."))
+        val quantitiesOnly = recipe(ingredients = listOf("2 eggs", "1 cup flour", "milk"), steps = listOf("Mix and bake."))
+        val nothing = recipe(ingredients = emptyList(), steps = emptyList())
+
+        for (candidate in listOf(textCandidate, structuredCandidate)) {
+            assertThat(config.accept(candidate, stub)).isFalse()
+            assertThat(config.accept(candidate, nothing)).isFalse()
+            assertThat(config.accept(candidate, stepsOnly)).isTrue()
+            assertThat(config.accept(candidate, quantitiesOnly)).isTrue()
+        }
     }
 
     @Test
@@ -357,6 +404,34 @@ class RecipeKeeperClipConfigTest {
         ).inOrder()
         assertThat(config.pickPictures(candidate, page, max = 2)).hasSize(2)
         assertThat(config.pickPictures(candidate, page, max = 0)).isEmpty()
+
+        // Single recipe node: its own images and og are preferred, the page pool is offered unchecked.
+        assertThat(config.rankPictures(candidate, page, max = 8).map { it.preferred })
+            .containsExactly(true, true, true, true, false, false, false, false).inOrder()
+    }
+
+    @Test
+    fun `rankPictures on a round-up page offers only the node's own images`() {
+        val page = snapshot(
+            jsonLd = listOf(loadJsonLd("howto_sections"), loadJsonLd("single_recipe")),
+            openGraph = mapOf("og:image" to "https://cdn.example.com/roundup-og.jpg"),
+            images = listOf(
+                image("https://cdn.example.com/hero.jpg", 800, 600, top = 600, inCard = true),
+                image("https://cdn.example.com/other-recipe.jpg", 800, 600, top = 2600, inCard = true),
+            ),
+        )
+        val candidates = config.detect(page)
+        assertThat(candidates).hasSize(2)
+
+        val lasagne = config.rankPictures(candidates[0], page, max = 8)
+        assertThat(lasagne).containsExactly(
+            PicturePick("https://cdn.example.com/lasagne-1x1.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-4x3.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-16x9.jpg"),
+        ).inOrder()
+        val banana = config.rankPictures(candidates[1], page, max = 8)
+        assertThat(banana.map { it.url }).containsExactly("https://cdn.example.com/banana-bread.jpg")
+        assertThat(banana.single().preferred).isTrue()
     }
 
     @Test
@@ -377,6 +452,8 @@ class RecipeKeeperClipConfigTest {
             "https://img.example.com/near.jpg",
             "https://img.example.com/far.jpg",
         ).inOrder()
+        // TEXT candidates have no structured ownership: everything stays preferred (pre-WS11 behaviour).
+        assertThat(config.rankPictures(candidate, page, max = 8).all { it.preferred }).isTrue()
     }
 
     /** h1 intro + method prose (no instructions heading), an empty h2, then the ingredient list h2 — like joyofbaking.com. */

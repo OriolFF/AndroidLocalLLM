@@ -13,4 +13,7 @@ sealed interface RecipeDetailEffect {
      * this screen and shows the undo snackbar.
      */
     data class Deleted(val id: String) : RecipeDetailEffect
+
+    /** "Retry pictures" downloaded nothing; the route shows `labels.retryPicturesFailed`. */
+    data object PicturesRetryFailed : RecipeDetailEffect
 }

@@ -9,6 +9,7 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.CandidatePayload
 import com.llmlocal.feature.webclipper.CandidateSource
 import com.llmlocal.feature.webclipper.ClipCandidate
+import com.llmlocal.feature.webclipper.PicturePick
 import com.llmlocal.feature.webclipper.WebClipConfig
 import com.llmlocal.recipekeeper.domain.ClippedRecipe
 import org.json.JSONObject
@@ -20,15 +21,21 @@ import kotlin.math.abs
  * (plan §3.2, §3.3, §3.6).
  *
  * **Detect.** Tier A: every JSON-LD node typed `Recipe` (or whose
- * `mainEntity` is one) is a STRUCTURED candidate. Tier B (only when Tier A
+ * `mainEntity` is one) **that carries ingredients or instructions** is a
+ * STRUCTURED candidate; the ingredient-less stubs collection pages emit
+ * per card (name / description / image / cookTime) are skipped, since the
+ * model would otherwise invent the missing lines (WS10 bug 3). Tier B (only when Tier A
  * finds nothing): a heading section is a TEXT candidate when its text has
  * at least [MIN_QUANTITY_LINES] quantity-unit lines, or its heading is an
  * "ingredients" word and an "instructions" word follows within the next
  * sections. A recipe-ish URL path relaxes the line threshold by one. When
- * neither tier finds anything and the readable text is at least
- * [MIN_WHOLE_PAGE_CHARS] long, a single `WholePage` candidate is offered
- * ("Extract anyway" also uses it). Ranking: STRUCTURED first in document
- * order, then TEXT by heading level, then position. Capped at 10.
+ * neither tier finds anything the list is **empty**: the feature then shows
+ * its "No recipe found" sheet, whose "Extract anyway" builds the `WholePage`
+ * candidate itself (`wholePageCandidate(snapshot)`); `detect` never offers
+ * it, otherwise list and category pages would skip the sheet and go
+ * straight to a 9,000-char extraction (WS10 bug 2). Ranking: STRUCTURED
+ * first in document order, then TEXT by heading level, then position.
+ * Capped at 10.
  *
  * **Render.** STRUCTURED → compact field rendering (`Name / Description /
  * Yield / Times / Ingredients / Instructions / Images: n`). TEXT → the
@@ -66,7 +73,7 @@ class RecipeKeeperClipConfig(
         val text = detectText(snapshot)
         if (text.isNotEmpty()) return text.take(MAX_CANDIDATES)
 
-        return listOfNotNull(wholePageCandidate(snapshot))
+        return emptyList()
     }
 
     private fun detectStructured(snapshot: PageSnapshot): List<ClipCandidate> {
@@ -75,8 +82,10 @@ class RecipeKeeperClipConfig(
             .mapNotNull { node -> recipeNode(node) }
             .filter { node ->
                 val raw = node.raw
-                val key = mapper.name(raw).lowercase() + "|" + mapper.ingredients(raw).size + "|" + mapper.instructions(raw).size
-                seen.add(key)
+                val ingredients = mapper.ingredients(raw).size
+                val steps = mapper.instructions(raw).size
+                if (ingredients == 0 && steps == 0) return@filter false // collection-card stub
+                seen.add(mapper.name(raw).lowercase() + "|" + ingredients + "|" + steps)
             }
             .mapIndexed { index, node ->
                 val raw = node.raw
@@ -166,22 +175,6 @@ class RecipeKeeperClipConfig(
         return snapshot.readable?.title?.takeIf { it.isNotBlank() }
             ?: snapshot.title?.takeIf { it.isNotBlank() }
             ?: heading.ifBlank { DEFAULT_TITLE }
-    }
-
-    private fun wholePageCandidate(snapshot: PageSnapshot): ClipCandidate? {
-        val readable = snapshot.readable
-        val length = readable?.textContent?.length ?: snapshot.sections.sumOf { it.text.length }
-        if (length < MIN_WHOLE_PAGE_CHARS) return null
-        return ClipCandidate(
-            id = WHOLE_PAGE_ID,
-            title = readable?.title?.takeIf { it.isNotBlank() } ?: snapshot.title?.takeIf { it.isNotBlank() } ?: DEFAULT_TITLE,
-            thumbnailUrl = snapshot.openGraph["og:image"] ?: snapshot.openGraph["twitter:image"],
-            snippet = readable?.excerpt?.let { snippet(it) } ?: readable?.textContent?.let { snippet(it) },
-            source = CandidateSource.TEXT,
-            ingredientCount = null,
-            totalMinutes = null,
-            payload = CandidatePayload.WholePage,
-        )
     }
 
     // -----------------------------------------------------------------------
@@ -357,45 +350,81 @@ class RecipeKeeperClipConfig(
         item.ingredients.size >= MIN_COMPLETE_INGREDIENTS && item.steps.size >= MIN_COMPLETE_STEPS
 
     /**
-     * A whole-page extraction (no detected candidate, "Extract anyway") is
-     * only believed when at least [MIN_WHOLE_PAGE_QUANTITY_LINES] of its
-     * ingredients carry a quantity; otherwise the model invented a recipe
-     * from a list or category page and the result counts as "no recipe".
-     * Detected candidates are always accepted.
+     * Quality floor on a parsed model result.
+     *
+     *  - Whole-page extraction ("Extract anyway", no detected candidate) is
+     *    only believed when at least [MIN_ACCEPT_QUANTITY_LINES] of its
+     *    ingredients carry a quantity; otherwise the model invented a recipe
+     *    from a list or category page and the result counts as "no recipe".
+     *  - Detected (STRUCTURED / TEXT) candidates need either that many
+     *    quantity-bearing ingredient lines **or** at least
+     *    [MIN_COMPLETE_STEPS] steps. A two-line "recipe" filled in from a
+     *    collection-card stub (WS10 bug 3) therefore becomes a parse
+     *    failure: STRUCTURED falls back to [SchemaOrgRecipeMapper] (also
+     *    empty for a stub → the parse-failed screen), TEXT shows it directly.
      */
     override fun accept(candidate: ClipCandidate, item: ClippedRecipe): Boolean {
-        if (candidate.payload !is CandidatePayload.WholePage) return true
-        return item.ingredients.count { quantityLine.containsMatchIn(it.trim()) } >= MIN_WHOLE_PAGE_QUANTITY_LINES
+        val quantityLines = item.ingredients.count { quantityLine.containsMatchIn(it.trim()) }
+        return when (candidate.payload) {
+            CandidatePayload.WholePage -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES
+            else -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES || item.steps.size >= MIN_COMPLETE_STEPS
+        }
     }
 
-    override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> {
-        if (max <= 0) return emptyList()
-        val ranked = mutableListOf<String>()
+    override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
+        rankPictures(candidate, snapshot, max).map { it.url }
 
-        when (val payload = candidate.payload) {
-            is CandidatePayload.Structured -> ranked += mapper.imageUrls(payload.node.raw)
-            is CandidatePayload.Text -> ranked += payload.section.imageSrcs
-            CandidatePayload.WholePage -> Unit
+    /**
+     * Ranking: the candidate's own images (JSON-LD `image` / the section's
+     * inline images), then `og:image` / `twitter:image`, then recipe-card
+     * images by area, then the rest of the page by proximity (TEXT) or area.
+     *
+     * Preferred (= pre-checked on the extraction screen, WS10 bug 4):
+     *  - STRUCTURED: the node's own images; `og:image` too when the page
+     *    holds a single recipe node (it is then that recipe's hero). Page
+     *    images are offered unchecked. On a round-up (more than one recipe
+     *    node) the og / page pool is skipped altogether — every one of those
+     *    pictures belongs to some other recipe on the page.
+     *  - TEXT / WholePage: everything, as before — there is no structured
+     *    ownership to go by, and proximity ranking already favours the
+     *    section's neighbourhood.
+     */
+    override fun rankPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<PicturePick> {
+        if (max <= 0) return emptyList()
+        val payload = candidate.payload
+        val structured = payload is CandidatePayload.Structured
+        val roundUp = structured && detectStructured(snapshot).size > 1
+        val poolPreferred = !structured
+
+        val own: List<String> = when (payload) {
+            is CandidatePayload.Structured -> mapper.imageUrls(payload.node.raw)
+            is CandidatePayload.Text -> payload.section.imageSrcs
+            CandidatePayload.WholePage -> emptyList()
         }
-        ranked += listOfNotNull(
+        val og = listOfNotNull(
             snapshot.openGraph["og:image:secure_url"],
             snapshot.openGraph["og:image"],
             snapshot.openGraph["twitter:image"],
         )
-
-        val anchorTop = (candidate.payload as? CandidatePayload.Text)?.section?.topOffset
+        val anchorTop = (payload as? CandidatePayload.Text)?.section?.topOffset
         val images = snapshot.images.filter { TextCleaner.isHttpUrl(it.src) && it.naturalWidth >= MIN_NATURAL_PX && it.naturalHeight >= MIN_NATURAL_PX }
-        ranked += images.filter { it.inRecipeCard }.sortedByDescending { it.area }.map { it.src }
-        ranked += images.filterNot { it.inRecipeCard }
-            .sortedWith(
-                if (anchorTop != null) compareBy<PageImage> { abs(it.top - anchorTop) }.thenByDescending { it.area }
-                else compareByDescending { it.area },
-            )
-            .map { it.src }
+        val pageImages = images.filter { it.inRecipeCard }.sortedByDescending { it.area }.map { it.src } +
+            images.filterNot { it.inRecipeCard }
+                .sortedWith(
+                    if (anchorTop != null) compareBy<PageImage> { abs(it.top - anchorTop) }.thenByDescending { it.area }
+                    else compareByDescending { it.area },
+                )
+                .map { it.src }
 
+        val ranked = mutableListOf<PicturePick>()
+        own.forEach { ranked += PicturePick(it, preferred = true) }
+        if (!roundUp) {
+            og.forEach { ranked += PicturePick(it, preferred = poolPreferred || structured) }
+            pageImages.forEach { ranked += PicturePick(it, preferred = poolPreferred) }
+        }
         return ranked
-            .filter { TextCleaner.isHttpUrl(it) }
-            .distinctBy { TextCleaner.urlKey(it) }
+            .filter { TextCleaner.isHttpUrl(it.url) }
+            .distinctBy { TextCleaner.urlKey(it.url) }
             .take(max)
     }
 
@@ -428,13 +457,12 @@ class RecipeKeeperClipConfig(
 
     companion object {
         const val MAX_CANDIDATES = 10
-        const val WHOLE_PAGE_ID = "page"
         const val TRUNCATION_MARKER = "\n[…truncated]"
         const val HEAD_MARKER = "[…]\n"
         const val MIN_PRECEDING_PROSE_CHARS = 300
         const val MIN_QUANTITY_LINES = 3
-        const val MIN_WHOLE_PAGE_CHARS = 500
-        const val MIN_WHOLE_PAGE_QUANTITY_LINES = 2
+        /** Quantity-bearing ingredient lines a model result needs (see [accept]). */
+        const val MIN_ACCEPT_QUANTITY_LINES = 2
         const val MIN_COMPLETE_INGREDIENTS = 3
         const val MIN_COMPLETE_STEPS = 2
         private const val LOOKAHEAD_SECTIONS = 3

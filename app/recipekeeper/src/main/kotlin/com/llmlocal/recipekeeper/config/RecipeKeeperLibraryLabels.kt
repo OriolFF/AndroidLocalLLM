@@ -73,6 +73,10 @@ data class RecipeKeeperLibraryLabels(
     val shareTemplate: (title: String, url: String) -> String = { t, u -> "$t\n$u" },
     val incompleteChip: String = "Possibly incomplete",
     val recipeNotFound: String = "This recipe is no longer in your library",
+    /** Chip shown when no picture could be downloaded at clip time (offline). */
+    val picturesUnavailable: String = "Pictures unavailable",
+    val retryPictures: String = "Retry pictures",
+    val retryPicturesFailed: String = "Still couldn't download the pictures — check your connection",
 
     // ---- Streamed draft card --------------------------------------------
     val draftWaiting: String = "Waiting for the first words from the model…",

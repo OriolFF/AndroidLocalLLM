@@ -148,6 +148,9 @@ private fun AppRoot() {
                 },
                 onCancelled = { navController.popBackStack() },
                 onNavigateToModelManagement = { navController.navigateToModelManagement() },
+                // Without the shared host "Clip cancelled" / "Saved to your
+                // recipes" were silently dropped (WS10 §Scenario 5).
+                snackbarHostState = snackbarHostState,
             )
         }
 

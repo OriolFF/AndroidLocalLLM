@@ -56,9 +56,19 @@ class RoomRecipeRepository(
         dao.setChecked(id, checked)
     }
 
+    override suspend fun replacePictures(id: String, pictures: List<String>, picturesFailed: Boolean) {
+        dao.replacePictures(
+            id = id,
+            pictures = pictures.mapIndexed { index, path -> PictureEntity(recipeId = id, position = index, path = path) },
+            picturesFailed = picturesFailed,
+        )
+    }
+
     override fun search(query: String): Flow<List<RecipeSummary>> {
         val q = query.trim()
         if (q.isEmpty()) return observeAll()
         return dao.searchSummaries(q).map { rows -> rows.map(RecipeSummaryRow::toDomain) }
     }
+
+    override suspend fun findIdBySourceUrl(url: String): String? = dao.findIdBySourceUrl(url)
 }

@@ -40,6 +40,17 @@ interface WebClipConfig<T : Any> {
     fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String>
 
     /**
+     * Same ranking as [pickPictures], with a [PicturePick.preferred] flag per
+     * entry. The extraction screen starts only *preferred* picks checked
+     * (the first few of them); the rest are offered unchecked so pictures of
+     * neighbouring recipes on a round-up page are never saved by default
+     * (WS10 bug 4). The default wraps [pickPictures] with every pick
+     * preferred, which is the pre-WS11 behaviour.
+     */
+    fun rankPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<PicturePick> =
+        pickPictures(candidate, snapshot, max).map { PicturePick(it) }
+
+    /**
      * When `true`, a STRUCTURED candidate whose [fallback] passes
      * [isComplete] is saved straight away and the model is never run for
      * it (plan decision #3). `false` keeps today's behaviour: the model
@@ -56,6 +67,18 @@ interface WebClipConfig<T : Any> {
     /** Passed to the engine as `maxOutputTokens`. */
     val maxOutputTokens: Int get() = 1_024
 
-    /** Upper bound for [pickPictures]. */
+    /** Upper bound for [pickPictures] / [rankPictures]. */
     val maxPictures: Int get() = 8
 }
+
+/**
+ * One picture proposed by [WebClipConfig.rankPictures].
+ *
+ * @property preferred the picture belongs to the item itself (its own
+ *   structured-data images, the section's inline images); only preferred
+ *   picks start checked on the extraction screen
+ */
+data class PicturePick(
+    val url: String,
+    val preferred: Boolean = true,
+)

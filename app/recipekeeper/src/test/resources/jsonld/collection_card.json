@@ -1,0 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Unstuffed Peppers",
+  "description": "My family loves stuffed peppers, but I don't always have time to make them. This skillet version has all the flavor in a fraction of the time.",
+  "image": [
+    "https://cdn.example.com/collection/unstuffed-peppers_1200x1200.jpg",
+    "https://cdn.example.com/collection/unstuffed-peppers_1200x675.jpg"
+  ],
+  "cookTime": "PT25M",
+  "author": { "@type": "Person", "name": "Example Kitchen" },
+  "url": "https://www.example.com/recipes/unstuffed-peppers/"
+}

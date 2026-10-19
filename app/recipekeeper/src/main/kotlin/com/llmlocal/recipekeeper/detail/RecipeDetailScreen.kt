@@ -36,6 +36,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Group
@@ -53,7 +54,9 @@ import androidx.compose.material.icons.outlined.ScreenLockPortrait
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -274,7 +277,7 @@ private fun CompactDetail(
                         )
                     }
                 }
-                item(key = "meta") { MetaChips(recipe = recipe, labels = labels) }
+                item(key = "meta") { MetaChips(recipe = recipe, state = state, labels = labels, onIntent = onIntent) }
                 item(key = "source") { SourceRow(recipe = recipe, labels = labels, onIntent = onIntent) }
                 ingredientsSection(recipe, labels, onIntent)
                 stepsSection(recipe, state.currentStep, labels, onIntent)
@@ -347,7 +350,7 @@ private fun WideDetail(
                         )
                     }
                 }
-                item(key = "meta") { MetaChips(recipe = recipe, labels = labels) }
+                item(key = "meta") { MetaChips(recipe = recipe, state = state, labels = labels, onIntent = onIntent) }
                 item(key = "source") { SourceRow(recipe = recipe, labels = labels, onIntent = onIntent) }
                 ingredientsSection(recipe, labels, onIntent)
             }
@@ -564,9 +567,19 @@ private fun HeroImage(
     }
 }
 
+/**
+ * Servings / prep / cook / total chips, the "Possibly incomplete" badge and —
+ * after an offline clip — the "Pictures unavailable" chip with its
+ * "Retry pictures" action (WS11, UX spec §4).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MetaChips(recipe: ClippedRecipe, labels: RecipeKeeperLibraryLabels) {
+private fun MetaChips(
+    recipe: ClippedRecipe,
+    state: RecipeDetailState,
+    labels: RecipeKeeperLibraryLabels,
+    onIntent: (RecipeDetailIntent) -> Unit,
+) {
     val chips = buildList {
         recipe.servings?.takeIf { it.isNotBlank() }?.let { raw ->
             val text = raw.trim().toIntOrNull()?.let(labels.servingsTemplate) ?: labels.servingsFreeform(raw.trim())
@@ -576,18 +589,44 @@ private fun MetaChips(recipe: ClippedRecipe, labels: RecipeKeeperLibraryLabels) 
         recipe.cookMinutes?.let { add(Icons.Outlined.LocalFireDepartment to labels.cookTemplate(it)) }
         recipe.totalMinutes?.let { add(Icons.Outlined.Schedule to labels.totalTemplate(it)) }
     }
-    if (chips.isEmpty() && !recipe.truncated) return
+    if (chips.isEmpty() && !recipe.truncated && !recipe.picturesFailed) return
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         chips.forEach { (icon, text) -> MetaChip(icon = icon, text = text) }
         if (recipe.truncated) {
             IncompleteBadge(text = labels.incompleteChip, modifier = Modifier.heightIn(min = 32.dp))
         }
+        if (recipe.picturesFailed) {
+            PicturesUnavailable(retrying = state.retryingPictures, labels = labels, onRetry = { onIntent(RecipeDetailIntent.RetryPictures) })
+        }
+    }
+}
+
+/** "Pictures unavailable" chip + "Retry pictures" button; both retry, the button shows the progress. */
+@Composable
+private fun PicturesUnavailable(
+    retrying: Boolean,
+    labels: RecipeKeeperLibraryLabels,
+    onRetry: () -> Unit,
+) {
+    AssistChip(
+        onClick = onRetry,
+        enabled = !retrying,
+        label = { Text(labels.picturesUnavailable) },
+        leadingIcon = { Icon(Icons.Outlined.BrokenImage, contentDescription = null, modifier = Modifier.size(18.dp)) },
+    )
+    TextButton(onClick = onRetry, enabled = !retrying) {
+        if (retrying) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            Spacer(modifier = Modifier.size(8.dp))
+        }
+        Text(labels.retryPictures)
     }
 }
 
