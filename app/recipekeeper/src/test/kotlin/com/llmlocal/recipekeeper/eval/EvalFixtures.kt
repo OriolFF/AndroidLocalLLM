@@ -148,9 +148,9 @@ object EvalFixtures {
     fun byName(name: String): EvalFixture = ALL.first { it.name == name }
 
     /** Production config with production defaults (real `IsoDuration`). */
-    val clipConfig = RecipeKeeperClipConfig()
+    val clipConfig = RecipeKeeperClipConfig(untitledTitle = "Untitled recipe")
 
-    val mapper = SchemaOrgRecipeMapper()
+    val mapper = SchemaOrgRecipeMapper("Untitled recipe")
 
     val promptBuilder = RecipeKeeperPromptBuilder()
 

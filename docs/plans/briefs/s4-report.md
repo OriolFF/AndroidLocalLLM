@@ -8,6 +8,8 @@
 - `ClipDraftCard` `labels` param lost its default (previews pass `rememberRecipeKeeperLibraryLabels()`); previews updated.
 - Test fixture `testing/TestRecipeKeeperLibraryLabels.kt`. No existing test constructed labels, so no other test changes.
 
+- `"Untitled recipe"` fallback (saved as a title) moved to `recipekeeper_untitled_recipe`; `SchemaOrgRecipeMapper`, `RecipeKeeperClipConfig` and `RecipeKeeperClipSink` now take a required `untitledTitle: String` (Koin passes it from resources; tests pass a fixture).
+
 ## Lead must do at merge (S2/S3 not in this worktree)
 In `RecipeKeeperNavHost.kt` switch:
 - `labels = RecipeKeeperClipperLabels,` (two places: browser + extraction routes) → `labels = rememberRecipeKeeperClipperLabels(),`

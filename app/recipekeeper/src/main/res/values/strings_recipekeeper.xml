@@ -57,6 +57,8 @@
     <string name="recipekeeper_retry_pictures">Retry pictures</string>
     <string name="recipekeeper_retry_pictures_failed">Still couldn\'t download the pictures — check your connection</string>
 
+    <string name="recipekeeper_untitled_recipe">Untitled recipe</string>
+
     <!-- Streamed draft card -->
     <string name="recipekeeper_draft_waiting">Waiting for the first words from the model…</string>
     <string name="recipekeeper_draft_title_found">Recipe found: %1$s</string>

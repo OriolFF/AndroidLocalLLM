@@ -29,6 +29,7 @@ class RecipeKeeperClipSink(
     private val repository: RecipeRepository,
     private val pictures: RecipePictureStore,
     private val dispatchers: DispatcherProvider,
+    private val untitledTitle: String,
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ClipSink<ClippedRecipe> {
@@ -56,7 +57,7 @@ class RecipeKeeperClipSink(
         }
         val recipe = item.copy(
             id = id,
-            title = item.title.trim().ifBlank { candidate.title.trim() }.ifBlank { snapshot.title?.trim().orEmpty() }.ifBlank { "Untitled recipe" },
+            title = item.title.trim().ifBlank { candidate.title.trim() }.ifBlank { snapshot.title?.trim().orEmpty() }.ifBlank { untitledTitle },
             sourceUrl = item.sourceUrl.ifBlank { snapshot.url },
             sourceHost = item.sourceHost.ifBlank { TextCleaner.host(snapshot.url).ifBlank { snapshot.siteName.orEmpty() } },
             pictures = paths,

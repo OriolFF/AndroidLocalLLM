@@ -19,6 +19,7 @@ import org.junit.Test
 class RecipeKeeperClipConfigTest {
 
     private val config = RecipeKeeperClipConfig(
+        untitledTitle = "Untitled recipe",
         durationParser = testDurationParser,
         idFactory = { "fixed-id" },
         clock = { 1_234L },
