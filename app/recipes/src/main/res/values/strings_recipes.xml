@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation / app bar -->
+    <string name="recipes_nav_title_models">Models</string>
+    <string name="recipes_nav_back">Back</string>
+    <string name="recipes_nav_manage_models">Manage models</string>
+
+    <!-- Task labels: hero -->
+    <string name="recipes_hero_title">What\'s in your kitchen?</string>
+    <string name="recipes_hero_subtitle">Add a few ingredients and we\'ll cook up a recipe — all on your device.</string>
+
+    <!-- Task labels: inputs card -->
+    <string name="recipes_inputs_section_title">Ingredients</string>
+    <string name="recipes_input_field_label">Ingredient</string>
+    <string name="recipes_input_field_placeholder">e.g. eggs, garlic, tomatoes…</string>
+    <string name="recipes_input_add">Add ingredient</string>
+    <string name="recipes_input_add_disabled">Add ingredient, disabled</string>
+    <string name="recipes_input_remove">Remove %1$s</string>
+    <string name="recipes_inputs_empty_title">Your kitchen is empty</string>
+    <string name="recipes_inputs_empty_message">Add tomatoes, garlic, eggs… to get started.</string>
+
+    <!-- Task labels: generate CTA / loading / errors -->
+    <string name="recipes_generate">Generate recipe</string>
+    <string name="recipes_stop">Stop generating</string>
+    <string name="recipes_warming_up">Warming up the model…</string>
+    <string name="recipes_error_title">Something went wrong</string>
+    <string name="recipes_error_dismiss">Dismiss</string>
+    <string name="recipes_error_generation_failed">Generation failed</string>
+
+    <!-- Task labels: no-model banner -->
+    <string name="recipes_no_model_selected_title">Model not installed</string>
+    <string name="recipes_no_model_selected_subtitle">\'%1$s\' is selected but its file isn\'t on this device yet.</string>
+    <string name="recipes_no_model_generic_title">No LLM on this device</string>
+    <string name="recipes_no_model_generic_subtitle">Pick and download a model to start generating recipes locally.</string>
+    <string name="recipes_browse_models">Browse models</string>
+    <string name="recipes_duplicate_input">Ingredient already added</string>
+
+    <!-- Recipe card -->
+    <string name="recipes_card_ingredients">Ingredients</string>
+    <string name="recipes_card_steps">Steps</string>
+    <string name="recipes_card_notes">Notes</string>
+    <!-- Shown when the model omitted the recipe title -->
+    <string name="recipes_card_untitled">Untitled recipe</string>
+</resources>

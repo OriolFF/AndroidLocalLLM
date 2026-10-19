@@ -3,7 +3,7 @@ package com.llmlocal.medical.medical.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.llmlocal.feature.llmtask.presentation.LlmTaskRoute
-import com.llmlocal.medical.config.MedicalLabels
+import com.llmlocal.medical.config.rememberMedicalLabels
 import com.llmlocal.medical.config.MedicalTaskConfig
 import com.llmlocal.medical.medical.domain.MedicalAdvice
 import com.llmlocal.medical.medical.presentation.StreamedMedicalCard
@@ -13,7 +13,7 @@ import com.llmlocal.medical.medical.presentation.StreamedMedicalCard
  * [com.llmlocal.feature.llmtask.presentation.LlmTaskRoute].
  *
  * Provides:
- *  - the medical-themed [MedicalLabels]
+ *  - the medical-themed labels from [rememberMedicalLabels]
  *  - the [MedicalTaskConfig] that binds prompt + parser
  *  - a [renderOutput] lambda that casts `state.result` to
  *    [MedicalAdvice] and renders the [StreamedMedicalCard] with the
@@ -28,9 +28,10 @@ fun MedicalScreen(
     modifier: Modifier = Modifier,
     onNavigateToModelManagement: () -> Unit = {},
 ) {
+    val labels = rememberMedicalLabels()
     LlmTaskRoute(
         config = MedicalTaskConfig,
-        labels = MedicalLabels,
+        labels = labels,
         renderOutput = { state ->
             @Suppress("UNCHECKED_CAST")
             val advice = state.result as? MedicalAdvice
@@ -38,7 +39,7 @@ fun MedicalScreen(
                 streamedText = state.streamedText,
                 advice = advice,
                 isGenerating = state.isGenerating,
-                warmingUpLabel = MedicalLabels.warmingUpLabel,
+                warmingUpLabel = labels.warmingUpLabel,
             )
         },
         modifier = modifier,

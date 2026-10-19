@@ -55,7 +55,7 @@ class RecipeParser : TaskParser<Recipe> {
         }
 
         return Recipe(
-            title = title ?: "Untitled recipe",
+            title = title,
             ingredients = ingredients,
             steps = steps,
             notes = notes,

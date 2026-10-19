@@ -1,47 +1,41 @@
 package com.llmlocal.recipe.config
 
+import android.content.res.Resources
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskLabels
+import com.llmlocal.recipe.R
 
-/**
- * Recipe-themed copy for the LLM-task scaffold.
- *
- * Implements [LlmTaskLabels] so the consuming app can drop the labels
- * directly into [com.llmlocal.feature.llmtask.presentation.LlmTaskRoute] / Screen
- * without per-call overrides.
- */
-val RecipeLabels: LlmTaskLabels = LlmTaskLabels(
-    // Hero
-    heroTitle = "What's in your kitchen?",
-    heroSubtitle = "Add a few ingredients and we'll cook up a recipe — all on your device.",
+/** Recipe-themed copy for the LLM-task scaffold, built from `strings_recipes.xml`. */
+@Composable
+fun rememberRecipeLabels(): LlmTaskLabels {
+    val resources = LocalContext.current.resources
+    return remember(resources) { recipeLabels(resources) }
+}
 
-    // Inputs card
-    inputsSectionTitle = "Ingredients",
-    inputFieldLabel = "Ingredient",
-    inputFieldPlaceholder = "e.g. eggs, garlic, tomatoes…",
-    addInputActionDescription = "Add ingredient",
-    addInputDisabledActionDescription = "Add ingredient, disabled",
-    removeInputActionDescription = { name -> "Remove $name" },
-    inputsEmptyTitle = "Your kitchen is empty",
-    inputsEmptyMessage = "Add tomatoes, garlic, eggs… to get started.",
-
-    // Generate CTA
-    generateLabel = "Generate recipe",
-    stopLabel = "Stop generating",
-
-    // Loading / warming-up
-    warmingUpLabel = "Warming up the model…",
-
-    // Errors
-    errorTitle = "Something went wrong",
-    errorDismissLabel = "Dismiss",
-
-    // No-model banner
-    noModelSelectedTitle = "Model not installed",
-    noModelSelectedSubtitle = { name -> "'$name' is selected but its file isn't on this device yet." },
-    noModelGenericTitle = "No LLM on this device",
-    noModelGenericSubtitle = "Pick and download a model to start generating recipes locally.",
-    browseModelsLabel = "Browse models",
-
-    // Misc
-    duplicateInputSnackbar = "Ingredient already added",
+/** Non-composable factory for callers without a composition (Koin, workers, tests). */
+fun recipeLabels(resources: Resources): LlmTaskLabels = LlmTaskLabels(
+    heroTitle = resources.getString(R.string.recipes_hero_title),
+    heroSubtitle = resources.getString(R.string.recipes_hero_subtitle),
+    inputsSectionTitle = resources.getString(R.string.recipes_inputs_section_title),
+    inputFieldLabel = resources.getString(R.string.recipes_input_field_label),
+    inputFieldPlaceholder = resources.getString(R.string.recipes_input_field_placeholder),
+    addInputActionDescription = resources.getString(R.string.recipes_input_add),
+    addInputDisabledActionDescription = resources.getString(R.string.recipes_input_add_disabled),
+    removeInputActionDescription = { name -> resources.getString(R.string.recipes_input_remove, name) },
+    inputsEmptyTitle = resources.getString(R.string.recipes_inputs_empty_title),
+    inputsEmptyMessage = resources.getString(R.string.recipes_inputs_empty_message),
+    generateLabel = resources.getString(R.string.recipes_generate),
+    stopLabel = resources.getString(R.string.recipes_stop),
+    warmingUpLabel = resources.getString(R.string.recipes_warming_up),
+    errorTitle = resources.getString(R.string.recipes_error_title),
+    errorDismissLabel = resources.getString(R.string.recipes_error_dismiss),
+    generationFailedMessage = resources.getString(R.string.recipes_error_generation_failed),
+    noModelSelectedTitle = resources.getString(R.string.recipes_no_model_selected_title),
+    noModelSelectedSubtitle = { name -> resources.getString(R.string.recipes_no_model_selected_subtitle, name) },
+    noModelGenericTitle = resources.getString(R.string.recipes_no_model_generic_title),
+    noModelGenericSubtitle = resources.getString(R.string.recipes_no_model_generic_subtitle),
+    browseModelsLabel = resources.getString(R.string.recipes_browse_models),
+    duplicateInputSnackbar = resources.getString(R.string.recipes_duplicate_input),
 )

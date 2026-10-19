@@ -24,7 +24,7 @@ import com.llmlocal.core.designsystem.component.SkeletonLine
 import com.llmlocal.core.designsystem.component.StreamingCursor
 import com.llmlocal.core.designsystem.component.StreamingText
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.medical.config.MedicalLabels
+import com.llmlocal.medical.config.rememberMedicalLabels
 import com.llmlocal.medical.designsystem.MedicalTokens
 
 /**
@@ -35,6 +35,7 @@ import com.llmlocal.medical.designsystem.MedicalTokens
  */
 @Composable
 private fun PrimitiveGallery(darkTheme: Boolean) {
+    val labels = rememberMedicalLabels()
     AppTheme(tokens = MedicalTokens, darkTheme = darkTheme) {
         Surface(color = MaterialTheme.colorScheme.background) {
             Column(
@@ -70,19 +71,19 @@ private fun PrimitiveGallery(darkTheme: Boolean) {
                 StreamingText(
                     text = "",
                     isGenerating = true,
-                    warmingUpLabel = MedicalLabels.warmingUpLabel,
+                    warmingUpLabel = labels.warmingUpLabel,
                 )
                 SectionHeader(label = "StreamingText — streaming", icon = null)
                 StreamingText(
                     text = "The model has produced this much text so far and is still",
                     isGenerating = true,
-                    warmingUpLabel = MedicalLabels.warmingUpLabel,
+                    warmingUpLabel = labels.warmingUpLabel,
                 )
                 SectionHeader(label = "StreamingText — final", icon = null)
                 StreamingText(
                     text = "Generation finished; the caret is gone and the text is at full opacity.",
                     isGenerating = false,
-                    warmingUpLabel = MedicalLabels.warmingUpLabel,
+                    warmingUpLabel = labels.warmingUpLabel,
                 )
 
                 SectionHeader(label = "SkeletonLine + StreamingCursor", icon = null)

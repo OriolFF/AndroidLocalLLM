@@ -3,7 +3,7 @@ package com.llmlocal.recipe.recipe.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.llmlocal.feature.llmtask.presentation.LlmTaskRoute
-import com.llmlocal.recipe.config.RecipeLabels
+import com.llmlocal.recipe.config.rememberRecipeLabels
 import com.llmlocal.recipe.config.RecipeTaskConfig
 import com.llmlocal.recipe.recipe.domain.Recipe
 import com.llmlocal.recipe.recipe.presentation.StreamedRecipeCard
@@ -13,7 +13,7 @@ import com.llmlocal.recipe.recipe.presentation.StreamedRecipeCard
  * [com.llmlocal.feature.llmtask.presentation.LlmTaskRoute].
  *
  * Provides:
- *  - the recipe-themed [RecipeLabels]
+ *  - the recipe-themed labels from [rememberRecipeLabels]
  *  - the [RecipeTaskConfig] that binds prompt + parser
  *  - a [renderOutput] lambda that casts `state.result` to `Recipe` and
  *    renders the [StreamedRecipeCard] with streamed text + parsed recipe
@@ -26,9 +26,10 @@ fun RecipeScreen(
     modifier: Modifier = Modifier,
     onNavigateToModelManagement: () -> Unit = {},
 ) {
+    val labels = rememberRecipeLabels()
     LlmTaskRoute(
         config = RecipeTaskConfig,
-        labels = RecipeLabels,
+        labels = labels,
         renderOutput = { state ->
             @Suppress("UNCHECKED_CAST")
             val recipe = state.result as? Recipe
@@ -36,7 +37,7 @@ fun RecipeScreen(
                 streamedText = state.streamedText,
                 recipe = recipe,
                 isGenerating = state.isGenerating,
-                warmingUpLabel = RecipeLabels.warmingUpLabel,
+                warmingUpLabel = labels.warmingUpLabel,
             )
         },
         modifier = modifier,

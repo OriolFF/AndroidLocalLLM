@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation / app bar -->
+    <string name="medical_nav_title_models">Models</string>
+    <string name="medical_nav_back">Back</string>
+    <string name="medical_nav_manage_models">Manage models</string>
+
+    <!-- Task labels: hero -->
+    <string name="medical_hero_title">How are you feeling today?</string>
+    <string name="medical_hero_subtitle">Add the symptoms you\'re experiencing and we\'ll offer general wellness suggestions — all on your device.</string>
+
+    <!-- Task labels: inputs card -->
+    <string name="medical_inputs_section_title">Symptoms</string>
+    <string name="medical_input_field_label">Symptom</string>
+    <string name="medical_input_field_placeholder">e.g. headache, sore throat, fatigue…</string>
+    <string name="medical_input_add">Add symptom</string>
+    <string name="medical_input_add_disabled">Add symptom, disabled</string>
+    <string name="medical_input_remove">Remove %1$s</string>
+    <string name="medical_inputs_empty_title">No symptoms added</string>
+    <string name="medical_inputs_empty_message">Add what you\'re feeling to get started.</string>
+
+    <!-- Task labels: generate CTA / loading / errors -->
+    <string name="medical_generate">Get advice</string>
+    <string name="medical_stop">Stop</string>
+    <string name="medical_warming_up">Reviewing your symptoms…</string>
+    <string name="medical_error_title">Something went wrong</string>
+    <string name="medical_error_dismiss">Dismiss</string>
+    <string name="medical_error_generation_failed">Generation failed</string>
+
+    <!-- Task labels: no-model banner -->
+    <string name="medical_no_model_selected_title">Model not installed</string>
+    <string name="medical_no_model_selected_subtitle">\'%1$s\' is selected but its file isn\'t on this device yet.</string>
+    <string name="medical_no_model_generic_title">No LLM on this device</string>
+    <string name="medical_no_model_generic_subtitle">Pick and download a model to start getting wellness suggestions locally.</string>
+    <string name="medical_browse_models">Browse models</string>
+    <string name="medical_duplicate_input">Symptom already added</string>
+
+    <!-- Advice card -->
+    <string name="medical_card_possible_cause">Possible cause</string>
+    <string name="medical_card_likely_causes">Likely causes</string>
+    <string name="medical_card_self_care">Self-care</string>
+    <string name="medical_card_when_to_seek_care">When to seek care</string>
+    <!-- Shown when the model omitted these parts of its answer -->
+    <string name="medical_card_condition_fallback">General information</string>
+    <string name="medical_disclaimer_fallback">This is general information, not a substitute for a qualified clinician.</string>
+</resources>

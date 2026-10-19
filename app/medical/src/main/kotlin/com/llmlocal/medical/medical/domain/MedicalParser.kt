@@ -60,11 +60,11 @@ class MedicalParser : TaskParser<MedicalAdvice> {
         }
 
         return MedicalAdvice(
-            condition = condition ?: "General information",
+            condition = condition,
             likelyCauses = causes,
             selfCare = selfCare,
             whenToSeekCare = whenToSeek,
-            disclaimer = disclaimer ?: DISCLAIMER_FALLBACK,
+            disclaimer = disclaimer,
         )
     }
 
@@ -101,12 +101,5 @@ class MedicalParser : TaskParser<MedicalAdvice> {
         )
         val match = pattern.find(text) ?: return null
         return match.groupValues[1].trim().takeIf { it.isNotEmpty() }
-    }
-
-    private companion object {
-        // Used only if the LLM produced everything else but truncated the
-        // Disclaimer section. Better to ship *some* disclaimer than none.
-        const val DISCLAIMER_FALLBACK =
-            "This is general information, not a substitute for a qualified clinician."
     }
 }

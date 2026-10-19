@@ -213,7 +213,7 @@ class LlmTaskViewModel(
                             is LlmTaskEvent.Failed -> _state.update {
                                 it.copy(
                                     isGenerating = false,
-                                    errorMessage = event.error.message ?: "Generation failed",
+                                    errorMessage = event.error.message ?: labels.generationFailedMessage,
                                 )
                             }
                         }

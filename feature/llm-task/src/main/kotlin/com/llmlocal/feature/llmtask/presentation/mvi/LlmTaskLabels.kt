@@ -6,8 +6,8 @@ import androidx.compose.runtime.Immutable
  * Every user-visible string the LLM-task scaffold needs.
  *
  * Each consuming `:app:*` module supplies its own implementation (e.g.
- * `RecipeLabels` in `:app:recipes` provides the recipe-themed copy) and
- * provides it via [com.llmlocal.feature.llmtask.LocalLlmTaskLabels].
+ * `rememberRecipeLabels()` in `:app:recipes` builds the recipe-themed copy from
+ * its string resources) and passes it to [com.llmlocal.feature.llmtask.presentation.LlmTaskRoute].
  *
  * Define all the strings the default [com.llmlocal.feature.llmtask.presentation.LlmTaskScreen]
  * uses here so an app can plug in labels without forking the screen.
@@ -38,6 +38,7 @@ data class LlmTaskLabels(
     // Errors
     val errorTitle: String,
     val errorDismissLabel: String,
+    val generationFailedMessage: String,   // fallback when the failure carries no message
 
     // No-model banner
     val noModelSelectedTitle: String,

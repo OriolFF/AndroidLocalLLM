@@ -27,7 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.llmlocal.recipe.R
 import com.llmlocal.core.designsystem.component.NumberBadge
 import com.llmlocal.core.designsystem.component.SectionHeader
 import com.llmlocal.core.designsystem.component.StreamingText
@@ -99,7 +101,7 @@ private fun StructuredRecipe(recipe: Recipe) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // Title
         Text(
-            text = recipe.title,
+            text = recipe.title ?: stringResource(R.string.recipes_card_untitled),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -107,7 +109,7 @@ private fun StructuredRecipe(recipe: Recipe) {
         // Ingredients
         if (recipe.ingredients.isNotEmpty()) {
             SectionHeader(
-                label = "Ingredients",
+                label = stringResource(R.string.recipes_card_ingredients),
                 icon = Icons.Outlined.RestaurantMenu,
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -130,7 +132,7 @@ private fun StructuredRecipe(recipe: Recipe) {
         // Steps
         if (recipe.steps.isNotEmpty()) {
             SectionHeader(
-                label = "Steps",
+                label = stringResource(R.string.recipes_card_steps),
                 icon = Icons.Outlined.LocalFireDepartment,
             )
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -171,7 +173,7 @@ private fun StructuredRecipe(recipe: Recipe) {
         val notes = recipe.notes
         if (!notes.isNullOrBlank()) {
             SectionHeader(
-                label = "Notes",
+                label = stringResource(R.string.recipes_card_notes),
                 icon = Icons.Outlined.Info,
             )
             Text(

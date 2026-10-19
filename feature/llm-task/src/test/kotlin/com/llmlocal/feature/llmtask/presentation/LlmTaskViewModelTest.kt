@@ -58,14 +58,7 @@ class LlmTaskViewModelTest {
         },
         parser = TaskParser { it },
     )
-    private val labels = LlmTaskLabels(
-        heroTitle = "", heroSubtitle = "", inputsSectionTitle = "", inputFieldLabel = "",
-        inputFieldPlaceholder = "", addInputActionDescription = "", addInputDisabledActionDescription = "",
-        removeInputActionDescription = { it }, inputsEmptyTitle = "", inputsEmptyMessage = "",
-        generateLabel = "", stopLabel = "", warmingUpLabel = "", errorTitle = "", errorDismissLabel = "",
-        noModelSelectedTitle = "", noModelSelectedSubtitle = { it }, noModelGenericTitle = "",
-        noModelGenericSubtitle = "", browseModelsLabel = "", duplicateInputSnackbar = "dup",
-    )
+    private val labels = TestLlmTaskLabels
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
 

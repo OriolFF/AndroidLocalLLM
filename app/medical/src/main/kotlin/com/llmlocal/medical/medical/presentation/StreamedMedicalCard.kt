@@ -28,7 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.llmlocal.medical.R
 import com.llmlocal.core.designsystem.component.SectionHeader
 import com.llmlocal.core.designsystem.component.StreamingText
 import com.llmlocal.medical.medical.domain.MedicalAdvice
@@ -102,11 +104,11 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // ---- Condition (general category) --------------------------
         SectionHeader(
-            label = "Possible cause",
+            label = stringResource(R.string.medical_card_possible_cause),
             icon = Icons.Filled.LocalHospital,
         )
         Text(
-            text = advice.condition,
+            text = advice.condition ?: stringResource(R.string.medical_card_condition_fallback),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -114,7 +116,7 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
         // ---- Likely causes ------------------------------------------
         if (advice.likelyCauses.isNotEmpty()) {
             SectionHeader(
-                label = "Likely causes",
+                label = stringResource(R.string.medical_card_likely_causes),
                 icon = Icons.Filled.Info,
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -137,7 +139,7 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
         // ---- Self-care ----------------------------------------------
         if (advice.selfCare.isNotEmpty()) {
             SectionHeader(
-                label = "Self-care",
+                label = stringResource(R.string.medical_card_self_care),
                 icon = Icons.Filled.Spa,
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -159,7 +161,7 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
 
         // ---- When to seek care (always rendered) ------------------
         SectionHeader(
-            label = "When to seek care",
+            label = stringResource(R.string.medical_card_when_to_seek_care),
             icon = Icons.Filled.WarningAmber,
             iconTint = MaterialTheme.colorScheme.error,
         )
@@ -189,7 +191,7 @@ private fun StructuredAdvice(advice: MedicalAdvice) {
                     .padding(top = 2.dp),
             )
             Text(
-                text = advice.disclaimer,
+                text = advice.disclaimer ?: stringResource(R.string.medical_disclaimer_fallback),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

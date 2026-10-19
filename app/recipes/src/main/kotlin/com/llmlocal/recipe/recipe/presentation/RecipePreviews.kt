@@ -12,10 +12,9 @@ import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
 import com.llmlocal.feature.llmtask.presentation.LlmTaskScreen
 import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskIntent
-import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskLabels
 import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskState
 import com.llmlocal.feature.llmtask.presentation.mvi.ModelStatus
-import com.llmlocal.recipe.config.RecipeLabels
+import com.llmlocal.recipe.config.rememberRecipeLabels
 import com.llmlocal.recipe.recipe.domain.Recipe
 import com.llmlocal.recipe.recipe.presentation.StreamedRecipeCard
 
@@ -23,7 +22,7 @@ import com.llmlocal.recipe.recipe.presentation.StreamedRecipeCard
  * @Preview composables for the recipe screen.
  *
  * These render [LlmTaskScreen] with hand-built [LlmTaskState] and the
- * recipe-themed [RecipeLabels], drawing the result with
+ * recipe-themed labels from [rememberRecipeLabels], drawing the result with
  * [StreamedRecipeCard]. They preview the generic scaffold + the
  * recipe-specific renderer end-to-end without spinning up a real
  * ViewModel (and thus without Koin).
@@ -127,8 +126,8 @@ private fun errorState() = readyState().copy(
 private fun PreviewSurface(
     darkTheme: Boolean = false,
     state: LlmTaskState,
-    labels: LlmTaskLabels = RecipeLabels,
 ) {
+    val labels = rememberRecipeLabels()
     AppTheme(tokens = com.llmlocal.recipe.designsystem.RecipeTokens, darkTheme = darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
             LlmTaskScreen(

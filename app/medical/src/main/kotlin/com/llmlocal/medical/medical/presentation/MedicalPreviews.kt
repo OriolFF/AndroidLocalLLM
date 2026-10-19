@@ -13,7 +13,7 @@ import com.llmlocal.core.model.ModelFamily
 import com.llmlocal.feature.llmtask.presentation.LlmTaskScreen
 import com.llmlocal.feature.llmtask.presentation.mvi.LlmTaskState
 import com.llmlocal.feature.llmtask.presentation.mvi.ModelStatus
-import com.llmlocal.medical.config.MedicalLabels
+import com.llmlocal.medical.config.rememberMedicalLabels
 import com.llmlocal.medical.designsystem.MedicalTokens
 import com.llmlocal.medical.medical.domain.MedicalAdvice
 import com.llmlocal.medical.medical.presentation.StreamedMedicalCard
@@ -22,7 +22,7 @@ import com.llmlocal.medical.medical.presentation.StreamedMedicalCard
  * @Preview composables for the medical screen.
  *
  * Render [LlmTaskScreen] with hand-built [LlmTaskState] and the medical-
- * themed [MedicalLabels], drawing the result with [StreamedMedicalCard].
+ * themed labels from [rememberMedicalLabels], drawing the result with [StreamedMedicalCard].
  */
 
 private val SAMPLE_MODEL = LlmModelDescriptor(
@@ -98,12 +98,13 @@ private fun PreviewSurface(
     darkTheme: Boolean = false,
     state: LlmTaskState,
 ) {
+    val labels = rememberMedicalLabels()
     AppTheme(tokens = MedicalTokens, darkTheme = darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
             LlmTaskScreen(
                 state = state,
                 onIntent = {},
-                labels = MedicalLabels,
+                labels = labels,
                 heroIcon = Icons.Filled.HealthAndSafety,
                 renderOutput = { s ->
                     @Suppress("UNCHECKED_CAST")
@@ -112,7 +113,7 @@ private fun PreviewSurface(
                         streamedText = s.streamedText,
                         advice = advice,
                         isGenerating = s.isGenerating,
-                        warmingUpLabel = MedicalLabels.warmingUpLabel,
+                        warmingUpLabel = labels.warmingUpLabel,
                     )
                 },
                 modifier = Modifier.fillMaxSize(),

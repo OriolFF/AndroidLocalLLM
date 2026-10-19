@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.llmlocal.recipe.R
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -81,7 +83,7 @@ private fun AppRoot() {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.recipes_nav_back),
                     )
                 }
             }
@@ -92,7 +94,7 @@ private fun AppRoot() {
                 IconButton(onClick = { navController.navigateToModelManagement() }) {
                     Icon(
                         imageVector = Icons.Outlined.Psychology,
-                        contentDescription = "Manage models",
+                        contentDescription = stringResource(R.string.recipes_nav_manage_models),
                     )
                 }
             }
@@ -146,7 +148,8 @@ private fun NavHostController.navigateToModelManagement() {
     }
 }
 
+@Composable
 private fun screenTitle(route: String?): String = when (route) {
-    Route.ModelManagement.path -> "Models"
-    else -> "Local LLM Recipes"
+    Route.ModelManagement.path -> stringResource(R.string.recipes_nav_title_models)
+    else -> stringResource(R.string.app_name)
 }

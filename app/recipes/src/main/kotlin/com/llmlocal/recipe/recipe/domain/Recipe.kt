@@ -3,7 +3,7 @@ package com.llmlocal.recipe.recipe.domain
 /**
  * A recipe returned by the LLM after parsing the streamed text.
  *
- * @property title The recipe name.
+ * @property title The recipe name (null when the model omitted it; the UI shows a fallback).
  * @property ingredients The ingredients the model decided to use (typically a
  *   subset of the user-supplied ingredients, with optional additions such as
  *   "salt" or "olive oil" that the model considers necessary).
@@ -11,7 +11,7 @@ package com.llmlocal.recipe.recipe.domain
  * @property notes Optional free-form notes (e.g. "Best served hot").
  */
 data class Recipe(
-    val title: String,
+    val title: String?,
     val ingredients: List<String>,
     val steps: List<String>,
     val notes: String? = null,

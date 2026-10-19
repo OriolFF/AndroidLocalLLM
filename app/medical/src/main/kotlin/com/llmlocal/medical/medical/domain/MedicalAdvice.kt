@@ -9,7 +9,7 @@ package com.llmlocal.medical.medical.domain
  * instruction. The disclaimer is carried through the parser so the UI
  * can render it alongside the structured advice.
  *
- * @property condition a short label naming the most likely general category
+ * @property condition (null when the model omitted it; the UI shows a fallback) a short label naming the most likely general category
  *   the symptoms fall into (e.g. "Mild seasonal allergies"). Not a diagnosis.
  * @property likelyCauses bulleted factors the LLM considered when forming
  *   the suggestion (e.g. "Pollen exposure", "Dry air").
@@ -17,13 +17,13 @@ package com.llmlocal.medical.medical.domain
  *   home. These are not prescriptions; they're general wellness habits.
  * @property whenToSeekCare a paragraph that names the red-flag symptoms
  *   that warrant urgent professional attention. Always present.
- * @property disclaimer a short reminder that the output is informational
+ * @property disclaimer (null when the model omitted it; the UI shows a fallback) a short reminder that the output is informational
  *   and not a substitute for a qualified clinician.
  */
 data class MedicalAdvice(
-    val condition: String,
+    val condition: String?,
     val likelyCauses: List<String>,
     val selfCare: List<String>,
     val whenToSeekCare: String,
-    val disclaimer: String,
+    val disclaimer: String?,
 )

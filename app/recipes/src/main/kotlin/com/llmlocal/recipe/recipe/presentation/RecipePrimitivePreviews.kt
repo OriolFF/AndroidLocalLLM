@@ -24,7 +24,7 @@ import com.llmlocal.core.designsystem.component.SkeletonLine
 import com.llmlocal.core.designsystem.component.StreamingCursor
 import com.llmlocal.core.designsystem.component.StreamingText
 import com.llmlocal.core.designsystem.theme.AppTheme
-import com.llmlocal.recipe.config.RecipeLabels
+import com.llmlocal.recipe.config.rememberRecipeLabels
 import com.llmlocal.recipe.designsystem.RecipeTokens
 
 /**
@@ -35,6 +35,7 @@ import com.llmlocal.recipe.designsystem.RecipeTokens
  */
 @Composable
 private fun PrimitiveGallery(darkTheme: Boolean) {
+    val labels = rememberRecipeLabels()
     AppTheme(tokens = RecipeTokens, darkTheme = darkTheme) {
         Surface(color = MaterialTheme.colorScheme.background) {
             Column(
@@ -70,19 +71,19 @@ private fun PrimitiveGallery(darkTheme: Boolean) {
                 StreamingText(
                     text = "",
                     isGenerating = true,
-                    warmingUpLabel = RecipeLabels.warmingUpLabel,
+                    warmingUpLabel = labels.warmingUpLabel,
                 )
                 SectionHeader(label = "StreamingText — streaming", icon = null)
                 StreamingText(
                     text = "The model has produced this much text so far and is still",
                     isGenerating = true,
-                    warmingUpLabel = RecipeLabels.warmingUpLabel,
+                    warmingUpLabel = labels.warmingUpLabel,
                 )
                 SectionHeader(label = "StreamingText — final", icon = null)
                 StreamingText(
                     text = "Generation finished; the caret is gone and the text is at full opacity.",
                     isGenerating = false,
-                    warmingUpLabel = RecipeLabels.warmingUpLabel,
+                    warmingUpLabel = labels.warmingUpLabel,
                 )
 
                 SectionHeader(label = "SkeletonLine + StreamingCursor", icon = null)
