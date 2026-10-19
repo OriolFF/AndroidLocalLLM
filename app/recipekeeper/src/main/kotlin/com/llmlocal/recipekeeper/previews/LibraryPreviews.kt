@@ -1,30 +1,40 @@
 package com.llmlocal.recipekeeper.previews
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.recipekeeper.config.DefaultRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
+import com.llmlocal.recipekeeper.library.LibraryFab
 import com.llmlocal.recipekeeper.library.LibraryModelStatus
 import com.llmlocal.recipekeeper.library.LibraryScreen
 import com.llmlocal.recipekeeper.library.LibraryState
 
 /**
  * `@Preview`s for the library screen in every state, light and dark, plus a
- * 600dp-wide variant for the adaptive grid.
+ * 600dp-wide variant for the adaptive grid. Rendered inside the same
+ * `AppScaffold` + FAB slot the route uses.
  */
 @Composable
 private fun LibraryPreviewSurface(state: LibraryState, darkTheme: Boolean = false) {
     AppTheme(tokens = RecipeKeeperTokens, darkTheme = darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            LibraryScreen(
-                state = state,
-                labels = DefaultRecipeKeeperLibraryLabels,
-                onIntent = {},
-            )
+            AppScaffold(
+                title = DefaultRecipeKeeperLibraryLabels.libraryTitle,
+                floatingActionButton = { LibraryFab(state = state, labels = DefaultRecipeKeeperLibraryLabels, onIntent = {}) },
+            ) { padding ->
+                LibraryScreen(
+                    state = state,
+                    labels = DefaultRecipeKeeperLibraryLabels,
+                    onIntent = {},
+                    modifier = Modifier.padding(padding),
+                )
+            }
         }
     }
 }

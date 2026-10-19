@@ -23,8 +23,9 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * Stateful wrapper around [LibraryScreen]: creates [LibraryViewModel] via
  * Koin, renders the `AppScaffold` top bar (title, Search toggle, Models
- * action), and turns [LibraryEffect]s into navigation callbacks, the
- * share intent and the undo-delete snackbar.
+ * action) with the [LibraryFab] in the scaffold's FAB slot, and turns
+ * [LibraryEffect]s into navigation callbacks, the share intent and the
+ * undo-delete snackbar.
  *
  * Undo-delete goes through [showRecipeDeleted]: Undo → [LibraryIntent.UndoDelete],
  * dismissed early → [LibraryIntent.ConfirmDelete]; the ViewModel answers a
@@ -71,6 +72,7 @@ fun LibraryRoute(
         title = labels.libraryTitle,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = { LibraryFab(state = state, labels = labels, onIntent = viewModel::onIntent) },
         actions = {
             if (!state.searchActive) {
                 IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenSearch) }) {

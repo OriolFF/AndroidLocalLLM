@@ -7,7 +7,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -61,15 +59,14 @@ import com.llmlocal.recipekeeper.config.RecipeKeeperLibraryLabels
 /**
  * Stateless library screen (UX spec §5). Reads [state], dispatches
  * [LibraryIntent]; the surrounding `AppScaffold` (top bar with Search and
- * Models actions) is owned by `LibraryRoute`.
+ * Models actions, and the [LibraryFab] in its FAB slot) is owned by
+ * `LibraryRoute`.
  *
  * Top to bottom:
  *  1. search field — pinned above the grid while [LibraryState.searchActive];
  *  2. no-model hero (`GradientHero`, spans every column) or the compact
  *     download card while a download is RUNNING; both open model management;
- *  3. adaptive grid of [RecipeTile]s (168dp min cell, 16dp gutters, 12dp gaps);
- *  4. "Clip a recipe" FAB → browser. Hidden on the onboarding empty state,
- *     whose own button is already the single primary action.
+ *  3. adaptive grid of [RecipeTile]s (168dp min cell, 16dp gutters, 12dp gaps).
  *
  * Loading shows [AppLoadingIndicator] only until the first repository
  * emission; afterwards the grid updates in place.
@@ -81,51 +78,59 @@ fun LibraryScreen(
     onIntent: (LibraryIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(visible = state.searchActive) {
-                LibrarySearchField(
-                    query = state.query,
-                    labels = labels,
-                    onQueryChange = { onIntent(LibraryIntent.SearchChanged(it)) },
-                    onClear = { onIntent(LibraryIntent.ClearSearch) },
-                    onClose = { onIntent(LibraryIntent.CloseSearch) },
-                )
-            }
-            if (state.isLoading) {
-                AppLoadingIndicator(modifier = Modifier.fillMaxSize())
-            } else {
-                LibraryGrid(
-                    state = state,
-                    labels = labels,
-                    onIntent = onIntent,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
-
-        val showFab = !state.isLoading && !state.isEmptyLibrary
-        AnimatedVisibility(
-            visible = showFab,
-            enter = fadeIn() + scaleIn(initialScale = 0.8f),
-            exit = fadeOut() + scaleOut(targetScale = 0.8f),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(end = 16.dp, bottom = 16.dp),
-        ) {
-            ExtendedFloatingActionButton(
-                onClick = { onIntent(LibraryIntent.ClipRecipe) },
-                icon = { Icon(Icons.Outlined.ContentCut, contentDescription = null) },
-                text = { Text(text = labels.libraryFabClip) },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                // Explicit name: the extended-FAB label did not surface in the
-                // device-QA hierarchy dump (node came back NAF with no text).
-                modifier = Modifier.semantics { contentDescription = labels.libraryFabClip },
+    Column(modifier = modifier.fillMaxSize()) {
+        AnimatedVisibility(visible = state.searchActive) {
+            LibrarySearchField(
+                query = state.query,
+                labels = labels,
+                onQueryChange = { onIntent(LibraryIntent.SearchChanged(it)) },
+                onClear = { onIntent(LibraryIntent.ClearSearch) },
+                onClose = { onIntent(LibraryIntent.CloseSearch) },
             )
         }
+        if (state.isLoading) {
+            AppLoadingIndicator(modifier = Modifier.fillMaxSize())
+        } else {
+            LibraryGrid(
+                state = state,
+                labels = labels,
+                onIntent = onIntent,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+/**
+ * "Clip a recipe" FAB → browser, for the `AppScaffold.floatingActionButton`
+ * slot (so the undo-delete snackbar is placed above it, not over it —
+ * WS10 bug 11). Hidden on the onboarding empty state, whose own button is
+ * already the single primary action, and while loading.
+ */
+@Composable
+fun LibraryFab(
+    state: LibraryState,
+    labels: RecipeKeeperLibraryLabels,
+    onIntent: (LibraryIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val showFab = !state.isLoading && !state.isEmptyLibrary
+    AnimatedVisibility(
+        visible = showFab,
+        enter = fadeIn() + scaleIn(initialScale = 0.8f),
+        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+        modifier = modifier.imePadding(),
+    ) {
+        ExtendedFloatingActionButton(
+            onClick = { onIntent(LibraryIntent.ClipRecipe) },
+            icon = { Icon(Icons.Outlined.ContentCut, contentDescription = null) },
+            text = { Text(text = labels.libraryFabClip) },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            // Explicit name: the extended-FAB label did not surface in the
+            // device-QA hierarchy dump (node came back NAF with no text).
+            modifier = Modifier.semantics { contentDescription = labels.libraryFabClip },
+        )
     }
 }
 
