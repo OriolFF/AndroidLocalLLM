@@ -10,7 +10,7 @@ import com.llmlocal.feature.modelmanagement.FakeSelection
 import com.llmlocal.feature.modelmanagement.FakeWork
 import com.llmlocal.feature.modelmanagement.MainDispatcherRule
 import com.llmlocal.feature.modelmanagement.TestDispatchers
-import com.llmlocal.feature.modelmanagement.TestLabels
+import com.llmlocal.feature.modelmanagement.TestModelManagementLabels
 import com.llmlocal.feature.modelmanagement.descriptor
 import com.llmlocal.feature.modelmanagement.domain.DownloadWorkStatus
 import com.llmlocal.feature.modelmanagement.domain.ModelFilters
@@ -51,7 +51,7 @@ class ModelManagementViewModelTest {
         removeModel = RemoveModelUseCase(catalog, installed),
         filterModels = FilterModelsUseCase(),
         dispatchers = TestDispatchers(mainDispatcherRule.dispatcher),
-        labels = TestLabels,
+        labels = TestModelManagementLabels,
     )
 
     @Test

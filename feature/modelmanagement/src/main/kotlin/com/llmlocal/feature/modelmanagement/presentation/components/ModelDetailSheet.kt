@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
+import com.llmlocal.feature.modelmanagement.presentation.mvi.modelManagementLabels
 
 /**
  * Bottom sheet shown when the user taps the info icon on a [ModelCard].
@@ -46,6 +47,7 @@ fun ModelDetailSheet(
     descriptor: LlmModelDescriptor,
     onDismiss: () -> Unit,
 ) {
+    val labels = modelManagementLabels
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -72,7 +74,7 @@ fun ModelDetailSheet(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "by ${descriptor.author} · ${descriptor.license}",
+                        text = labels.detailByTemplate(descriptor.author, descriptor.license),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,11 +121,11 @@ fun ModelDetailSheet(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    DetailRow("Size", formatBytes(descriptor.sizeBytes))
-                    DetailRow("Family", descriptor.family.displayName)
-                    DetailRow("Min RAM", "${descriptor.minRamMb} MB")
-                    DetailRow("File", descriptor.filename)
-                    DetailRow("URL", descriptor.url, monoLine = false)
+                    DetailRow(labels.detailSizeLabel, formatBytes(descriptor.sizeBytes))
+                    DetailRow(labels.detailFamilyLabel, descriptor.family.label())
+                    DetailRow(labels.detailMinRamLabel, "${descriptor.minRamMb} ${labels.detailMinRamUnit}")
+                    DetailRow(labels.detailFileLabel, descriptor.filename)
+                    DetailRow(labels.detailUrlLabel, descriptor.url, monoLine = false)
                 }
             }
         }

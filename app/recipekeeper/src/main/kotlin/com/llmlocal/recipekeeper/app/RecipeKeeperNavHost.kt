@@ -176,7 +176,7 @@ fun RecipeKeeperNavHost() {
                 ModelManagementRoute(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     snackbarHostState = snackbarHostState,
-                    labels = RecipeKeeperModelManagementLabels,
+                    labels = rememberRecipeKeeperModelManagementLabels(),
                 )
             }
         }

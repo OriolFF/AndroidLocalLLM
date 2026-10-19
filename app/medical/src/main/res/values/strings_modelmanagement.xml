@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="medical_modelmanagement_screen_title">Available models</string>
+    <string name="medical_modelmanagement_count">%1$d of %2$d models · %3$d installed</string>
+    <string name="medical_modelmanagement_count_filtered">Showing %1$d of %2$d models · %3$d installed</string>
+    <string name="medical_modelmanagement_intro">Tap a model to download, view details, or select it for wellness suggestions. Downloads run in the background and survive closing the app.</string>
+    <string name="medical_modelmanagement_empty_title">No models match your filters</string>
+    <string name="medical_modelmanagement_empty_message">Try widening the size bucket or clearing the family / status filter.</string>
+    <string name="medical_modelmanagement_empty_action">Clear filters</string>
+    <string name="medical_modelmanagement_filter_by">Filter by</string>
+    <string name="medical_modelmanagement_clear">Clear</string>
+    <string name="medical_modelmanagement_filter_status">Status</string>
+    <string name="medical_modelmanagement_filter_family">Family</string>
+    <string name="medical_modelmanagement_filter_size">Size</string>
+    <string name="medical_modelmanagement_filter_quant">Quant</string>
+    <string name="medical_modelmanagement_filter_all">All</string>
+    <string name="medical_modelmanagement_active">Active</string>
+    <string name="medical_modelmanagement_installed">Installed</string>
+    <string name="medical_modelmanagement_details">Details</string>
+    <string name="medical_modelmanagement_cancel">Cancel</string>
+    <string name="medical_modelmanagement_use">Use this model</string>
+    <string name="medical_modelmanagement_remove">Remove</string>
+    <string name="medical_modelmanagement_download">Download</string>
+    <string name="medical_modelmanagement_failure_fallback">Download failed — tap Download to retry</string>
+    <string name="medical_modelmanagement_detail_by">by %1$s · %2$s</string>
+    <string name="medical_modelmanagement_detail_size">Size</string>
+    <string name="medical_modelmanagement_detail_family">Family</string>
+    <string name="medical_modelmanagement_detail_min_ram">Min RAM</string>
+    <string name="medical_modelmanagement_detail_min_ram_unit">MB</string>
+    <string name="medical_modelmanagement_detail_file">File</string>
+    <string name="medical_modelmanagement_detail_url">URL</string>
+    <string name="medical_modelmanagement_seconds_left">%1$ds left</string>
+    <string name="medical_modelmanagement_minutes_left">%1$dm left</string>
+    <string name="medical_modelmanagement_selected">%1$s selected for wellness guidance</string>
+    <string name="medical_modelmanagement_removed">%1$s removed</string>
+    <string name="medical_modelmanagement_not_downloaded">%1$s is not downloaded yet.</string>
+    <string name="medical_modelmanagement_unknown_model">Unknown model: %1$s</string>
+</resources>

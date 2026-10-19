@@ -9,26 +9,26 @@ import com.llmlocal.core.model.ModelFamily
  * 2024-era on-device LLMs: quantised sub-1 GB "compact" models, 1–2 GB
  * "small" instruct/chat models, and > 2 GB "full" models.
  */
-enum class SizeBucket(val displayName: String) {
+enum class SizeBucket {
     /** < 1 GB — fits on practically any device; quantised models live here. */
-    COMPACT("Compact (< 1 GB)"),
+    COMPACT,
     /** 1–2 GB — typical 3 B-parameter model. */
-    SMALL("Small (1–2 GB)"),
+    SMALL,
     /** > 2 GB — needs >= 3 GB free storage and >= 4 GB RAM. */
-    FULL("Full (> 2 GB)"),
+    FULL,
 }
 
-enum class StatusFilter(val displayName: String) {
-    ALL("All"),
-    INSTALLED("Installed"),
-    AVAILABLE("Available"),
-    DOWNLOADING("Downloading"),
+enum class StatusFilter {
+    ALL,
+    INSTALLED,
+    AVAILABLE,
+    DOWNLOADING,
 }
 
-enum class QuantFilter(val displayName: String) {
-    ALL("All"),
-    QUANTISED("Quantised"),
-    FULL_PRECISION("Full precision"),
+enum class QuantFilter {
+    ALL,
+    QUANTISED,
+    FULL_PRECISION,
 }
 
 /**

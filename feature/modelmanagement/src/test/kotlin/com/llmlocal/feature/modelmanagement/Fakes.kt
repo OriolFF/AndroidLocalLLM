@@ -86,18 +86,3 @@ class TestDispatchers(dispatcher: CoroutineDispatcher) : DispatcherProvider {
     override val default: CoroutineDispatcher = dispatcher
     override val main: CoroutineDispatcher = dispatcher
 }
-
-val TestLabels = ModelManagementLabels(
-    screenTitle = "", countLabelDefault = { _, _, _ -> "" }, countLabelFiltered = { _, _, _ -> "" },
-    introText = "", emptyTitle = "", emptyMessage = "", emptyActionLabel = "",
-    filterByLabel = "", clearFiltersAction = "", filterStatusLabel = "", filterFamilyLabel = "",
-    filterSizeLabel = "", filterQuantLabel = "", filterAllLabel = "",
-    activeBadge = "", installedBadge = "", detailsActionDescription = "", cancelDownloadLabel = "",
-    useModelLabel = "", removeLabel = "", downloadLabel = "", failureFooterFallback = "",
-    detailByTemplate = { _, _ -> "" }, detailSizeLabel = "", detailFamilyLabel = "",
-    detailMinRamLabel = "", detailMinRamUnit = "", detailFileLabel = "", detailUrlLabel = "",
-    secondsLeftTemplate = { "" }, minutesLeftTemplate = { "" },
-    modelSelectedSnackbar = { "selected $it" },
-    modelRemovedSnackbar = { "removed $it" },
-    modelNotDownloadedSnackbar = { "not downloaded $it" },
-)

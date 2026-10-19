@@ -24,13 +24,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.model.ModelFamily
+import com.llmlocal.feature.modelmanagement.R
 import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 import com.llmlocal.feature.modelmanagement.domain.QuantFilter
 import com.llmlocal.feature.modelmanagement.domain.SizeBucket
 import com.llmlocal.feature.modelmanagement.domain.StatusFilter
+import com.llmlocal.feature.modelmanagement.presentation.mvi.modelManagementLabels
 
 /**
  * Sticky-feeling filter bar for the model catalog. Renders four vertical
@@ -53,6 +56,7 @@ fun FilterBar(
     onFiltersChange: (ModelFilters) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val labels = modelManagementLabels
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -70,7 +74,7 @@ fun FilterBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Filter by",
+                    text = labels.filterByLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -79,12 +83,12 @@ fun FilterBar(
                     onClick = { onFiltersChange(ModelFilters.DEFAULT) },
                     enabled = !filters.isDefault,
                 ) {
-                    Text("Clear")
+                    Text(labels.clearFiltersAction)
                 }
             }
 
             // Status (enum)
-            ChipRow(label = "Status") {
+            ChipRow(label = labels.filterStatusLabel) {
                 StatusFilter.entries.forEach { opt ->
                     val icon = when (opt) {
                         StatusFilter.ALL -> Icons.Outlined.AllInclusive
@@ -93,7 +97,7 @@ fun FilterBar(
                         StatusFilter.DOWNLOADING -> Icons.Outlined.CloudDownload
                     }
                     StatusChip(
-                        label = opt.displayName,
+                        label = opt.label(),
                         selected = filters.status == opt,
                         icon = icon,
                         onClick = { onFiltersChange(filters.copy(status = opt)) },
@@ -102,15 +106,15 @@ fun FilterBar(
             }
 
             // Family (nullable)
-            ChipRow(label = "Family") {
+            ChipRow(label = labels.filterFamilyLabel) {
                 StatusChip(
-                    label = "All",
+                    label = labels.filterAllLabel,
                     selected = filters.family == null,
                     onClick = { onFiltersChange(filters.copy(family = null)) },
                 )
                 ModelFamily.entries.forEach { fam ->
                     StatusChip(
-                        label = fam.displayName,
+                        label = fam.label(),
                         selected = filters.family == fam,
                         onClick = { onFiltersChange(filters.copy(family = fam)) },
                     )
@@ -118,15 +122,15 @@ fun FilterBar(
             }
 
             // Size (nullable)
-            ChipRow(label = "Size") {
+            ChipRow(label = labels.filterSizeLabel) {
                 StatusChip(
-                    label = "All",
+                    label = labels.filterAllLabel,
                     selected = filters.sizeBucket == null,
                     onClick = { onFiltersChange(filters.copy(sizeBucket = null)) },
                 )
                 SizeBucket.entries.forEach { bucket ->
                     StatusChip(
-                        label = bucket.displayName,
+                        label = bucket.label(),
                         selected = filters.sizeBucket == bucket,
                         onClick = { onFiltersChange(filters.copy(sizeBucket = bucket)) },
                     )
@@ -134,10 +138,10 @@ fun FilterBar(
             }
 
             // Quant (enum)
-            ChipRow(label = "Quant") {
+            ChipRow(label = labels.filterQuantLabel) {
                 QuantFilter.entries.forEach { opt ->
                     StatusChip(
-                        label = opt.displayName,
+                        label = opt.label(),
                         selected = filters.quant == opt,
                         onClick = { onFiltersChange(filters.copy(quant = opt)) },
                     )
@@ -147,9 +151,45 @@ fun FilterBar(
     }
 }
 
-/** Display name used in the filter chips. */
-val ModelFamily.displayName: String
-    get() = name.lowercase().replaceFirstChar { it.uppercase() }
+/** Display name used in the filter chips, the model card and the detail sheet. */
+@Composable
+fun ModelFamily.label(): String = stringResource(
+    when (this) {
+        ModelFamily.GENERAL -> R.string.modelmanagement_family_general
+        ModelFamily.CHAT -> R.string.modelmanagement_family_chat
+        ModelFamily.INSTRUCT -> R.string.modelmanagement_family_instruct
+        ModelFamily.CODE -> R.string.modelmanagement_family_code
+        ModelFamily.MULTIMODAL -> R.string.modelmanagement_family_multimodal
+    },
+)
+
+@Composable
+private fun StatusFilter.label(): String = stringResource(
+    when (this) {
+        StatusFilter.ALL -> R.string.modelmanagement_status_all
+        StatusFilter.INSTALLED -> R.string.modelmanagement_status_installed
+        StatusFilter.AVAILABLE -> R.string.modelmanagement_status_available
+        StatusFilter.DOWNLOADING -> R.string.modelmanagement_status_downloading
+    },
+)
+
+@Composable
+private fun SizeBucket.label(): String = stringResource(
+    when (this) {
+        SizeBucket.COMPACT -> R.string.modelmanagement_size_compact
+        SizeBucket.SMALL -> R.string.modelmanagement_size_small
+        SizeBucket.FULL -> R.string.modelmanagement_size_full
+    },
+)
+
+@Composable
+private fun QuantFilter.label(): String = stringResource(
+    when (this) {
+        QuantFilter.ALL -> R.string.modelmanagement_quant_all
+        QuantFilter.QUANTISED -> R.string.modelmanagement_quant_quantised
+        QuantFilter.FULL_PRECISION -> R.string.modelmanagement_quant_full_precision
+    },
+)
 
 /**
  * Single labelled row of chips. The label renders as a `titleSmall`

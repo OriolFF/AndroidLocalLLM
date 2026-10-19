@@ -29,7 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
-import com.llmlocal.medical.config.MedicalModelManagementLabels
+import com.llmlocal.medical.config.rememberMedicalModelManagementLabels
 import com.llmlocal.medical.designsystem.MedicalTokens
 import com.llmlocal.medical.medical.presentation.MedicalScreen
 
@@ -108,7 +108,7 @@ private fun AppRoot() {
                 composable(Route.ModelManagement.path) {
                     ModelManagementRoute(
                         snackbarHostState = snackbarHostState,
-                        labels = MedicalModelManagementLabels,
+                        labels = rememberMedicalModelManagementLabels(),
                     )
                 }
             }

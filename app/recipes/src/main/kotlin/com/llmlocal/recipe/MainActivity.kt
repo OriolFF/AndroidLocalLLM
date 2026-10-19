@@ -30,7 +30,7 @@ import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
 import com.llmlocal.recipe.recipe.presentation.RecipeScreen
-import com.llmlocal.recipe.config.RecipeModelManagementLabels
+import com.llmlocal.recipe.config.rememberRecipeModelManagementLabels
 import com.llmlocal.recipe.designsystem.RecipeTokens
 
 /**
@@ -118,7 +118,7 @@ private fun AppRoot() {
                 composable(Route.ModelManagement.path) {
                     ModelManagementRoute(
                         snackbarHostState = snackbarHostState,
-                        labels = RecipeModelManagementLabels,
+                        labels = rememberRecipeModelManagementLabels(),
                     )
                 }
             }

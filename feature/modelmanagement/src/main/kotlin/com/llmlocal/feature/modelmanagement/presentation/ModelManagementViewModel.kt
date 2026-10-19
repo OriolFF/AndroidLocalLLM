@@ -111,7 +111,7 @@ class ModelManagementViewModel(
         when (val result = downloadModel(modelId)) {
             StartDownloadResult.Started -> Unit
             is StartDownloadResult.UnknownModel ->
-                local.update { it.copy(lastError = "Unknown model: ${result.modelId}") }
+                local.update { it.copy(lastError = labels.unknownModelError(result.modelId)) }
         }
     }
 

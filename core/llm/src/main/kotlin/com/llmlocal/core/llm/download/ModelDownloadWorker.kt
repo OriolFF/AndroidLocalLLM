@@ -1,5 +1,6 @@
 package com.llmlocal.core.llm.download
 
+import com.llmlocal.core.llm.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -97,14 +98,12 @@ class ModelDownloadWorker(
             )
             progressStore.markFailed(
                 descriptor.id,
-                "Background download needs a foreground service. Disable battery " +
-                    "optimization for this app and try again.",
+                applicationContext.getString(R.string.llm_download_foreground_failed_store),
             )
             return Result.failure(
                 workDataOf(
                     KEY_FAILURE_REASON to
-                        "Could not start foreground service. Disable battery " +
-                        "optimization for this app and retry.",
+                        applicationContext.getString(R.string.llm_download_foreground_failed_result),
                 ),
             )
         }
@@ -143,8 +142,9 @@ class ModelDownloadWorker(
             Result.failure()
         } catch (t: Throwable) {
             Log.w(tag, "Download failed for ${descriptor.id}: ${t.message}", t)
-            progressStore.markFailed(descriptor.id, t.message ?: "Download failed")
-            Result.failure(workDataOf(KEY_FAILURE_REASON to (t.message ?: "Download failed")))
+            val reason = t.message ?: applicationContext.getString(R.string.llm_download_failed_generic)
+            progressStore.markFailed(descriptor.id, reason)
+            Result.failure(workDataOf(KEY_FAILURE_REASON to reason))
         }
     }
 
@@ -168,8 +168,8 @@ class ModelDownloadWorker(
         }
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
-            .setContentTitle("Downloading ${descriptor.displayName}")
-            .setContentText("$text · $percent%")
+            .setContentTitle(applicationContext.getString(R.string.llm_download_notification_title, descriptor.displayName))
+            .setContentText(applicationContext.getString(R.string.llm_download_notification_text, text, percent))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setProgress(100, percent, totalBytes == null)
@@ -183,8 +183,8 @@ class ModelDownloadWorker(
     private fun buildInstalledForegroundInfo(descriptor: LlmModelDescriptor): ForegroundInfo {
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("${descriptor.displayName} downloaded")
-            .setContentText("Ready to use")
+            .setContentTitle(applicationContext.getString(R.string.llm_download_done_title, descriptor.displayName))
+            .setContentText(applicationContext.getString(R.string.llm_download_done_text))
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -259,10 +259,10 @@ class ModelDownloadWorker(
             if (nm.getNotificationChannel(CHANNEL_ID) != null) return
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Model downloads",
+                context.getString(R.string.llm_download_channel_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Progress for on-device LLM model downloads"
+                description = context.getString(R.string.llm_download_channel_description)
                 setSound(null, null)
                 enableVibration(false)
             }
