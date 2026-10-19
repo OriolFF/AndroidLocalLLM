@@ -329,8 +329,8 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
-    fun `isComplete needs three ingredients and two steps, and the skip switch is off`() {
-        assertThat(config.skipModelWhenStructuredComplete).isFalse()
+    fun `isComplete needs three ingredients and two steps, and the skip switch is on`() {
+        assertThat(config.skipModelWhenStructuredComplete).isTrue()
         assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix.", "Bake.")))).isTrue()
         assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour"), steps = listOf("Mix.", "Bake.")))).isFalse()
         assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix and bake.")))).isFalse()

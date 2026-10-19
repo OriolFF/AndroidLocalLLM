@@ -341,9 +341,11 @@ class RecipeKeeperClipConfig(
      * Plan decision #3 switch. The WS7 eval showed the model reproducing the
      * mapper verbatim on 6/7 well-formed JSON-LD pages at 11–32 s each, so
      * skipping it for complete mappings is the recommended default; it is
-     * kept **off** until device numbers exist. Flipping it is this one line.
+     * Switched **on** 2026-10-19 (plan decision #3): the WS7/WS8 eval showed the
+     * model reproduces the deterministic mapping on 6 of 7 structured pages at a
+     * cost of 10–40 s per clip. Thin mappings and text pages still run the model.
      */
-    override val skipModelWhenStructuredComplete: Boolean = false
+    override val skipModelWhenStructuredComplete: Boolean = true
 
     /** The eval's quality bar: enough ingredients and more than one step. */
     override fun isComplete(item: ClippedRecipe): Boolean =
