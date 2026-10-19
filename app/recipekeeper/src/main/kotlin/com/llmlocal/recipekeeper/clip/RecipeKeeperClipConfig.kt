@@ -20,7 +20,10 @@ import kotlin.math.abs
  * (plan §3.2, §3.3, §3.6).
  *
  * **Detect.** Tier A: every JSON-LD node typed `Recipe` (or whose
- * `mainEntity` is one) is a STRUCTURED candidate. Tier B (only when Tier A
+ * `mainEntity` is one) **that carries ingredients or instructions** is a
+ * STRUCTURED candidate; the ingredient-less stubs collection pages emit
+ * per card (name / description / image / cookTime) are skipped, since the
+ * model would otherwise invent the missing lines (WS10 bug 3). Tier B (only when Tier A
  * finds nothing): a heading section is a TEXT candidate when its text has
  * at least [MIN_QUANTITY_LINES] quantity-unit lines, or its heading is an
  * "ingredients" word and an "instructions" word follows within the next
@@ -78,8 +81,10 @@ class RecipeKeeperClipConfig(
             .mapNotNull { node -> recipeNode(node) }
             .filter { node ->
                 val raw = node.raw
-                val key = mapper.name(raw).lowercase() + "|" + mapper.ingredients(raw).size + "|" + mapper.instructions(raw).size
-                seen.add(key)
+                val ingredients = mapper.ingredients(raw).size
+                val steps = mapper.instructions(raw).size
+                if (ingredients == 0 && steps == 0) return@filter false // collection-card stub
+                seen.add(mapper.name(raw).lowercase() + "|" + ingredients + "|" + steps)
             }
             .mapIndexed { index, node ->
                 val raw = node.raw
@@ -344,15 +349,25 @@ class RecipeKeeperClipConfig(
         item.ingredients.size >= MIN_COMPLETE_INGREDIENTS && item.steps.size >= MIN_COMPLETE_STEPS
 
     /**
-     * A whole-page extraction (no detected candidate, "Extract anyway") is
-     * only believed when at least [MIN_WHOLE_PAGE_QUANTITY_LINES] of its
-     * ingredients carry a quantity; otherwise the model invented a recipe
-     * from a list or category page and the result counts as "no recipe".
-     * Detected candidates are always accepted.
+     * Quality floor on a parsed model result.
+     *
+     *  - Whole-page extraction ("Extract anyway", no detected candidate) is
+     *    only believed when at least [MIN_ACCEPT_QUANTITY_LINES] of its
+     *    ingredients carry a quantity; otherwise the model invented a recipe
+     *    from a list or category page and the result counts as "no recipe".
+     *  - Detected (STRUCTURED / TEXT) candidates need either that many
+     *    quantity-bearing ingredient lines **or** at least
+     *    [MIN_COMPLETE_STEPS] steps. A two-line "recipe" filled in from a
+     *    collection-card stub (WS10 bug 3) therefore becomes a parse
+     *    failure: STRUCTURED falls back to [SchemaOrgRecipeMapper] (also
+     *    empty for a stub → the parse-failed screen), TEXT shows it directly.
      */
     override fun accept(candidate: ClipCandidate, item: ClippedRecipe): Boolean {
-        if (candidate.payload !is CandidatePayload.WholePage) return true
-        return item.ingredients.count { quantityLine.containsMatchIn(it.trim()) } >= MIN_WHOLE_PAGE_QUANTITY_LINES
+        val quantityLines = item.ingredients.count { quantityLine.containsMatchIn(it.trim()) }
+        return when (candidate.payload) {
+            CandidatePayload.WholePage -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES
+            else -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES || item.steps.size >= MIN_COMPLETE_STEPS
+        }
     }
 
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> {
@@ -419,7 +434,8 @@ class RecipeKeeperClipConfig(
         const val HEAD_MARKER = "[…]\n"
         const val MIN_PRECEDING_PROSE_CHARS = 300
         const val MIN_QUANTITY_LINES = 3
-        const val MIN_WHOLE_PAGE_QUANTITY_LINES = 2
+        /** Quantity-bearing ingredient lines a model result needs (see [accept]). */
+        const val MIN_ACCEPT_QUANTITY_LINES = 2
         const val MIN_COMPLETE_INGREDIENTS = 3
         const val MIN_COMPLETE_STEPS = 2
         private const val LOOKAHEAD_SECTIONS = 3
