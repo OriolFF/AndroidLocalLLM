@@ -57,7 +57,7 @@ Build: AGP 9.4.1 (needs Gradle ≥ 9.6), Kotlin 2.4.21, Gradle 9.8.1 (wrapper **
 ./gradlew :app:recipekeeper:assembleDebug
 ./gradlew :app:recipes:installDebug && adb shell am start -n com.llmlocal.recipe/.MainActivity
 ./gradlew :app:medical:installDebug && adb shell am start -n com.llmlocal.medical/.MainActivity
-./gradlew :app:recipekeeper:installDebug && adb shell am start -n com.llmlocal.recipekeeper/.MainActivity
+./gradlew :app:recipekeeper:installDebug && adb shell am start -n com.llmlocal.recipekeeper/.app.MainActivity
 
 # Tests
 ./gradlew test                              # all modules
@@ -85,7 +85,7 @@ Build: AGP 9.4.1 (needs Gradle ≥ 9.6), Kotlin 2.4.21, Gradle 9.8.1 (wrapper **
    Dependencies point inward: `presentation → domain ← data`. `presentation` never imports `data`.
 3. Keep MVI as described below; keep brand values and copy in the app module via tokens/labels.
 
-**Current state vs these rules (2026-10-19):** `LlmTaskViewModel`, `ExtractionViewModel` and `RecipeDetailViewModel` still inject stores/engines/downloaders directly and the Recipe Keeper code is split by screen (`library/`, `detail/`, `clip/`, `data/`) rather than feature/presentation-domain-data. Any work that touches these files must move the touched logic into use cases and the new layout rather than extending the old shape.
+**State after the 2026-10-19 refactor (streams R1–R4):** `:feature:llm-task`, `:feature:modelmanagement`, `:feature:webclipper` and `:app:recipekeeper` follow these rules — every ViewModel takes use cases, each feature has `presentation/`, `domain/`, `data/`, `di/`. Recipe Keeper is split into `app/` (`MainActivity`, `RecipeKeeperApp`, `RecipeKeeperNavHost`, app DI), `recipes/` (library + detail + recipe domain/data), `clip/` (brand clip config, mapper, prompt, parsers, draft card, sink) and `designsystem/`. The recipes/medical apps keep their brand code under `<app>/<feature>/{presentation,domain}` + `config/` + `designsystem/`. Known, accepted deviations: `WebClipperBrowserRoute` injects `data.WebViewHolder` (the WebView is Android UI state with no useful domain abstraction); `BrowserViewModel`/`ExtractionViewModel` take the `ClipSession` domain interface and the app-provided `ClipSink<T>` contract (route parameters, like `config`). `:core:*` modules are the shared data sources and are only referenced from `data/` adapters and DI.
 
 ## Module layout & dependency direction
 
@@ -252,9 +252,9 @@ Model readiness for non-`LlmTask` screens comes from `:core:llm/readiness/ModelR
 - Repository: `core/data/src/main/kotlin/com/llmlocal/core/data/repository/LlmTaskRepositoryImpl.kt` (`LlmRequestOptions` + `LlmTaskParseException` in `core/domain/.../repository/LlmTaskRepository.kt`)
 - Model readiness: `core/llm/src/main/kotlin/com/llmlocal/core/llm/readiness/{ModelReadiness,ModelReadinessObserver}.kt`
 - Page capture: `core/web/src/main/kotlin/com/llmlocal/core/web/{PageSnapshot,PageCapture,WebViewPageCapture,JsonLdExtractor,IsoDuration,ImageDownloader}.kt`, JS in `core/web/src/main/assets/webclipper/`
-- Web clipper: `feature/webclipper/src/main/kotlin/com/llmlocal/feature/webclipper/{WebClipConfig,ClipSink,BrowserViewModel,ExtractionViewModel,WebViewHolder}.kt`, `ui/`, `mvi/`, `di/WebClipperModule.kt`
-- Recipe Keeper: `app/recipekeeper/src/main/kotlin/com/llmlocal/recipekeeper/{clip,parser,prompt,data,library,detail}/`, `MainActivity.kt`; plan + reports under `docs/plans/`
-- Generic task MVI: `feature/llm-task/src/main/kotlin/com/llmlocal/feature/llmtask/{LlmTaskViewModel,LlmTaskRoute,LlmTaskScreen}.kt` and `mvi/`
-- Model management: `feature/modelmanagement/src/main/kotlin/com/llmlocal/feature/modelmanagement/`
+- Web clipper: `feature/webclipper/src/main/kotlin/com/llmlocal/feature/webclipper/{domain (WebClipConfig, ClipSink, ClipCandidate, ClipSession, use cases incl. ClipUseCase/ScanPageUseCase), data (WebViewHolder, scanners, downloaders, LLM source), presentation (routes, ViewModels, mvi, ui, labels), di}/`
+- Recipe Keeper: `app/recipekeeper/src/main/kotlin/com/llmlocal/recipekeeper/{app,recipes,clip,designsystem}/` (each feature: `presentation/`, `domain/`, `data/`, `di/`); Room schema under `app/recipekeeper/schemas/com.llmlocal.recipekeeper.recipes.data.RecipeKeeperDatabase/`; plan + reports under `docs/plans/`, research under `docs/research/`
+- Generic task MVI: `feature/llm-task/src/main/kotlin/com/llmlocal/feature/llmtask/{presentation (LlmTaskViewModel, LlmTaskRoute, LlmTaskScreen, mvi, components), domain (use cases, sources), data, di}/`
+- Model management: `feature/modelmanagement/src/main/kotlin/com/llmlocal/feature/modelmanagement/{presentation (route, screen, ViewModel, mvi incl. ModelManagementLabels, components incl. DownloadProgressBar), domain (use cases, filters, sources), data (adapters, ModelDownloadScheduler, WorkInfoObserver), di}/`
 - Design tokens contract: `core/designsystem/src/main/kotlin/com/llmlocal/core/designsystem/theme/{Tokens,Theme}.kt`
 - App wiring examples: `app/recipes/src/main/kotlin/com/llmlocal/recipe/{RecipeApp,MainActivity,RecipeScreen}.kt`, `app/medical/src/main/kotlin/com/llmlocal/medical/`, `app/recipekeeper/src/main/kotlin/com/llmlocal/recipekeeper/{RecipeKeeperApp,MainActivity}.kt`
