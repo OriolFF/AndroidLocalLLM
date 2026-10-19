@@ -4,4 +4,5 @@
     <string name="webclipper_browser_back_to_library">Back to your recipes</string>
     <string name="webclipper_extraction_recipe_saved">Saved to your recipes</string>
     <string name="webclipper_extraction_extracting_hint">Reading the recipe on your phone — this takes a moment</string>
+    <string name="webclipper_duplicate_message">You clipped this page before. Replace the saved recipe with a fresh clip? Any edits you made to it are lost.</string>
 </resources>

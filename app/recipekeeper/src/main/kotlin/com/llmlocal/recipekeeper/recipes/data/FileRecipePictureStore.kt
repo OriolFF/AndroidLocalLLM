@@ -35,6 +35,10 @@ class FileRecipePictureStore(private val root: File) : RecipePictureStore {
         }
     }
 
+    override fun delete(recipeId: String, paths: List<String>) {
+        TODO("F2")
+    }
+
     /** Deletes the recipe's folder and everything in it. Safe when absent. */
     override fun deleteAll(recipeId: String) {
         dirFor(recipeId).deleteRecursively()

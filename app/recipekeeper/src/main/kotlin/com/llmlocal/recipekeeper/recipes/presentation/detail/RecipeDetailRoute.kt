@@ -28,6 +28,7 @@ fun RecipeDetailRoute(
     onBack: () -> Unit,
     onOpenBrowser: (url: String) -> Unit,
     onDeleted: (id: String) -> Unit,
+    onEdit: (id: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId) },
 ) {
@@ -42,6 +43,7 @@ fun RecipeDetailRoute(
                     chooserTitle = labels.shareRecipe,
                 )
                 is RecipeDetailEffect.NavigateToBrowser -> onOpenBrowser(effect.url)
+                is RecipeDetailEffect.NavigateToEditor -> onEdit(effect.id)
                 is RecipeDetailEffect.Deleted -> onDeleted(effect.id)
                 RecipeDetailEffect.PicturesRetryFailed -> launch { snackbarHostState.showSnackbar(labels.retryPicturesFailed) }
             }

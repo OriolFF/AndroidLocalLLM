@@ -20,6 +20,7 @@ import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleIngredientCheckedUseCase
 import com.llmlocal.recipekeeper.recipes.presentation.recipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailViewModel
@@ -68,6 +69,7 @@ val recipesModule: Module = module {
     factory { ObserveLibraryUseCase(repository = get(), deleteWithUndo = get()) }
     factory { ObserveRecipeUseCase(repository = get()) }
     factory { ObserveLibraryModelStatusUseCase(source = get()) }
+    factory { ToggleFavouriteUseCase(repository = get()) }
     factory { ToggleIngredientCheckedUseCase(repository = get()) }
     factory { ResetChecksUseCase(repository = get()) }
     factory { RetryRecipePicturesUseCase(repository = get(), fetcher = get(), store = get(), dispatchers = get()) }
@@ -81,6 +83,7 @@ val recipesModule: Module = module {
             observeRecipe = get(),
             deleteWithUndo = get(),
             shareRecipe = get(),
+            toggleFavourite = get(),
             dispatchers = get(),
         )
     }
@@ -93,6 +96,7 @@ val recipesModule: Module = module {
             deleteWithUndo = get(),
             retryPictures = get(),
             shareRecipe = get(),
+            toggleFavourite = get(),
             dispatchers = get(),
         )
     }

@@ -8,6 +8,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
 
 /**
@@ -21,11 +22,18 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
  * JSON keeps the `LIKE` search in SQL without an extra table. `deletedAt`
  * is the soft-delete flag used by undo-delete (`null` = live).
  * `picturesFailed` + `pictureCandidates` back "Pictures unavailable / Retry
- * pictures" on the detail screen (WS11).
+ * pictures" on the detail screen (WS11). `isFavourite`, `editedAt` and
+ * `origin` (the [com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin] enum
+ * name, no converter needed) back favourites, the editor and created recipes.
  */
 @Entity(
     tableName = "recipes",
-    indices = [Index(value = ["clippedAt"]), Index(value = ["deletedAt"]), Index(value = ["sourceUrl"])],
+    indices = [
+        Index(value = ["clippedAt"]),
+        Index(value = ["deletedAt"]),
+        Index(value = ["sourceUrl"]),
+        Index(value = ["isFavourite"]),
+    ],
 )
 data class RecipeEntity(
     @PrimaryKey val id: String,
@@ -46,6 +54,9 @@ data class RecipeEntity(
     val deletedAt: Long?,
     @ColumnInfo(defaultValue = "0") val picturesFailed: Boolean = false,
     @ColumnInfo(defaultValue = "[]") val pictureCandidates: List<String> = emptyList(),
+    @ColumnInfo(defaultValue = "0") val isFavourite: Boolean = false,
+    val editedAt: Long? = null,
+    @ColumnInfo(defaultValue = "CLIPPED") val origin: String = RecipeOrigin.CLIPPED.name,
 )
 
 /**
@@ -89,6 +100,8 @@ data class RecipeSummaryRow(
     @ColumnInfo(name = "heroPicture") val heroPicture: String?,
     val truncated: Boolean,
     val clippedAt: Long,
+    val isFavourite: Boolean = false,
+    val origin: String = RecipeOrigin.CLIPPED.name,
 )
 
 // ---------------------------------------------------------------------------
@@ -114,6 +127,9 @@ fun ClippedRecipe.toEntity(deletedAt: Long? = null): RecipeEntity = RecipeEntity
     deletedAt = deletedAt,
     picturesFailed = picturesFailed,
     pictureCandidates = pictureCandidates,
+    isFavourite = isFavourite,
+    editedAt = editedAt,
+    origin = origin.name,
 )
 
 fun ClippedRecipe.toPictureEntities(): List<PictureEntity> =
@@ -138,6 +154,9 @@ fun RecipeWithPictures.toDomain(): ClippedRecipe = ClippedRecipe(
     checkedIngredients = recipe.checkedIngredients,
     picturesFailed = recipe.picturesFailed,
     pictureCandidates = recipe.pictureCandidates,
+    isFavourite = recipe.isFavourite,
+    editedAt = recipe.editedAt,
+    origin = recipe.origin.toRecipeOrigin(),
 )
 
 fun RecipeSummaryRow.toDomain(): RecipeSummary = RecipeSummary(
@@ -148,4 +167,9 @@ fun RecipeSummaryRow.toDomain(): RecipeSummary = RecipeSummary(
     heroPicture = heroPicture,
     truncated = truncated,
     clippedAt = clippedAt,
+    isFavourite = isFavourite,
+    origin = origin.toRecipeOrigin(),
 )
+
+private fun String.toRecipeOrigin(): RecipeOrigin =
+    RecipeOrigin.entries.firstOrNull { it.name == this } ?: RecipeOrigin.CLIPPED

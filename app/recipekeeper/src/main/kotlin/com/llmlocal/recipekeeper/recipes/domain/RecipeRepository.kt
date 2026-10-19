@@ -17,8 +17,8 @@ import kotlinx.coroutines.flow.Flow
  */
 interface RecipeRepository {
 
-    /** Every non-deleted recipe, newest first. */
-    fun observeAll(): Flow<List<RecipeSummary>>
+    /** Every non-deleted recipe matching [filter], newest first. */
+    fun observeAll(filter: LibraryFilter = LibraryFilter()): Flow<List<RecipeSummary>>
 
     /** One recipe (soft-deleted included), `null` when it does not exist. */
     fun observe(id: String): Flow<ClippedRecipe?>
@@ -53,8 +53,11 @@ interface RecipeRepository {
      */
     suspend fun replacePictures(id: String, pictures: List<String>, picturesFailed: Boolean)
 
-    /** Title / ingredient `LIKE` search over non-deleted recipes, newest first. */
-    fun search(query: String): Flow<List<RecipeSummary>>
+    /** Title / ingredient `LIKE` search over non-deleted recipes matching [filter], newest first. */
+    fun search(query: String, filter: LibraryFilter = LibraryFilter()): Flow<List<RecipeSummary>>
+
+    /** Sets or clears the favourite flag of [id]. No-op when the recipe does not exist. */
+    suspend fun setFavourite(id: String, favourite: Boolean)
 
     /**
      * Id of the newest non-deleted recipe clipped from exactly [url], or

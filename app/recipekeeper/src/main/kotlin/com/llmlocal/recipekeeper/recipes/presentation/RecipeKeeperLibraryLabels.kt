@@ -11,7 +11,8 @@ import com.llmlocal.recipekeeper.R
 /**
  * Every user-visible string for Recipe Keeper's app-owned screens — the
  * library grid, recipe detail, the streamed draft card and the
- * delete / share / open-original flows.
+ * delete / share / open-original flows, favourites and the entry points
+ * to the recipe editor (whose own copy is [RecipeEditorLabels]).
  *
  * Web-clipper copy (browser top bar, clip FAB, candidate picker, extraction
  * phases) is owned by [RecipeKeeperClipperLabels] /
@@ -101,6 +102,29 @@ data class RecipeKeeperLibraryLabels(
     val recipeDeleted: String,
     val undo: String,
     val undoDeleteFailed: String,
+
+    // ---- Favourites, editor entry points, created recipes ----------------
+    val favourite: String,
+    val favouriteAdd: String,
+    val favouriteRemove: String,
+    val favouriteStateOn: String,
+    val favouriteStateOff: String,
+    val favouritesFilter: String,
+    val favouritesEmptyTitle: String,
+    val favouritesEmptyMessage: String,
+    val showAllRecipes: String,
+    val searchEmptyFavouritesTitle: (query: String) -> String,
+    val editRecipe: String,
+    val newRecipe: String,
+    val writeRecipe: String,
+    val createdByYou: String,
+    val recipeTileDescriptionCreated: (title: String) -> String,
+    val createdOn: (date: String) -> String,
+    val editedOn: (date: String) -> String,
+    val changesSaved: String,
+    val shareCreatedTemplate: (title: String, ingredientsHeader: String, ingredientLines: String, stepsHeader: String, stepLines: String) -> String,
+    val shareBullet: (line: String) -> String,
+    val shareNumbered: (number: Int, line: String) -> String,
 )
 
 /** Resource-built [RecipeKeeperLibraryLabels], refreshed when the configuration (locale) changes. */
@@ -174,4 +198,25 @@ fun recipeKeeperLibraryLabels(resources: Resources): RecipeKeeperLibraryLabels =
     recipeDeleted = resources.getString(R.string.recipekeeper_recipe_deleted),
     undo = resources.getString(R.string.recipekeeper_undo),
     undoDeleteFailed = resources.getString(R.string.recipekeeper_undo_delete_failed),
+    favourite = resources.getString(R.string.recipekeeper_favourite),
+    favouriteAdd = resources.getString(R.string.recipekeeper_favourite_add),
+    favouriteRemove = resources.getString(R.string.recipekeeper_favourite_remove),
+    favouriteStateOn = resources.getString(R.string.recipekeeper_favourite_state_on),
+    favouriteStateOff = resources.getString(R.string.recipekeeper_favourite_state_off),
+    favouritesFilter = resources.getString(R.string.recipekeeper_favourites_filter),
+    favouritesEmptyTitle = resources.getString(R.string.recipekeeper_favourites_empty_title),
+    favouritesEmptyMessage = resources.getString(R.string.recipekeeper_favourites_empty_message),
+    showAllRecipes = resources.getString(R.string.recipekeeper_show_all_recipes),
+    searchEmptyFavouritesTitle = { query -> resources.getString(R.string.recipekeeper_search_empty_favourites_title, query) },
+    editRecipe = resources.getString(R.string.recipekeeper_edit_recipe),
+    newRecipe = resources.getString(R.string.recipekeeper_new_recipe),
+    writeRecipe = resources.getString(R.string.recipekeeper_write_recipe),
+    createdByYou = resources.getString(R.string.recipekeeper_created_by_you),
+    recipeTileDescriptionCreated = { title -> resources.getString(R.string.recipekeeper_tile_description_created, title) },
+    createdOn = { date -> resources.getString(R.string.recipekeeper_created_on, date) },
+    editedOn = { date -> resources.getString(R.string.recipekeeper_edited_on, date) },
+    changesSaved = resources.getString(R.string.recipekeeper_changes_saved),
+    shareCreatedTemplate = { title, ingredientsHeader, ingredientLines, stepsHeader, stepLines -> resources.getString(R.string.recipekeeper_share_created_template, title, ingredientsHeader, ingredientLines, stepsHeader, stepLines) },
+    shareBullet = { line -> resources.getString(R.string.recipekeeper_share_bullet, line) },
+    shareNumbered = { number, line -> resources.getString(R.string.recipekeeper_share_numbered, number, line) },
 )

@@ -8,6 +8,7 @@ import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatu
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +32,7 @@ import kotlinx.coroutines.withContext
  * MVI ViewModel for the library screen.
  *
  * [LibraryState.recipes] is derived reactively from the search
- * [LibraryState.query] through [ObserveLibraryUseCase] (`flatMapLatest`, so
+ * [LibraryState.query] and [LibraryState.filter] through [ObserveLibraryUseCase] (`flatMapLatest`, so
  * a stale search result never lands after the query changed); that use case
  * already hides recipes inside the delete-undo window. The model status
  * from [ObserveLibraryModelStatusUseCase] drives the no-model hero and the
@@ -48,6 +49,7 @@ class LibraryViewModel(
     private val observeRecipe: ObserveRecipeUseCase,
     private val deleteWithUndo: DeleteRecipeWithUndoUseCase,
     private val shareRecipe: ShareRecipeUseCase,
+    private val toggleFavourite: ToggleFavouriteUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -95,14 +97,21 @@ class LibraryViewModel(
                 if (!deleteWithUndo.undo(intent.id)) emit(LibraryEffect.UndoFailed)
             }
             is LibraryIntent.ConfirmDelete -> viewModelScope.launch { deleteWithUndo.commit(intent.id) }
+
+            is LibraryIntent.SetFavouritesFilter ->
+                _state.update { it.copy(filter = it.filter.copy(favouritesOnly = intent.on)) }
+            is LibraryIntent.ToggleFavourite ->
+                viewModelScope.launch { toggleFavourite(intent.id, intent.favourite) }
+            is LibraryIntent.EditRecipe -> emit(LibraryEffect.NavigateToEditor(intent.id))
+            LibraryIntent.CreateRecipe -> emit(LibraryEffect.NavigateToEditor(null))
         }
     }
 
     private fun observeRecipes() {
         _state
-            .map { it.query.trim() }
+            .map { it.query.trim() to it.filter }
             .distinctUntilChanged()
-            .flatMapLatest { query -> observeLibrary(query) }
+            .flatMapLatest { (query, filter) -> observeLibrary(query, filter) }
             .flowOn(dispatchers.default)
             .onEach { recipes -> _state.update { it.copy(recipes = recipes, isLoading = false) } }
             .launchIn(viewModelScope)

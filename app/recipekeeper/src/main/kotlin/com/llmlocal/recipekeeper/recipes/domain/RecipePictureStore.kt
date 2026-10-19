@@ -15,9 +15,13 @@ interface RecipePictureStore {
     /**
      * Moves [files] into the recipe's folder, numbered in order, and returns
      * the new absolute paths in the same order. Sources that do not exist are
-     * skipped.
+     * skipped. Numbering continues after the highest existing `NNN.ext` in
+     * the folder so nothing already stored is clobbered.
      */
     fun moveIn(recipeId: String, files: List<File>): List<String>
+
+    /** Deletes exactly these stored files of [recipeId]; ignores paths outside its folder. */
+    fun delete(recipeId: String, paths: List<String>)
 
     /** Deletes the recipe's folder and everything in it. Safe when absent. */
     fun deleteAll(recipeId: String)

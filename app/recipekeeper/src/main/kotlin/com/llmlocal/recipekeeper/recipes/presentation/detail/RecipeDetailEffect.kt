@@ -8,6 +8,9 @@ sealed interface RecipeDetailEffect {
     /** Open the source page in the in-app browser. */
     data class NavigateToBrowser(val url: String) : RecipeDetailEffect
 
+    /** Open the editor for [id]. */
+    data class NavigateToEditor(val id: String) : RecipeDetailEffect
+
     /**
      * Delete confirmed: the recipe is inside the undo window. The host pops
      * this screen and shows the undo snackbar.

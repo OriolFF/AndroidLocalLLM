@@ -33,6 +33,8 @@ import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
 import com.llmlocal.recipekeeper.recipes.presentation.rememberRecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.presentation.detail.RecipeDetailRoute
+import com.llmlocal.recipekeeper.recipes.presentation.editor.RecipeEditorRoute
+import com.llmlocal.recipekeeper.recipes.presentation.editor.rememberRecipeEditorLabels
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryRoute
 import com.llmlocal.recipekeeper.recipes.presentation.library.showRecipeDeleted
 import kotlinx.coroutines.launch
@@ -50,6 +52,8 @@ private val draftParser = RecipeKeeperDraftParser()
  * | Browser          | `browser?url={url}`      | own scaffold (feature)     |
  * | Extraction       | `extract/{candidateId}`  | own scaffold (feature)     |
  * | Recipe detail    | `recipe/{recipeId}`      | own scaffold (collapsing)  |
+ * | Editor (create)  | `recipe/new`             | own scaffold (editor)      |
+ * | Editor (edit)    | `recipe/{recipeId}/edit` | own scaffold (editor)      |
  * | Model management | `modelManagement`        | `AppScaffold`              |
  *
  * Back-stack rules: extraction → detail pops extraction with
@@ -163,6 +167,30 @@ fun RecipeKeeperNavHost() {
             )
         }
 
+        // F0: declared but not reachable yet — `onOpenEditor` / `onEdit` are not wired (stream F3).
+        composable(Route.NewRecipe.pattern) {
+            RecipeEditorRoute(
+                recipeId = null,
+                labels = rememberRecipeEditorLabels(),
+                snackbarHostState = snackbarHostState,
+                onSaved = { _, _ -> navController.popBackStack() },
+                onClosed = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Route.EditRecipe.pattern,
+            arguments = listOf(navArgument(Route.EditRecipe.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            RecipeEditorRoute(
+                recipeId = entry.arguments?.getString(Route.EditRecipe.ARG_ID).orEmpty(),
+                labels = rememberRecipeEditorLabels(),
+                snackbarHostState = snackbarHostState,
+                onSaved = { _, _ -> navController.popBackStack() },
+                onClosed = { navController.popBackStack() },
+            )
+        }
+
         composable(Route.ModelManagement.pattern) {
             AppScaffold(
                 title = labels.modelsTitle,
@@ -201,6 +229,13 @@ private sealed class Route(val pattern: String) {
     data object Recipe : Route("recipe/{recipeId}") {
         const val ARG_ID = "recipeId"
         fun build(recipeId: String): String = "recipe/${Uri.encode(recipeId)}"
+    }
+
+    data object NewRecipe : Route("recipe/new")
+
+    data object EditRecipe : Route("recipe/{recipeId}/edit") {
+        const val ARG_ID = "recipeId"
+        fun build(id: String): String = "recipe/${Uri.encode(id)}/edit"
     }
 
     data object ModelManagement : Route("modelManagement")

@@ -19,6 +19,10 @@ package com.llmlocal.recipekeeper.recipes.domain
  *   "Retry pictures"
  * @property pictureCandidates the picture URLs proposed at clip time, in
  *   rank order, so a retry needs no page capture
+ * @property isFavourite the user hearted this recipe
+ * @property editedAt epoch millis of the last manual edit, `null` when never edited
+ * @property origin clipped from a page or written by the user; a
+ *   [RecipeOrigin.CREATED] recipe has an empty [sourceUrl] / [sourceHost]
  */
 data class ClippedRecipe(
     val id: String,
@@ -39,4 +43,7 @@ data class ClippedRecipe(
     val checkedIngredients: Set<Int> = emptySet(),
     val picturesFailed: Boolean = false,
     val pictureCandidates: List<String> = emptyList(),
+    val isFavourite: Boolean = false,
+    val editedAt: Long? = null,
+    val origin: RecipeOrigin = RecipeOrigin.CLIPPED,
 )

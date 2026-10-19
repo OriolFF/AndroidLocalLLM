@@ -8,6 +8,7 @@ import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatu
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
 import com.llmlocal.recipekeeper.testing.FakeLibraryModelStatusSource
 import com.llmlocal.recipekeeper.testing.FakeRecipeRepository
 import com.llmlocal.recipekeeper.testing.MainDispatcherRule
@@ -45,6 +46,7 @@ class LibraryViewModelTest {
         observeRecipe = ObserveRecipeUseCase(repository),
         deleteWithUndo = deleteWithUndo,
         shareRecipe = ShareRecipeUseCase(repository) { title, url -> "$title|$url" },
+        toggleFavourite = ToggleFavouriteUseCase(repository),
         dispatchers = dispatchers,
     )
 

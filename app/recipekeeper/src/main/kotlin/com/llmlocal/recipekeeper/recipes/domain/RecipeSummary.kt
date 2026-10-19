@@ -5,6 +5,8 @@ package com.llmlocal.recipekeeper.recipes.domain
  * without ingredients / steps so lists stay cheap.
  *
  * @property heroPicture local path of the first picture, or `null`
+ * @property isFavourite the heart state shown on the tile
+ * @property origin created recipes show "Created by you" instead of a host
  */
 data class RecipeSummary(
     val id: String,
@@ -14,4 +16,6 @@ data class RecipeSummary(
     val heroPicture: String?,
     val truncated: Boolean,
     val clippedAt: Long,
+    val isFavourite: Boolean = false,
+    val origin: RecipeOrigin = RecipeOrigin.CLIPPED,
 )

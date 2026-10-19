@@ -9,6 +9,7 @@ import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleIngredientCheckedUseCase
 import com.llmlocal.recipekeeper.testing.FakePictureDownloader
 import com.llmlocal.recipekeeper.testing.FakeRecipeRepository
@@ -71,6 +72,7 @@ class RecipeDetailViewModelTest {
                 dispatchers = dispatchers,
             ),
             shareRecipe = ShareRecipeUseCase(repository) { title, url -> "$title|$url" },
+            toggleFavourite = ToggleFavouriteUseCase(repository),
             dispatchers = dispatchers,
         )
 

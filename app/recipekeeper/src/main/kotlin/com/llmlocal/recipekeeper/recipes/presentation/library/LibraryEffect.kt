@@ -15,6 +15,9 @@ sealed interface LibraryEffect {
     /** Show the "Recipe deleted / Undo" snackbar for [id]. */
     data class RecipeDeleted(val id: String) : LibraryEffect
 
+    /** Open the recipe editor: [id] to edit that recipe, `null` to create a new one. */
+    data class NavigateToEditor(val id: String?) : LibraryEffect
+
     /** Undo arrived after the window closed. */
     data object UndoFailed : LibraryEffect
 }

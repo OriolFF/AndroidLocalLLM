@@ -17,6 +17,12 @@ sealed interface RecipeDetailIntent {
     data object OpenOriginal : RecipeDetailIntent
     data object ReExtract : RecipeDetailIntent
 
+    /** Pencil in the top bar: open the editor. */
+    data object Edit : RecipeDetailIntent
+
+    /** Heart in the top bar: flips the favourite flag. */
+    data object ToggleFavourite : RecipeDetailIntent
+
     data object RequestDelete : RecipeDetailIntent
     data object DismissDelete : RecipeDetailIntent
     data object ConfirmDelete : RecipeDetailIntent

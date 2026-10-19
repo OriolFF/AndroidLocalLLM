@@ -25,4 +25,16 @@ sealed interface LibraryIntent {
 
     /** Snackbar dismissed before the window closed: delete now. */
     data class ConfirmDelete(val id: String) : LibraryIntent
+
+    /** Favourites chip toggled. */
+    data class SetFavouritesFilter(val on: Boolean) : LibraryIntent
+
+    /** Heart tapped on a tile (or tile menu); [favourite] is the new state. */
+    data class ToggleFavourite(val id: String, val favourite: Boolean) : LibraryIntent
+
+    /** Tile menu → Edit recipe. */
+    data class EditRecipe(val id: String) : LibraryIntent
+
+    /** Top-bar "New recipe" / empty-state "Write a recipe". */
+    data object CreateRecipe : LibraryIntent
 }

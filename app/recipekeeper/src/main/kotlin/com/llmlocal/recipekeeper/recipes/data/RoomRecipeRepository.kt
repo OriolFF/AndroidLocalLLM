@@ -2,6 +2,7 @@ package com.llmlocal.recipekeeper.recipes.data
 
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.LibraryFilter
 import com.llmlocal.recipekeeper.recipes.domain.RecipePictureStore
 import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
@@ -21,7 +22,8 @@ class RoomRecipeRepository(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : RecipeRepository {
 
-    override fun observeAll(): Flow<List<RecipeSummary>> =
+    // F2: apply `filter.favouritesOnly` in the DAO queries.
+    override fun observeAll(filter: LibraryFilter): Flow<List<RecipeSummary>> =
         dao.observeSummaries().map { rows -> rows.map(RecipeSummaryRow::toDomain) }
 
     override fun observe(id: String): Flow<ClippedRecipe?> =
@@ -65,10 +67,14 @@ class RoomRecipeRepository(
         )
     }
 
-    override fun search(query: String): Flow<List<RecipeSummary>> {
+    override fun search(query: String, filter: LibraryFilter): Flow<List<RecipeSummary>> {
         val q = query.trim()
-        if (q.isEmpty()) return observeAll()
+        if (q.isEmpty()) return observeAll(filter)
         return dao.searchSummaries(q).map { rows -> rows.map(RecipeSummaryRow::toDomain) }
+    }
+
+    override suspend fun setFavourite(id: String, favourite: Boolean) {
+        TODO("F2")
     }
 
     override suspend fun findIdBySourceUrl(url: String): String? = dao.findIdBySourceUrl(url)

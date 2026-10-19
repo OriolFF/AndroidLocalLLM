@@ -21,7 +21,7 @@ interface RecipeDao {
 
     @Query(
         """
-        SELECT r.id, r.title, r.sourceHost, r.totalMinutes, r.truncated, r.clippedAt,
+        SELECT r.id, r.title, r.sourceHost, r.totalMinutes, r.truncated, r.clippedAt, r.isFavourite, r.origin,
                (SELECT p.path FROM pictures p WHERE p.recipeId = r.id ORDER BY p.position LIMIT 1) AS heroPicture
         FROM recipes r
         WHERE r.deletedAt IS NULL
@@ -32,7 +32,7 @@ interface RecipeDao {
 
     @Query(
         """
-        SELECT r.id, r.title, r.sourceHost, r.totalMinutes, r.truncated, r.clippedAt,
+        SELECT r.id, r.title, r.sourceHost, r.totalMinutes, r.truncated, r.clippedAt, r.isFavourite, r.origin,
                (SELECT p.path FROM pictures p WHERE p.recipeId = r.id ORDER BY p.position LIMIT 1) AS heroPicture
         FROM recipes r
         WHERE r.deletedAt IS NULL

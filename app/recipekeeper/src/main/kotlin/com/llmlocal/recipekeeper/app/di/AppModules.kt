@@ -3,6 +3,7 @@ package com.llmlocal.recipekeeper.app.di
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.llmlocal.recipekeeper.clip.di.clipModule
+import com.llmlocal.recipekeeper.recipes.di.recipeEditorModule
 import com.llmlocal.recipekeeper.recipes.di.recipesModule
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
@@ -24,4 +25,4 @@ val appModule: Module = module {
 }
 
 /** Every Recipe Keeper module, in install order; `RecipeKeeperApp` appends them to the shared `:core` / `:feature` modules. */
-val recipeKeeperModules: List<Module> = listOf(appModule, recipesModule, clipModule)
+val recipeKeeperModules: List<Module> = listOf(appModule, recipesModule, recipeEditorModule, clipModule)

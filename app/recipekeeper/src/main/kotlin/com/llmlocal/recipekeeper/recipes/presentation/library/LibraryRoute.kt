@@ -38,6 +38,7 @@ fun LibraryRoute(
     onOpenRecipe: (id: String) -> Unit,
     onOpenBrowser: (url: String?) -> Unit,
     onOpenModelManagement: () -> Unit,
+    onOpenEditor: (id: String?) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = koinViewModel(),
 ) {
@@ -50,6 +51,7 @@ fun LibraryRoute(
                 is LibraryEffect.NavigateToRecipe -> onOpenRecipe(effect.id)
                 is LibraryEffect.NavigateToBrowser -> onOpenBrowser(effect.url)
                 LibraryEffect.NavigateToModelManagement -> onOpenModelManagement()
+                is LibraryEffect.NavigateToEditor -> onOpenEditor(effect.id)
                 is LibraryEffect.ShareRecipe -> context.shareText(
                     text = effect.text,
                     chooserTitle = labels.shareRecipe,

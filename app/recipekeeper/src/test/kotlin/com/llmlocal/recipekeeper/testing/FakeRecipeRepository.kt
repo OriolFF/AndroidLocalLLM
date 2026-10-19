@@ -1,6 +1,7 @@
 package com.llmlocal.recipekeeper.testing
 
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import com.llmlocal.recipekeeper.recipes.domain.LibraryFilter
 import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
 import kotlinx.coroutines.flow.Flow
@@ -27,8 +28,20 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
     val recipes: List<ClippedRecipe>
         get() = rows.value.values.toList()
 
-    override fun observeAll(): Flow<List<RecipeSummary>> =
-        rows.map { map -> map.values.sortedByDescending { it.clippedAt }.map { it.toSummary() } }
+    val favouriteCalls = mutableListOf<Pair<String, Boolean>>()
+
+    override fun observeAll(filter: LibraryFilter): Flow<List<RecipeSummary>> =
+        rows.map { map ->
+            map.values.filter { it.matches(filter) }.sortedByDescending { it.clippedAt }.map { it.toSummary() }
+        }
+
+    override suspend fun setFavourite(id: String, favourite: Boolean) {
+        favouriteCalls += id to favourite
+        rows.update { map ->
+            val recipe = map[id] ?: return@update map
+            map + (id to recipe.copy(isFavourite = favourite))
+        }
+    }
 
     override fun observe(id: String): Flow<ClippedRecipe?> = rows.map { it[id] }
 
@@ -77,9 +90,10 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
         }
     }
 
-    override fun search(query: String): Flow<List<RecipeSummary>> = rows.map { map ->
+    override fun search(query: String, filter: LibraryFilter): Flow<List<RecipeSummary>> = rows.map { map ->
         val q = query.trim().lowercase()
         map.values
+            .filter { it.matches(filter) }
             .filter { r -> r.title.lowercase().contains(q) || r.ingredients.any { it.lowercase().contains(q) } }
             .sortedByDescending { it.clippedAt }
             .map { it.toSummary() }
@@ -87,6 +101,8 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
 
     override suspend fun findIdBySourceUrl(url: String): String? =
         rows.value.values.filter { it.sourceUrl == url && it.id !in softDeleted }.maxByOrNull { it.clippedAt }?.id
+
+    private fun ClippedRecipe.matches(filter: LibraryFilter) = !filter.favouritesOnly || isFavourite
 
     private fun ClippedRecipe.toSummary() = RecipeSummary(
         id = id,
@@ -96,6 +112,8 @@ class FakeRecipeRepository(initial: List<ClippedRecipe> = emptyList()) : RecipeR
         heroPicture = pictures.firstOrNull(),
         truncated = truncated,
         clippedAt = clippedAt,
+        isFavourite = isFavourite,
+        origin = origin,
     )
 
     companion object {

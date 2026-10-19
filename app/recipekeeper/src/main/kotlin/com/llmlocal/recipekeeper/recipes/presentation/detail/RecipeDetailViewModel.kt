@@ -8,6 +8,7 @@ import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleIngredientCheckedUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -48,6 +49,7 @@ class RecipeDetailViewModel(
     private val deleteWithUndo: DeleteRecipeWithUndoUseCase,
     private val retryPictures: RetryRecipePicturesUseCase,
     private val shareRecipe: ShareRecipeUseCase,
+    private val toggleFavourite: ToggleFavouriteUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -80,6 +82,10 @@ class RecipeDetailViewModel(
             RecipeDetailIntent.RetryPictures -> onRetryPictures()
             RecipeDetailIntent.OpenOriginal, RecipeDetailIntent.ReExtract -> _state.value.recipe?.let { recipe ->
                 emit(RecipeDetailEffect.NavigateToBrowser(recipe.sourceUrl))
+            }
+            RecipeDetailIntent.Edit -> emit(RecipeDetailEffect.NavigateToEditor(recipeId))
+            RecipeDetailIntent.ToggleFavourite -> _state.value.recipe?.let { recipe ->
+                viewModelScope.launch { toggleFavourite(recipeId, !recipe.isFavourite) }
             }
             RecipeDetailIntent.RequestDelete -> _state.update { it.copy(showDeleteDialog = true) }
             RecipeDetailIntent.DismissDelete -> _state.update { it.copy(showDeleteDialog = false) }
