@@ -3,6 +3,7 @@ package com.llmlocal.recipekeeper.recipes.presentation.library
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -28,7 +29,7 @@ class FavouriteToggleSemanticsTest {
     @Test
     fun stateDescriptionFollowsCheckedState() {
         rule.setContent {
-            var checked by mutableStateOf(false).let { androidx.compose.runtime.remember { it } }
+            var checked by remember { mutableStateOf(false) }
             FavouriteToggle(checked = checked, labels = labels, onCheckedChange = { checked = it })
         }
 
