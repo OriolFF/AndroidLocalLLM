@@ -46,6 +46,8 @@ import org.koin.core.parameter.parametersOf
  *   whatever the shared WebView already shows (blank on first launch)
  * @param onNavigateToExtraction called with the picked candidate id
  * @param onBackToLibrary leading back arrow (WebView history is popped first by system back)
+ * @param onShowSnackbar when set, snackbar messages go here (the host launches them
+ *   in its own scope) instead of suspending this route's effect collector
  * @param snackbarHostState the host's single snackbar state
  */
 @Suppress("UNUSED_PARAMETER") // `sink` is used by the extraction route; kept here for signature parity
@@ -59,6 +61,7 @@ fun <T : Any> WebClipperBrowserRoute(
     onNavigateToExtraction: (candidateId: String) -> Unit,
     onBackToLibrary: () -> Unit,
     snackbarHostState: SnackbarHostState,
+    onShowSnackbar: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val holder: WebViewHolder = koinInject()
@@ -119,7 +122,9 @@ fun <T : Any> WebClipperBrowserRoute(
             when (effect) {
                 is BrowserEffect.NavigateToExtraction -> onNavigateToExtraction(effect.candidateId)
                 BrowserEffect.NavigateToModelManagement -> onNavigateToModelManagement()
-                is BrowserEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                is BrowserEffect.ShowSnackbar ->
+                    if (onShowSnackbar != null) onShowSnackbar(effect.message)
+                    else snackbarHostState.showSnackbar(effect.message)
                 is BrowserEffect.LoadUrl -> holder.loadUrl(effect.url)
                 BrowserEffect.ReloadPage -> holder.reload()
                 BrowserEffect.StopLoading -> holder.stopLoading()

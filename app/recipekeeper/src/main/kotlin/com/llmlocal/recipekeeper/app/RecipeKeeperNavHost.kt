@@ -121,6 +121,7 @@ fun RecipeKeeperNavHost() {
                 onNavigateToExtraction = { candidateId -> navController.navigate(Route.Extract.build(candidateId)) },
                 onBackToLibrary = { navController.popBackStack() },
                 snackbarHostState = snackbarHostState,
+                onShowSnackbar = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
             )
         }
 
@@ -153,6 +154,8 @@ fun RecipeKeeperNavHost() {
                 // Without the shared host "Clip cancelled" / "Saved to your
                 // recipes" were silently dropped (WS10 §Scenario 5).
                 snackbarHostState = snackbarHostState,
+                // Root scope: the snackbar must outlive this popped destination.
+                onShowSnackbar = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
             )
         }
 

@@ -66,4 +66,16 @@ class ImageDownloaderTest {
         assertThat(File(target.parentFile, "hero.jpg.part").exists()).isFalse()
         assertThat(target.parentFile.exists()).isTrue() // created up front, harmless
     }
+
+    @Test
+    fun `request carries referer and cookies only when present`() {
+        val full = downloader.buildRequest("https://cdn.example/a.jpg", "https://example.com/r", "a=1; b=2")
+        assertThat(full.header("Referer")).isEqualTo("https://example.com/r")
+        assertThat(full.header("Cookie")).isEqualTo("a=1; b=2")
+        assertThat(full.header("User-Agent")).isNotEmpty()
+
+        val bare = downloader.buildRequest("https://cdn.example/a.jpg", " ", null)
+        assertThat(bare.header("Referer")).isNull()
+        assertThat(bare.header("Cookie")).isNull()
+    }
 }
