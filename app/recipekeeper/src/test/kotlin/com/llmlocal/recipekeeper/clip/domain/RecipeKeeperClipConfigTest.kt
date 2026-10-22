@@ -453,8 +453,8 @@ class RecipeKeeperClipConfigTest {
 
         assertThat(picked).containsExactly(
             "https://cdn.example.com/lasagne-1x1.jpg",
-            "https://cdn.example.com/lasagne-4x3.jpg",
-            "https://cdn.example.com/lasagne-16x9.jpg",
+            "https://cdn.example.com/lasagne-side.jpg",
+            "https://cdn.example.com/lasagne-slice.jpg",
             "https://cdn.example.com/tw.jpg",
             "https://cdn.example.com/hero.jpg",
             "https://cdn.example.com/step-small.jpg",
@@ -485,8 +485,8 @@ class RecipeKeeperClipConfigTest {
         val lasagne = config.rankPictures(candidates[0], page, max = 8)
         assertThat(lasagne).containsExactly(
             PicturePick("https://cdn.example.com/lasagne-1x1.jpg"),
-            PicturePick("https://cdn.example.com/lasagne-4x3.jpg"),
-            PicturePick("https://cdn.example.com/lasagne-16x9.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-side.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-slice.jpg"),
         ).inOrder()
         val banana = config.rankPictures(candidates[1], page, max = 8)
         assertThat(banana.map { it.url }).containsExactly("https://cdn.example.com/banana-bread.jpg")

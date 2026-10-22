@@ -509,11 +509,22 @@ class RecipeKeeperClipConfig(
             og.forEach { ranked += PicturePick(it, preferred = poolPreferred || structured) }
             pageImages.forEach { ranked += PicturePick(it, preferred = poolPreferred) }
         }
+        val naturalWidth = snapshot.images.associate { it.src to it.naturalWidth }
         return ranked
             .filter { TextCleaner.isHttpUrl(it.url) }
-            .distinctBy { TextCleaner.urlKey(it.url) }
+            .groupBy { PictureKeys.key(it.url) }
+            .values
+            .map { variants ->
+                // Keep the first (best-ranked) slot's flag, but the largest variant's URL.
+                val largest = variants.maxByOrNull { sizeOf(it.url, naturalWidth) }!!
+                variants.first().copy(url = largest.url)
+            }
             .take(max)
     }
+
+    /** Page-measured width, else the width the URL declares, else "unsuffixed original" = biggest. */
+    private fun sizeOf(url: String, natural: Map<String, Int>): Int =
+        natural[url] ?: PictureKeys.declaredWidth(url) ?: Int.MAX_VALUE
 
     // -----------------------------------------------------------------------
     // Helpers

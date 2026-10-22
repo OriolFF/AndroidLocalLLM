@@ -4,8 +4,8 @@
   "name": "Lasagne al forno",
   "image": [
     "https://cdn.example.com/lasagne-1x1.jpg",
-    "https://cdn.example.com/lasagne-4x3.jpg",
-    { "@type": "ImageObject", "contentUrl": "https://cdn.example.com/lasagne-16x9.jpg" }
+    "https://cdn.example.com/lasagne-side.jpg",
+    { "@type": "ImageObject", "contentUrl": "https://cdn.example.com/lasagne-slice.jpg" }
   ],
   "recipeYield": ["6", "6 servings"],
   "totalTime": "PT2H30M",

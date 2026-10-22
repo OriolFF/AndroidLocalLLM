@@ -73,8 +73,8 @@ class SchemaOrgRecipeMapperTest {
         assertThat(recipe.prepMinutes).isNull()
         assertThat(mapper.imageUrls(node.raw)).containsExactly(
             "https://cdn.example.com/lasagne-1x1.jpg",
-            "https://cdn.example.com/lasagne-4x3.jpg",
-            "https://cdn.example.com/lasagne-16x9.jpg",
+            "https://cdn.example.com/lasagne-side.jpg",
+            "https://cdn.example.com/lasagne-slice.jpg",
         ).inOrder()
     }
 
