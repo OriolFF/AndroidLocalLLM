@@ -10,10 +10,14 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.RecipePictureStore
 import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 import com.llmlocal.recipekeeper.clip.domain.TextCleaner
+import com.llmlocal.recipekeeper.clip.domain.detection.LearnDetectionHintsUseCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Persists an extracted recipe: attaches page metadata the parser could
@@ -26,6 +30,10 @@ import java.util.UUID
  * duplicate warning — the old row and its picture folder are replaced),
  * else an existing non-blank id is kept (fallback), else a new one is
  * minted. [existingId] answers the duplicate check by exact source URL.
+ *
+ * After the row is written the sink asks [learning] to learn detection
+ * hints from the page, fire-and-forget on [learningScope]: a failure there
+ * is logged and never reaches the save.
  */
 class RecipeKeeperClipSink(
     private val repository: RecipeRepository,
@@ -36,6 +44,8 @@ class RecipeKeeperClipSink(
     private val preferredPictures: (ClipCandidate, PageSnapshot, Int) -> List<String> = { _, _, _ -> emptyList() },
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Long = System::currentTimeMillis,
+    private val learning: LearnDetectionHintsUseCase? = null,
+    private val learningScope: CoroutineScope? = null,
 ) : ClipSink<ClippedRecipe> {
 
     override suspend fun save(
@@ -76,7 +86,22 @@ class RecipeKeeperClipSink(
             editedAt = null,
         )
         repository.upsert(recipe)
+        learnFrom(snapshot, recipe, candidate, options.usedHints)
         return id
+    }
+
+    private fun learnFrom(snapshot: PageSnapshot, recipe: ClippedRecipe, candidate: ClipCandidate, usedHints: Boolean) {
+        val learn = learning ?: return
+        val scope = learningScope ?: return
+        scope.launch(dispatchers.io) {
+            try {
+                learn(snapshot, recipe, candidate, usedHints)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                runCatching { android.util.Log.w(TAG, "learning detection hints failed", e) }
+            }
+        }
     }
 
     /**
@@ -94,4 +119,8 @@ class RecipeKeeperClipSink(
 
     override suspend fun existingId(snapshot: PageSnapshot): String? =
         withContext(dispatchers.io) { repository.findIdBySourceUrl(snapshot.url) }
+
+    private companion object {
+        const val TAG = "RecipeKeeperClipSink"
+    }
 }

@@ -59,9 +59,13 @@ interface ClipSink<T : Any> {
  *   rank order, so the app can offer "Retry pictures" later without the page
  * @property picturesFailed pictures were proposed but none could be
  *   downloaded (offline, blocked CDN); the app surfaces this on the saved item
+ * @property usedHints the candidate was found thanks to learned detection
+ *   hints (`ClipCandidate.detectedByHints`), so the sink reinforces them
+ *   instead of learning from scratch
  */
 data class ClipSaveOptions(
     val replaceId: String? = null,
     val pictureCandidates: List<String> = emptyList(),
     val picturesFailed: Boolean = false,
+    val usedHints: Boolean = false,
 )

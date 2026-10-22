@@ -11,7 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * v1 → v2: two rows with pictures keep every value; the new columns take
+ * v1 → v2 and v2 → v3: two rows with pictures keep every value; the new columns take
  * their defaults. Run only this class on the QA emulator
  * (`-Pandroid.testInstrumentationRunnerArguments.class=…MigrationTest`).
  */
@@ -72,6 +72,36 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate2To3_createsDetectionHintsAndKeepsRecipes() {
+        helper.createDatabase(DB_V3, 2).use { db ->
+            db.execSQL(
+                """INSERT INTO recipes (id, title, description, servings, prepMinutes, cookMinutes, totalMinutes, ingredients, steps, notes,
+                       sourceUrl, sourceHost, truncated, clippedAt, checkedIngredients, deletedAt, picturesFailed, pictureCandidates, isFavourite, editedAt, origin)
+                   VALUES ('a', 'Soup', NULL, NULL, NULL, NULL, NULL, '[]', '[]', NULL, 'https://example.com/a', 'example.com', 0, 5, '[]', NULL, 0, '[]', 1, NULL, 'CLIPPED')""",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB_V3, 3, true, MIGRATION_2_3).use { db ->
+            db.query("SELECT id, isFavourite FROM recipes").use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("a", c.getString(0))
+                assertEquals(1, c.getInt(1))
+            }
+            db.execSQL("INSERT INTO detection_hints (host, kind, token, confidence, successes, failures, lastSeenAt) VALUES ('', 'UNIT', 'γρ.', 50, 1, 0, 9)")
+            db.query("SELECT host, kind, token, confidence FROM detection_hints").use { c ->
+                assertEquals(1, c.count)
+                assertTrue(c.moveToFirst())
+                assertEquals("", c.getString(0))
+                assertEquals("γρ.", c.getString(2))
+                assertEquals(50, c.getInt(3))
+            }
+            db.query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_detection_hints_host'").use { c ->
+                assertEquals(1, c.count)
+            }
+        }
+    }
+
     private fun insertV1(db: SupportSQLiteDatabase, id: String, title: String, clippedAt: Long, deletedAt: Long?) {
         db.execSQL(
             """INSERT INTO recipes (id, title, description, servings, prepMinutes, cookMinutes, totalMinutes, ingredients, steps, notes,
@@ -84,5 +114,6 @@ class MigrationTest {
 
     private companion object {
         const val DB = "migration-test.db"
+        const val DB_V3 = "migration-test-v3.db"
     }
 }

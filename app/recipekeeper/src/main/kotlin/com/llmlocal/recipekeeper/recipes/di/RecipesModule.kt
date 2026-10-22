@@ -7,6 +7,8 @@ import com.llmlocal.feature.webclipper.di.WEBCLIPPER_TEMP_DIR_QUALIFIER
 import com.llmlocal.recipekeeper.recipes.data.ContentResolverPictureImporter
 import com.llmlocal.recipekeeper.recipes.data.FileRecipePictureStore
 import com.llmlocal.recipekeeper.recipes.data.MIGRATION_1_2
+import com.llmlocal.recipekeeper.recipes.data.MIGRATION_2_3
+import com.llmlocal.recipekeeper.recipes.data.DetectionHintDao
 import com.llmlocal.recipekeeper.recipes.data.ReadinessLibraryModelStatusSource
 import com.llmlocal.recipekeeper.recipes.data.RecipeDao
 import com.llmlocal.recipekeeper.recipes.data.RecipeKeeperDatabase
@@ -58,10 +60,11 @@ val recipesModule: Module = module {
     // ---- data ------------------------------------------------------------
     single<RecipeKeeperDatabase> {
         Room.databaseBuilder(androidContext(), RecipeKeeperDatabase::class.java, RecipeKeeperDatabase.NAME)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
     }
     single<RecipeDao> { get<RecipeKeeperDatabase>().recipeDao() }
+    single<DetectionHintDao> { get<RecipeKeeperDatabase>().detectionHintDao() }
     single<RecipePictureStore> { FileRecipePictureStore(File(androidContext().filesDir, "recipes")) }
     single<RecipeRepository> { RoomRecipeRepository(dao = get(), pictures = get(), dispatchers = get()) }
     single<PictureImporter> { ContentResolverPictureImporter(androidContext(), get()) }
