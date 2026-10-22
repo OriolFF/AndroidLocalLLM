@@ -339,7 +339,22 @@ class RecipeKeeperClipConfig(
 
     override fun fallback(candidate: ClipCandidate, snapshot: PageSnapshot): ClippedRecipe? {
         val payload = candidate.payload as? CandidatePayload.Structured ?: return null
-        return mapper.map(payload.node, sourceUrl = snapshot.url, id = idFactory(), clippedAt = clock())
+        val recipe = mapper.map(payload.node, sourceUrl = snapshot.url, id = idFactory(), clippedAt = clock()) ?: return null
+        // WPRM / Tasty / Mediavine keep Notes outside the JSON-LD (WS-sites defect 4).
+        // On a round-up the page's notes could belong to any recipe, so skip them.
+        val notes = if (recipe.notes == null && detectStructured(snapshot).size == 1) pageNotes(snapshot) else recipe.notes
+        return recipe.copy(notes = notes)
+    }
+
+    /** First heading section matching [notesWord], cleaned and cut to [MAX_NOTES_CHARS] at a word. */
+    private fun pageNotes(snapshot: PageSnapshot): String? {
+        val text = snapshot.sections
+            .firstOrNull { s -> s.heading?.let { notesWord.containsMatchIn(it) } == true && TextCleaner.clean(s.text).isNotBlank() }
+            ?.let { TextCleaner.clean(it.text) }
+            ?: return null
+        if (text.length <= MAX_NOTES_CHARS) return text
+        val cut = text.take(MAX_NOTES_CHARS)
+        return cut.substring(0, cut.lastIndexOf(' ').takeIf { it > MAX_NOTES_CHARS / 2 } ?: MAX_NOTES_CHARS).trimEnd() + "…"
     }
 
     /**
@@ -546,6 +561,7 @@ class RecipeKeeperClipConfig(
         private const val SNIPPET_CHARS = 100
         private const val MIN_BODY_CHARS = 200
         private const val MIN_NATURAL_PX = 300
+        private const val MAX_NOTES_CHARS = 600
         private const val MIN_METHOD_COVERAGE = 0.6
         private const val MIN_PARAGRAPH_CHARS = 40
         private val wordRegex = Regex("\\p{L}+")

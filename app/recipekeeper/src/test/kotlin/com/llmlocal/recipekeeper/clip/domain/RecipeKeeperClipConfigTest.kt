@@ -377,6 +377,28 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `fallback attaches the page's notes section, capped at 600 chars`() {
+        val long = "Use a deep skillet. ".repeat(60)
+        val page = snapshot(
+            jsonLd = listOf(loadJsonLd("single_recipe")),
+            sections = listOf(
+                section("Ingredients", 2, "3 ripe bananas", 0),
+                section("Notes", 2, long, 100),
+            ),
+        )
+        val recipe = config.fallback(config.detect(page).single(), page)!!
+
+        assertThat(recipe.notes).isNotNull()
+        assertThat(recipe.notes!!.length).isAtMost(601)
+        assertThat(recipe.notes).startsWith("Use a deep skillet.")
+        // No notes section → null; round-up (two recipes) → null.
+        val bare = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        assertThat(config.fallback(config.detect(bare).single(), bare)!!.notes).isNull()
+        val roundUp = page.copy(jsonLd = listOf(loadJsonLd("single_recipe"), loadJsonLd("howto_sections")))
+        assertThat(config.fallback(config.detect(roundUp).first(), roundUp)!!.notes).isNull()
+    }
+
+    @Test
     fun `accept requires two quantity ingredients for whole-page results`() {
         val page = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
         val whole = wholePageCandidate(page)
