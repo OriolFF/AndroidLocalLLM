@@ -51,6 +51,8 @@ class ImageDownloader(
      * @param into destination file; its parent directory is created,
      *   and the file is overwritten on success
      * @param maxLongEdgePx resize bound for the longer edge
+     * @param cookies value for the `Cookie` header (e.g. the WebView's cookies
+     *   for the image host), or `null`; some CDNs bot-protect hot-linking
      * @return [Outcome.Success] with [into], or [Outcome.Failure] with the
      *   network/decode error. No partial file is left behind on failure.
      */
@@ -59,13 +61,14 @@ class ImageDownloader(
         referer: String?,
         into: File,
         maxLongEdgePx: Int,
+        cookies: String? = null,
     ): Outcome<File> = withContext(dispatchers.io) {
         if (url.isBlank()) return@withContext Outcome.Failure(IllegalArgumentException("blank url"))
         if (maxLongEdgePx <= 0) return@withContext Outcome.Failure(IllegalArgumentException("maxLongEdgePx must be > 0"))
         val part = File(into.parentFile, into.name + PART_SUFFIX)
         try {
             into.parentFile?.mkdirs()
-            fetchTo(url, referer, part)
+            fetchTo(url, referer, cookies, part)
             resizeToJpeg(part, into, maxLongEdgePx)
             Outcome.Success(into)
         } catch (t: Throwable) {
@@ -76,14 +79,26 @@ class ImageDownloader(
         }
     }
 
-    private suspend fun fetchTo(url: String, referer: String?, part: File) {
-        val request = Request.Builder()
+    /** Request headers for one attempt; `Referer`/`Cookie` only when non-blank. */
+    internal fun buildRequest(url: String, referer: String?, cookies: String?): Request =
+        Request.Builder()
             .url(url)
             .header("User-Agent", BROWSER_USER_AGENT)
             .header("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
-            .apply { if (!referer.isNullOrBlank()) header("Referer", referer) }
+            .apply {
+                if (!referer.isNullOrBlank()) header("Referer", referer)
+                if (!cookies.isNullOrBlank()) header("Cookie", cookies)
+            }
             .build()
-        client.newCall(request).await().use { response ->
+
+    private suspend fun fetchTo(url: String, referer: String?, cookies: String?, part: File) {
+        var response = client.newCall(buildRequest(url, referer, cookies)).await()
+        // Some CDNs 403 on a foreign Referer: retry once without it.
+        if (response.code == 403 && !referer.isNullOrBlank()) {
+            response.close()
+            response = client.newCall(buildRequest(url, null, cookies)).await()
+        }
+        response.use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code} for $url")
             val body = response.body
             val declared = body.contentLength()
