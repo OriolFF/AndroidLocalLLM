@@ -32,6 +32,8 @@ class RecipeKeeperClipSink(
     private val pictures: RecipePictureStore,
     private val dispatchers: DispatcherProvider,
     private val untitledTitle: String,
+    /** The config's pre-checked picks among the proposed pictures (`rankPictures().filter { preferred }`). */
+    private val preferredPictures: (ClipCandidate, PageSnapshot, Int) -> List<String> = { _, _, _ -> emptyList() },
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ClipSink<ClippedRecipe> {
@@ -68,13 +70,26 @@ class RecipeKeeperClipSink(
             truncated = item.truncated || truncated,
             clippedAt = if (item.clippedAt > 0) item.clippedAt else clock(),
             picturesFailed = options.picturesFailed && paths.isEmpty(),
-            pictureCandidates = options.pictureCandidates,
+            pictureCandidates = retryCandidates(candidate, snapshot, options),
             isFavourite = wasFavourite,
             origin = RecipeOrigin.CLIPPED,
             editedAt = null,
         )
         repository.upsert(recipe)
         return id
+    }
+
+    /**
+     * What "Retry pictures" may download later: the pictures the clipper would
+     * have pre-checked, not every proposal (the unchecked page / related-recipe
+     * images made a retry bring in pictures the clip had left out — WS12 D).
+     * Falls back to the whole list when none of the proposals is preferred.
+     */
+    private fun retryCandidates(candidate: ClipCandidate, snapshot: PageSnapshot, options: ClipSaveOptions): List<String> {
+        val proposed = options.pictureCandidates
+        if (proposed.isEmpty()) return proposed
+        val preferred = preferredPictures(candidate, snapshot, proposed.size).toSet()
+        return proposed.filter { it in preferred }.ifEmpty { proposed }
     }
 
     override suspend fun existingId(snapshot: PageSnapshot): String? =

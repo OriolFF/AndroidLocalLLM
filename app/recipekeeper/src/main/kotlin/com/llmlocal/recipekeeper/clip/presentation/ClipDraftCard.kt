@@ -100,7 +100,7 @@ fun ClipDraftCard(
             IngredientsBlock(draft, isRunning, labels)
             StepsBlock(draft, isRunning, labels)
             NotesBlock(draft, labels)
-            TailBlock(streamedText, draft.tail, isRunning, labels)
+            TailBlock(draft, isRunning, labels)
 
             // Milestone live region — the only thing TalkBack hears unprompted.
             Text(
@@ -280,16 +280,22 @@ private fun NotesBlock(draft: RecipeDraft, labels: RecipeKeeperLibraryLabels) {
     }
 }
 
-/** Dimmed unparsed tail + cursor while running; a "waiting" line before the first token. */
+/**
+ * Dimmed unparsed tail + cursor while running; a "waiting" line until
+ * something readable has been parsed (the first raw bytes are `{` or
+ * whitespace under the JSON response format, so "bytes received" is no
+ * signal — WS12 C).
+ */
 @Composable
-private fun TailBlock(streamedText: String, tail: String, isRunning: Boolean, labels: RecipeKeeperLibraryLabels) {
+private fun TailBlock(draft: RecipeDraft, isRunning: Boolean, labels: RecipeKeeperLibraryLabels) {
+    val tail = draft.tail
     if (!isRunning) return
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        if (streamedText.isBlank()) {
+        if (draft.isEmpty && tail.isBlank()) {
             Text(
                 text = labels.draftWaiting,
                 style = MaterialTheme.typography.bodyMedium,

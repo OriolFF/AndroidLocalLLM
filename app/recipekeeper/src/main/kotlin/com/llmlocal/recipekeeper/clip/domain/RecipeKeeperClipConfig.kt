@@ -28,7 +28,8 @@ import kotlin.math.abs
  * finds nothing): a heading section is a TEXT candidate when its text has
  * at least [MIN_QUANTITY_LINES] quantity-unit lines, or its heading is an
  * "ingredients" word and an "instructions" word follows within the next
- * sections. A recipe-ish URL path relaxes the line threshold by one. When
+ * sections. A recipe-ish URL path relaxes the line threshold by one, but only when that
+ * yields a single section and the path is not list-style (collection, category, tag, search, gallery, round-up). When
  * neither tier finds anything the list is **empty**: the feature then shows
  * its "No recipe found" sheet, whose "Extract anyway" builds the `WholePage`
  * candidate itself (`wholePageCandidate(snapshot)`); `detect` never offers
@@ -117,16 +118,18 @@ class RecipeKeeperClipConfig(
     private fun detectText(snapshot: PageSnapshot): List<ClipCandidate> {
         val sections = snapshot.sections
         if (sections.isEmpty()) return emptyList()
-        val threshold = if (hasRecipePath(snapshot.url)) MIN_QUANTITY_LINES - 1 else MIN_QUANTITY_LINES
 
-        val picked = mutableListOf<Pair<Int, TextSection>>()
-        var coveredLevel: Int? = null // level of the last candidate; deeper sections until a shallower heading are "covered"
-        sections.forEachIndexed { index, section ->
-            if (coveredLevel != null && section.level <= coveredLevel!!) coveredLevel = null
-            if (coveredLevel != null) return@forEachIndexed
-            if (isRecipeSection(sections, index, threshold)) {
-                picked += index to section
-                coveredLevel = section.level
+        // Strict threshold first. A recipe-ish path may relax it by one, but only
+        // when that finds exactly one section: a real recipe page has one
+        // ingredient block, a collection page has one per card (WS12 A), and a
+        // list-style path never relaxes.
+        var threshold = MIN_QUANTITY_LINES
+        var picked = pickSections(sections, threshold)
+        if (picked.isEmpty() && hasRecipePath(snapshot.url) && !hasListPath(snapshot.url)) {
+            val relaxed = pickSections(sections, MIN_QUANTITY_LINES - 1)
+            if (relaxed.size == 1) {
+                picked = relaxed
+                threshold = MIN_QUANTITY_LINES - 1
             }
         }
 
@@ -146,6 +149,20 @@ class RecipeKeeperClipConfig(
                     payload = CandidatePayload.Text(section),
                 )
             }
+    }
+
+    private fun pickSections(sections: List<TextSection>, threshold: Int): List<Pair<Int, TextSection>> {
+        val picked = mutableListOf<Pair<Int, TextSection>>()
+        var coveredLevel: Int? = null // level of the last candidate; deeper sections until a shallower heading are "covered"
+        sections.forEachIndexed { index, section ->
+            if (coveredLevel != null && section.level <= coveredLevel!!) coveredLevel = null
+            if (coveredLevel != null) return@forEachIndexed
+            if (isRecipeSection(sections, index, threshold)) {
+                picked += index to section
+                coveredLevel = section.level
+            }
+        }
+        return picked
     }
 
     private fun isRecipeSection(sections: List<TextSection>, index: Int, threshold: Int): Boolean {
@@ -191,7 +208,10 @@ class RecipeKeeperClipConfig(
             is CandidatePayload.Text -> renderSection(payload.section, snapshot, available)
             CandidatePayload.WholePage -> renderWholePage(snapshot)
         }
-        return header + "\n\n" + truncateAtParagraph(body, available)
+        val trimmed = truncateAtParagraph(body, available)
+        // [accept] has no snapshot: remember what the model was shown for a TEXT candidate.
+        if (candidate.payload is CandidatePayload.Text) renderedText[candidate.id] = trimmed
+        return header + "\n\n" + trimmed
     }
 
     private fun pageHeader(snapshot: PageSnapshot): String {
@@ -336,7 +356,22 @@ class RecipeKeeperClipConfig(
 
     override fun fallback(candidate: ClipCandidate, snapshot: PageSnapshot): ClippedRecipe? {
         val payload = candidate.payload as? CandidatePayload.Structured ?: return null
-        return mapper.map(payload.node, sourceUrl = snapshot.url, id = idFactory(), clippedAt = clock())
+        val recipe = mapper.map(payload.node, sourceUrl = snapshot.url, id = idFactory(), clippedAt = clock()) ?: return null
+        // WPRM / Tasty / Mediavine keep Notes outside the JSON-LD (WS-sites defect 4).
+        // On a round-up the page's notes could belong to any recipe, so skip them.
+        val notes = if (recipe.notes == null && detectStructured(snapshot).size == 1) pageNotes(snapshot) else recipe.notes
+        return recipe.copy(notes = notes)
+    }
+
+    /** First heading section matching [notesWord], cleaned and cut to [MAX_NOTES_CHARS] at a word. */
+    private fun pageNotes(snapshot: PageSnapshot): String? {
+        val text = snapshot.sections
+            .firstOrNull { s -> s.heading?.let { notesWord.containsMatchIn(it) } == true && TextCleaner.clean(s.text).isNotBlank() }
+            ?.let { TextCleaner.clean(it.text) }
+            ?: return null
+        if (text.length <= MAX_NOTES_CHARS) return text
+        val cut = text.take(MAX_NOTES_CHARS)
+        return cut.substring(0, cut.lastIndexOf(' ').takeIf { it > MAX_NOTES_CHARS / 2 } ?: MAX_NOTES_CHARS).trimEnd() + "…"
     }
 
     /**
@@ -349,9 +384,18 @@ class RecipeKeeperClipConfig(
      */
     override val skipModelWhenStructuredComplete: Boolean = true
 
-    /** The eval's quality bar: enough ingredients and more than one step. */
-    override fun isComplete(item: ClippedRecipe): Boolean =
-        item.ingredients.size >= MIN_COMPLETE_INGREDIENTS && item.steps.size >= MIN_COMPLETE_STEPS
+    /**
+     * The eval's quality bar: enough ingredients, more than one step, steps
+     * with substance (mean length ≥ [MIN_MEAN_STEP_CHARS] or ≥
+     * [MIN_TOTAL_STEP_CHARS] in all — a one-blob or paraphrased method fails)
+     * and no dash-joined ingredient line (the list was one string).
+     */
+    override fun isComplete(item: ClippedRecipe): Boolean {
+        if (item.ingredients.size < MIN_COMPLETE_INGREDIENTS || item.steps.size < MIN_COMPLETE_STEPS) return false
+        val total = item.steps.sumOf { it.length }
+        if (total / item.steps.size < MIN_MEAN_STEP_CHARS && total < MIN_TOTAL_STEP_CHARS) return false
+        return item.ingredients.none { joinedSeparator.findAll(it).count() >= MIN_JOINED_SEPARATORS }
+    }
 
     /**
      * Quality floor on a parsed model result.
@@ -369,11 +413,67 @@ class RecipeKeeperClipConfig(
      */
     override fun accept(candidate: ClipCandidate, item: ClippedRecipe): Boolean {
         val quantityLines = item.ingredients.count { quantityLine.containsMatchIn(it.trim()) }
-        return when (candidate.payload) {
+        return when (val payload = candidate.payload) {
             CandidatePayload.WholePage -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES
+            is CandidatePayload.Text ->
+                (quantityLines >= MIN_ACCEPT_QUANTITY_LINES || item.steps.size >= MIN_COMPLETE_STEPS) &&
+                    stepsCoverMethod(renderedText[candidate.id] ?: sectionText(payload.section), item.steps)
             else -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES || item.steps.size >= MIN_COMPLETE_STEPS
         }
     }
+
+    /** Rendered body of the last TEXT candidate per id, for [accept]'s coverage check. */
+    private val renderedText = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /**
+     * Smitten-style failure: the page has long method paragraphs and the model
+     * answered with a two-line paraphrase. The method is the text after the
+     * last instructions heading (else after the last quantity line) up to a
+     * notes heading; the parsed [steps] must reuse ≥ [MIN_METHOD_COVERAGE] of
+     * its words and number at least half its paragraphs. Without a clear
+     * method (fewer than two paragraphs) there is nothing to compare, so the
+     * result is believed.
+     */
+    private fun stepsCoverMethod(rendered: String, steps: List<String>): Boolean {
+        val paragraphs = methodParagraphs(rendered)
+        if (paragraphs.size < 2) return true
+        val source = paragraphs.flatMap(::words).toSet()
+        if (source.isEmpty()) return true
+        val parsed = steps.flatMap(::words).toSet()
+        val coverage = source.count { it in parsed }.toDouble() / source.size
+        return coverage >= MIN_METHOD_COVERAGE && steps.size * 2 >= paragraphs.size
+    }
+
+    private fun methodParagraphs(rendered: String): List<String> {
+        val lines = rendered.lines()
+        val headingIdx = lines.indexOfLast { it.startsWith("## ") && instructionsWord.containsMatchIn(it) }
+        val method = mutableListOf<String>()
+        if (headingIdx >= 0) {
+            for (line in lines.drop(headingIdx + 1)) {
+                if (line.startsWith("## ") && notesWord.containsMatchIn(line)) break
+                val trimmed = line.trim()
+                if (isParagraph(trimmed)) method += trimmed
+            }
+            return method
+        }
+        // No instructions heading (blog prose): only the run of paragraphs right
+        // after the ingredient lines counts; the first short line (related links,
+        // comments header, …) ends it, so page furniture is never "the method".
+        val start = lines.indexOfLast { quantityLine.containsMatchIn(it.trim()) } + 1
+        for (line in lines.drop(start)) {
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) continue
+            if (!isParagraph(trimmed)) break
+            method += trimmed
+        }
+        return method
+    }
+
+    private fun isParagraph(line: String): Boolean =
+        line.length >= MIN_PARAGRAPH_CHARS && !line.startsWith("## ") && !quantityLine.containsMatchIn(line)
+
+    private fun words(text: String): List<String> =
+        wordRegex.findAll(text.lowercase()).map { it.value }.filter { it.length >= 3 }.toList()
 
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
         rankPictures(candidate, snapshot, max).map { it.url }
@@ -426,11 +526,22 @@ class RecipeKeeperClipConfig(
             og.forEach { ranked += PicturePick(it, preferred = poolPreferred || structured) }
             pageImages.forEach { ranked += PicturePick(it, preferred = poolPreferred) }
         }
+        val naturalWidth = snapshot.images.associate { it.src to it.naturalWidth }
         return ranked
             .filter { TextCleaner.isHttpUrl(it.url) }
-            .distinctBy { TextCleaner.urlKey(it.url) }
+            .groupBy { PictureKeys.key(it.url) }
+            .values
+            .map { variants ->
+                // Keep the first (best-ranked) slot's flag, but the largest variant's URL.
+                val largest = variants.maxByOrNull { sizeOf(it.url, naturalWidth) }!!
+                variants.first().copy(url = largest.url)
+            }
             .take(max)
     }
+
+    /** Page-measured width, else the width the URL declares, else "unsuffixed original" = biggest. */
+    private fun sizeOf(url: String, natural: Map<String, Int>): Int =
+        natural[url] ?: PictureKeys.declaredWidth(url) ?: Int.MAX_VALUE
 
     // -----------------------------------------------------------------------
     // Helpers
@@ -449,6 +560,9 @@ class RecipeKeeperClipConfig(
 
     private fun hasRecipePath(url: String): Boolean =
         recipePath.containsMatchIn(runCatching { java.net.URI(url).path.orEmpty() }.getOrDefault(url))
+
+    private fun hasListPath(url: String): Boolean =
+        listPath.containsMatchIn(runCatching { java.net.URI(url).path.orEmpty() }.getOrDefault(url))
 
     private fun isRecipeType(type: String): Boolean =
         type.equals("Recipe", ignoreCase = true) || type.endsWith("/Recipe", ignoreCase = true) || type.endsWith(":Recipe", ignoreCase = true)
@@ -469,11 +583,19 @@ class RecipeKeeperClipConfig(
         const val MIN_ACCEPT_QUANTITY_LINES = 2
         const val MIN_COMPLETE_INGREDIENTS = 3
         const val MIN_COMPLETE_STEPS = 2
+        const val MIN_MEAN_STEP_CHARS = 25
+        const val MIN_TOTAL_STEP_CHARS = 120
+        private const val MIN_JOINED_SEPARATORS = 3
+        private val joinedSeparator = Regex("\\s[-–]\\s")
         private const val LOOKAHEAD_SECTIONS = 3
         private const val MAX_FOLLOWING_SECTIONS = 6
         private const val SNIPPET_CHARS = 100
         private const val MIN_BODY_CHARS = 200
         private const val MIN_NATURAL_PX = 300
+        private const val MAX_NOTES_CHARS = 600
+        private const val MIN_METHOD_COVERAGE = 0.6
+        private const val MIN_PARAGRAPH_CHARS = 40
+        private val wordRegex = Regex("\\p{L}+")
 
         /** `2 cups flour`, `½ tsp salt`, `200 g butter`, `1/2 onion`, `3 eggs`. */
         val quantityLine: Regex = Regex(
@@ -492,6 +614,8 @@ class RecipeKeeperClipConfig(
             RegexOption.IGNORE_CASE,
         )
         val notesWord: Regex = Regex("\\b(notes?|tips?|notas|consejos|hinweise|tipps|remarques|conseils|serving|storage)\\b", RegexOption.IGNORE_CASE)
+        /** List-style URL paths: collections, categories, tags, search, galleries, round-ups. */
+        val listPath: Regex = Regex("(?:^|[/_\\-])(?:collections?|categor(?:y|ies)|tags?|search|galleries|gallery|roundups?)(?:[/_\\-.]|$)", RegexOption.IGNORE_CASE)
         val recipePath: Regex = Regex("(recipe|recipes|rezept|rezepte|receta|recetas|recepta|receptes|recette|recettes|ricetta|ricette)", RegexOption.IGNORE_CASE)
     }
 }

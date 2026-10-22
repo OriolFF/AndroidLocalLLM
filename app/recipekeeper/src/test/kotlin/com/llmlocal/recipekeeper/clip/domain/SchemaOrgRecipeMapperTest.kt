@@ -23,7 +23,7 @@ class SchemaOrgRecipeMapperTest {
             .put("recipeInstructions", "Mix.")
         val recipe = mapper.map(JsonLdNode(listOf("Recipe"), raw), url)!!
 
-        assertThat(recipe.ingredients).containsExactly("250g potatoes", "6tbsp olive oil", "2 eggs", "6.75 ounces flour", "0.05 g saffron", "1.50 cups milk").inOrder()
+        assertThat(recipe.ingredients).containsExactly("250 g potatoes", "6 tbsp olive oil", "2 eggs", "6.75 ounces flour", "0.05 g saffron", "1.50 cups milk").inOrder()
         assertThat(recipe.servings).isEqualTo("Makes 10 items")
         assertThat(TextCleaner.tidyNumbers("10.0")).isEqualTo("10")
         assertThat(TextCleaner.tidyNumbers("Serves 4.0–6.0, 3.05 kg")).isEqualTo("Serves 4–6, 3.05 kg")
@@ -73,8 +73,8 @@ class SchemaOrgRecipeMapperTest {
         assertThat(recipe.prepMinutes).isNull()
         assertThat(mapper.imageUrls(node.raw)).containsExactly(
             "https://cdn.example.com/lasagne-1x1.jpg",
-            "https://cdn.example.com/lasagne-4x3.jpg",
-            "https://cdn.example.com/lasagne-16x9.jpg",
+            "https://cdn.example.com/lasagne-side.jpg",
+            "https://cdn.example.com/lasagne-slice.jpg",
         ).inOrder()
     }
 
@@ -125,5 +125,97 @@ class SchemaOrgRecipeMapperTest {
     fun `missing name falls back to Untitled recipe`() {
         val node = loadJsonLd("legacy_text_array").also { it.raw.remove("name") }
         assertThat(mapper.map(node, url)!!.title).isEqualTo("Untitled recipe")
+    }
+
+    private fun recipeWith(ingredients: Any? = null, instructions: Any? = null): com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe {
+        val raw = JSONObject().put("@type", "Recipe").put("name", "X")
+        if (ingredients != null) raw.put("recipeIngredient", ingredients)
+        if (instructions != null) raw.put("recipeInstructions", instructions)
+        return mapper.map(JsonLdNode(listOf("Recipe"), raw), url)!!
+    }
+
+    @Test
+    fun `a single long instruction blob is split on sentence boundaries`() {
+        val blob = "Pela y trocea las verduras y sofríelas en aceite durante cinco minutos. Añade el agua y la pastilla de caldo y lleva a ebullición. " +
+            "Baja el fuego, tapa y ponemos las verduras a cocer 15 minutos desde que el caldo empiece a hervir, removiendo de vez en cuando. Tritura todo y sirve con cilantro picado."
+        val steps = recipeWith(ingredients = JSONArray(listOf("a", "b", "c")), instructions = blob).steps
+
+        assertThat(steps).hasSize(4)
+        assertThat(steps[2]).contains("ponemos las verduras a cocer 15 minutos")
+        // A short instruction stays whole.
+        assertThat(recipeWith(instructions = "Mix. Bake.").steps).containsExactly("Mix. Bake.")
+    }
+
+    @Test
+    fun `dash-joined ingredient strings are split into lines`() {
+        val glued = "150grs de farina-75grs de margarina-400grs de poma-1rovell d'ou-75grs de sucre-"
+        assertThat(recipeWith(ingredients = glued).ingredients).containsExactly(
+            "150 grs de farina", "75 grs de margarina", "400 grs de poma", "1 rovell d'ou", "75 grs de sucre",
+        ).inOrder()
+        assertThat(recipeWith(ingredients = "2 cups flour - 1 egg - 3 tbsp sugar").ingredients)
+            .containsExactly("2 cups flour", "1 egg", "3 tbsp sugar").inOrder()
+        // Fewer than three parts: untouched.
+        assertThat(recipeWith(ingredients = "1 cup sugar - or honey").ingredients).containsExactly("1 cup sugar - or honey")
+    }
+
+    @Test
+    fun `servings are shortened to a chip-sized first clause`() {
+        assertThat(TextCleaner.shortServings("16 XL cookies or 20 medium/large cookies")).isEqualTo("16 XL cookies")
+        assertThat(TextCleaner.shortServings("about 12 slices")).isEqualTo("about 12 slices")
+        assertThat(TextCleaner.shortServings("4")).isEqualTo("4")
+        assertThat(TextCleaner.shortServings("Makes about 4 - 4 1/2 inch (10 cm) square Belgain waffles, or 4 - 6 1/2 inch (16.5 cm) round regular waffles."))
+            .isEqualTo("Makes about 4 - 4 1/2 inch (10 cm)…")
+        assertThat(TextCleaner.shortServings("Serves 6. Keeps well for three days.")).isEqualTo("Serves 6")
+        assertThat(TextCleaner.shortServings("  ")).isNull()
+        val raw = JSONObject().put("@type", "Recipe").put("recipeYield", "16 XL cookies or 20 medium/large cookies").put("recipeIngredient", "a")
+        assertThat(mapper.map(JsonLdNode(listOf("Recipe"), raw), url)!!.servings).isEqualTo("16 XL cookies")
+    }
+
+    @Test
+    fun `quantity glued to a unit gets a space, other text is untouched`() {
+        assertThat(TextCleaner.separateUnits("2tablespoon Aceite de oliva")).isEqualTo("2 tablespoon Aceite de oliva")
+        assertThat(TextCleaner.separateUnits("1level tsp baking powder")).isEqualTo("1 level tsp baking powder")
+        assertThat(TextCleaner.separateUnits("1l Agua")).isEqualTo("1 l Agua")
+        assertThat(TextCleaner.separateUnits("3tbsp brandy")).isEqualTo("3 tbsp brandy")
+        assertThat(TextCleaner.separateUnits("250g flour")).isEqualTo("250 g flour")
+        assertThat(TextCleaner.separateUnits("2EL Zucker, 1Prise Salz")).isEqualTo("2 EL Zucker, 1 Prise Salz")
+        assertThat(TextCleaner.separateUnits("2cuillères à soupe, 1pizzico di sale")).isEqualTo("2 cuillères à soupe, 1 pizzico di sale")
+        // Not units: ordinals, sizes, ranges, already spaced, words that merely start like a unit.
+        assertThat(TextCleaner.separateUnits("the 2nd rise, 3D printer, 1 cup, 2 large eggs, 1large egg"))
+            .isEqualTo("the 2nd rise, 3D printer, 1 cup, 2 large eggs, 1 large egg")
+        assertThat(TextCleaner.separateUnits("1-2 tbsp, 1.5kg, 6.75 ounces")).isEqualTo("1-2 tbsp, 1.5 kg, 6.75 ounces")
+        assertThat(recipeWith(ingredients = JSONArray(listOf("2tablespoon Aceite", "1teaspoon Ajo en polvo", "1l Agua"))).ingredients)
+            .containsExactly("2 tablespoon Aceite", "1 teaspoon Ajo en polvo", "1 l Agua").inOrder()
+    }
+
+    @Test
+    fun `newline inside a step does not split a continuation and promo lines are dropped`() {
+        val steps = recipeWith(
+            instructions = JSONArray(
+                listOf(
+                    "Bake until golden brown, about 30 minutes.\n\nTo see a full visual walkthrough of this recipe, see our video on how to make Classic Birthday Cake.",
+                    "Let the cake cool completely\nbefore frosting it with the buttercream.",
+                    "Whisk the eggs.\nwatch the sugar so it does not burn.",
+                    "Watch the oven carefully near the end.",
+                ),
+            ),
+        ).steps
+
+        assertThat(steps).containsExactly(
+            "Bake until golden brown, about 30 minutes.",
+            "Let the cake cool completely before frosting it with the buttercream.",
+            "Whisk the eggs. watch the sugar so it does not burn.",
+            "Watch the oven carefully near the end.",
+        ).inOrder()
+    }
+
+    @Test
+    fun `host drops www, m and mobile prefixes`() {
+        assertThat(TextCleaner.host("https://m.joyofbaking.com/waffles.html")).isEqualTo("joyofbaking.com")
+        assertThat(TextCleaner.host("https://mobile.example.co.uk/r")).isEqualTo("example.co.uk")
+        assertThat(TextCleaner.host("https://www.m.example.com/r")).isEqualTo("example.com")
+        assertThat(TextCleaner.host("https://www.bbcgoodfood.com/r")).isEqualTo("bbcgoodfood.com")
+        assertThat(TextCleaner.host("https://m.com/r")).isEqualTo("m.com")
+        assertThat(TextCleaner.host("not a url")).isEmpty()
     }
 }

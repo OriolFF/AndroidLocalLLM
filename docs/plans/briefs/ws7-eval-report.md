@@ -38,35 +38,59 @@ whose lumped microdata step the model splits into 9 and which `isComplete` would
 on this Mac, and its remaining deviations are time fabrications (Guardian) rather than improvements. Flipping the switch
 is one line in `RecipeKeeperClipConfig`; it is left off until device numbers exist (path (b)).
 
+
+## X2 refresh (2026-10-22) — prompt: copy every instruction, no inferred times
+
+Prompt change only (`RecipeKeeperPromptBuilder.SYSTEM`): "copy every instruction … never summarise, merge or drop steps",
+and times only when the page labels them ("Prep time", "Cook time", "Total time") — never inferred, estimated or added up
+from step durations. Parser unchanged (it already accepts absent time lines). All 10 goldens regenerated with the same
+model/sampler/runner (`tools/eval/run_local_model.sh`, 10/10 ok, 3 min total); `EvalParserTest` stays green (all fixtures OK,
+no known issues). The eval Jaccard now ignores digit/letter spacing (`250g` = `250 g`) because the mapper spaces glued units.
+
+| Fixture | Before (WS8 goldens) | After (X2 goldens) | Note |
+|---|---|---|---|
+| `micro_nigella_banana_bread` | –/–/**180** (derived 1 h soak + bake) | –/–/**–** | the inferred total is gone — the targeted defect (QA-sites defect 10) |
+| `plain_joyofbaking_pancakes` | 15/**3**/**18** | 15/**2**/**17** | **not fixed**: the model still derives cook/total from "2-3 minutes" in the steps (page states only "Preparation time 15 minutes"); the numbers moved, the behaviour did not |
+| `roundup_guardian_slater` | 15/10/25 | 15/10/25 | **not fixed**: node has no time fields, model still derives them from step text. Not user-visible in the app: Guardian is STRUCTURED+complete and skips the model |
+| `graph_pinchofyum_cookies` | 5 steps | 7 steps | more steps (unverified against the page's own count; Jaccard 1.00, nothing dropped) |
+| `plain_cfe_banana_bread`, `micro_nigella_banana_bread` | 11 / 9 steps | 12 / 11 steps | more, finer steps; cfe passes the new TEXT acceptance check |
+| `howto_recipetineats_tikka` | 16 steps | 15 steps | one merged step (mapper has 16); Jaccard still 1.00 |
+| others | OK | OK | unchanged; `list_pinchofyum_recipes` still answers `NO RECIPE` |
+
+Totals per fixture moved by −1.6 s … +4.8 s (decode ~30 tok/s unchanged; theperfectloaf is the slowest at 27.2 s, +4.8 s, with the
+same 8 steps — run-to-run noise on a busy Mac). **Net:** one inferred time removed (Nigella), two persist (Joy of Baking,
+Guardian) — a 2B model does not reliably obey "never infer"; a hard guarantee would need a deterministic post-filter (e.g. drop a
+time when the page text has no `prep|cook|total|time|tiempo|zeit|temps` label near a number) — not done here.
+
 ---
 
 # Recipe Keeper eval report
 
-Generated 2026-10-18T22:39:44+02:00[Europe/Madrid] by `EvalParserTest` from 10 fixtures.
+Generated 2026-10-22T22:35:43+02:00[Europe/Madrid] by `EvalParserTest` from 10 fixtures.
 Goldens produced by `tools/eval/run_local_model.py (litert_lm python wheel)` — model `gemma-4-E2B-it.litertlm` (sha256 `181938105e0e…`), backend CPU, host `macOS-26.6.2-arm64-arm-64bit` Oriols-M4-Max arm64, sampler {"topK":40,"seed":0,"maxNumTokens":4096,"temperature":0.2,"topP":0.95,"maxOutputTokens":1024}.
 
 ## Per fixture
 
 | Fixture | Tier | Cands | Prompt chars | Output chars | Status | Title | Servings | Prep/Cook/Total min | Ingr (src) | Steps | Notes | Jaccard | TTFT ms | Total ms | Decode tok/s | Cap hit |
 |---|---|---:|---:|---:|---|---|---|---|---|---:|---|---:|---:|---:|---:|---|
-| single_bbcgoodfood_pancakes | STRUCTURED | 1 | 2634 | 1695 | OK | Classic pancakes | 8 pancakes | –/–/30 | 4 (4) | 4 | yes | 1.00 | 1086 | 15398 | 30.2 | false |
-| graph_pinchofyum_cookies | STRUCTURED | 1 | 3425 | 2261 | OK | The Best Soft Chocolate Chip Cookies | 12 cookies | 10/10/20 | 9 (9) | 5 | yes | 1.00 | 1288 | 20501 | 30.5 | false |
-| roundup_guardian_slater | STRUCTURED | 5 | 2970 | 1902 | OK | Feta and potato pancakes with smoked sal | Makes 10 items | 15/10/25 | 9 (9) | 8 | yes | 1.00 | 1084 | 16650 | 30.5 | false |
-| howto_recipetineats_tikka | STRUCTURED | 1 | 4432 | 3032 | OK | Chicken Tikka Masala | 4 - 5 people | 15/45/60 | 30 (30) | 16 | yes | 1.00 | 2039 | 31713 | 30.3 | false |
-| plain_joyofbaking_pancakes | TEXT | 1 | 7244 | 2031 | OK | Pancakes Recipe | 3-4 people | 15/3/18 | 8 (n/a) | 11 | yes | – | 2657 | 19986 | 30.6 | false |
-| plain_cfe_banana_bread | TEXT | 1 | 7285 | 1294 | OK | Banana Nut Bread | about 10 servings | 15/55/70 | 10 (n/a) | 11 | yes | – | 3001 | 15132 | 30.9 | false |
-| nonen_marmiton_crepes | STRUCTURED | 1 | 2704 | 1376 | OK | La meilleure recette de pâte à crêpes | 15 crêpes | 10/30/40 | 7 (7) | 5 | yes | 1.00 | 1081 | 14601 | 30.2 | false |
-| list_pinchofyum_recipes | WHOLE_PAGE | 1 | 3470 | 9 | INFO (model answered NO RECIPE, as expected) | – | – | – | – (n/a) | – | – | – | 1415 | 1480 | 30.4 | false |
-| long_theperfectloaf_sourdough | STRUCTURED | 1 | 3629 | 2309 | OK | Beginner's Sourdough Bread Recipe | 2 loaves | 1380/60/1440 | 9 (9) | 8 | yes | 1.00 | 1825 | 22419 | 30.3 | false |
-| micro_nigella_banana_bread | STRUCTURED | 1 | 3253 | 1980 | OK | Banana Bread | 8-10 slices | –/–/180 | 12 (12) | 9 | yes | 1.00 | 1254 | 19980 | 30.2 | false |
+| single_bbcgoodfood_pancakes | STRUCTURED | 1 | 2938 | 1473 | OK | Classic pancakes | 8 pancakes | –/–/30 | 4 (4) | 4 | yes | 1.00 | 1089 | 13770 | 29.0 | false |
+| graph_pinchofyum_cookies | STRUCTURED | 1 | 3727 | 2087 | OK | The Best Soft Chocolate Chip Cookies | 12 cookies | 10/10/20 | 9 (9) | 7 | yes | 1.00 | 1799 | 19708 | 30.3 | false |
+| roundup_guardian_slater | STRUCTURED | 5 | 3279 | 1814 | OK | Feta and potato pancakes with smoked sal | Makes 10 items | 15/10/25 | 9 (9) | 8 | yes | 1.00 | 1260 | 16414 | 30.0 | false |
+| howto_recipetineats_tikka | STRUCTURED | 1 | 4741 | 3070 | OK | Chicken Tikka Masala | 4 - 5 people | 15/45/60 | 30 (30) | 15 | yes | 1.00 | 2178 | 32614 | 30.6 | false |
+| plain_joyofbaking_pancakes | TEXT | 1 | 7546 | 1870 | OK | Pancakes Recipe | 3-4 people | 15/2/17 | 8 (n/a) | 11 | yes | – | 2831 | 19354 | 29.9 | false |
+| plain_cfe_banana_bread | TEXT | 1 | 7587 | 1396 | OK | Banana Nut Bread | about 10 servings | 15/55/70 | 10 (n/a) | 12 | yes | – | 3023 | 16434 | 30.0 | false |
+| nonen_marmiton_crepes | STRUCTURED | 1 | 3006 | 1405 | OK | La meilleure recette de pâte à crêpes | 15 crêpes | 10/30/40 | 7 (7) | 5 | yes | 1.00 | 1257 | 14933 | 30.1 | false |
+| list_pinchofyum_recipes | WHOLE_PAGE | 0 | 3772 | 9 | INFO (model answered NO RECIPE, as expected) | – | – | – | – (n/a) | – | – | – | 1442 | 1509 | 30.0 | false |
+| long_theperfectloaf_sourdough | STRUCTURED | 1 | 3931 | 2575 | OK | Beginner's Sourdough Bread Recipe | 2 loaves | 1380/60/1440 | 9 (9) | 8 | yes | 1.00 | 1809 | 27224 | 30.3 | false |
+| micro_nigella_banana_bread | STRUCTURED | 1 | 3588 | 1981 | OK | Banana Bread | 8-10 slices | –/–/– | 12 (12) | 11 | yes | 1.00 | 1427 | 20534 | 30.0 | false |
 
 ## Per tier
 
 | Tier | Fixtures | With golden | Parse ok | All checks ok | Mean prompt chars | Mean TTFT ms | Mean total ms | Mean decode tok/s | Mean Jaccard |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| STRUCTURED | 7 | 7 | 7 | 7 | 3292 | 1380 | 20180 | 30 | 1.00 |
-| TEXT | 2 | 2 | 2 | 2 | 7265 | 2829 | 17559 | 31 | – |
-| WHOLE_PAGE | 1 | 1 | 0 | 0 | 3470 | 1415 | 1480 | 30 | – |
+| STRUCTURED | 7 | 7 | 7 | 7 | 3601 | 1546 | 20742 | 30 | 1.00 |
+| TEXT | 2 | 2 | 2 | 2 | 7567 | 2927 | 17894 | 30 | – |
+| WHOLE_PAGE | 1 | 1 | 0 | 0 | 3772 | 1442 | 1509 | 30 | – |
 
 ## Checks
 
@@ -88,7 +112,7 @@ Goldens produced by `tools/eval/run_local_model.py (litert_lm python wheel)` —
 - ✅ parses: ok
 - ✅ title: 'The Best Soft Chocolate Chip Cookies'
 - ✅ ingredients ≥ 3: 9
-- ✅ steps ≥ 2: 5
+- ✅ steps ≥ 2: 7
 - ✅ ingredient count ±20% of JSON-LD: 9 vs 9 (±2)
 - ✅ Jaccard ≥ 0.8 vs SchemaOrgRecipeMapper: 1.00
 - ✅ servings present (source has yield): '12 cookies' vs source '12 cookies'
@@ -113,7 +137,7 @@ Goldens produced by `tools/eval/run_local_model.py (litert_lm python wheel)` —
 - ✅ parses: ok
 - ✅ title: 'Chicken Tikka Masala'
 - ✅ ingredients ≥ 3: 30
-- ✅ steps ≥ 2: 16
+- ✅ steps ≥ 2: 15
 - ✅ ingredient count ±20% of JSON-LD: 30 vs 30 (±6)
 - ✅ Jaccard ≥ 0.8 vs SchemaOrgRecipeMapper: 1.00
 - ✅ servings present (source has yield): '4 - 5 people' vs source '4 - 5 people'
@@ -135,7 +159,7 @@ Goldens produced by `tools/eval/run_local_model.py (litert_lm python wheel)` —
 - ✅ parses: ok
 - ✅ title: 'Banana Nut Bread'
 - ✅ ingredients ≥ 3: 10
-- ✅ steps ≥ 2: 11
+- ✅ steps ≥ 2: 12
 - ✅ no unexpected section headers: none
 - ✅ output starts with a grammar header (no preamble)
 
@@ -170,7 +194,7 @@ Goldens produced by `tools/eval/run_local_model.py (litert_lm python wheel)` —
 - ✅ parses: ok
 - ✅ title: 'Banana Bread'
 - ✅ ingredients ≥ 3: 12
-- ✅ steps ≥ 2: 9
+- ✅ steps ≥ 2: 11
 - ✅ ingredient count ±20% of JSON-LD: 12 vs 12 (±3)
 - ✅ Jaccard ≥ 0.8 vs SchemaOrgRecipeMapper: 1.00
 - ✅ servings present (source has yield): '8-10 slices' vs source 'Yields: 8-10 slices'
@@ -183,13 +207,13 @@ What `RecipeKeeperClipConfig.fallback` (the "skip the LLM" path) would have save
 
 | Fixture | Mapper: ingr / steps / servings / total min | Model: ingr / steps / servings / total min | Δ | Jaccard | Model total ms |
 |---|---|---|---|---:|---:|
-| single_bbcgoodfood_pancakes | 4 / 4 / Makes 8 pancakes / 30 | 4 / 4 / 8 pancakes / 30 | servings | 1.00 | 15398 |
-| graph_pinchofyum_cookies | 9 / 5 / 12 cookies / 20 | 9 / 5 / 12 cookies / 20 | none | 1.00 | 20501 |
-| roundup_guardian_slater | 9 / 8 / Makes 10 items / – | 9 / 8 / Makes 10 items / 25 | time | 1.00 | 16650 |
-| howto_recipetineats_tikka | 30 / 16 / 4 - 5 people / 60 | 30 / 16 / 4 - 5 people / 60 | none | 1.00 | 31713 |
-| nonen_marmiton_crepes | 7 / 5 / 15 crêpes / 40 | 7 / 5 / 15 crêpes / 40 | none | 1.00 | 14601 |
-| long_theperfectloaf_sourdough | 9 / 8 / 2 loaves / 1440 | 9 / 8 / 2 loaves / 1440 | none | 1.00 | 22419 |
-| micro_nigella_banana_bread | 12 / 1 / Yields: 8-10 slices / – | 12 / 9 / 8-10 slices / 180 | steps, servings, time | 1.00 | 19980 |
+| single_bbcgoodfood_pancakes | 4 / 4 / Makes 8 pancakes / 30 | 4 / 4 / 8 pancakes / 30 | servings | 1.00 | 13770 |
+| graph_pinchofyum_cookies | 9 / 5 / 12 cookies / 20 | 9 / 7 / 12 cookies / 20 | steps | 1.00 | 19708 |
+| roundup_guardian_slater | 9 / 8 / Makes 10 items / – | 9 / 8 / Makes 10 items / 25 | time | 1.00 | 16414 |
+| howto_recipetineats_tikka | 30 / 16 / 4 - 5 people / 60 | 30 / 15 / 4 - 5 people / 60 | steps | 1.00 | 32614 |
+| nonen_marmiton_crepes | 7 / 5 / 15 crêpes / 40 | 7 / 5 / 15 crêpes / 40 | none | 1.00 | 14933 |
+| long_theperfectloaf_sourdough | 9 / 8 / 2 loaves / 1440 | 9 / 8 / 2 loaves / 1440 | none | 1.00 | 27224 |
+| micro_nigella_banana_bread | 12 / 11 / Yields: 8-10 slices / – | 12 / 11 / 8-10 slices / – | servings | 1.00 | 20534 |
 
 Fixture notes:
 
@@ -200,6 +224,6 @@ Fixture notes:
 - `plain_joyofbaking_pancakes` (https://www.joyofbaking.com/breakfast/Pancakes.html): Plain-text blog, no structured data (quickScan 0). Ingredients live under a 'Pancake Recipe:' h2 with quantity lines; the method is prose in the h1 section, which renderSection prepends since WS8. Tier B by quantity lines.
 - `plain_cfe_banana_bread` (https://www.cookingforengineers.com/recipe/108/Banana-Nut-Bread): Plain-text, table-based 2000s layout, no structured data. One h1 section (capped at 6000 chars) holding prose + quantity lines; '/recipe/' in the URL relaxes the quantity-line threshold.
 - `nonen_marmiton_crepes` (https://www.marmiton.org/recettes/recette_crepes-faciles_12372.aspx): French page, @graph Recipe. Checks the model keeps French ingredient lines verbatim.
-- `list_pinchofyum_recipes` (https://pinchofyum.com/recipes): Category/list page with no recipe. Readable text ≥ 500 chars so a single WholePage candidate is offered. The prompt asks for 'NO RECIPE' here; a parsed result must also pass RecipeKeeperClipConfig.accept (≥ 2 quantity ingredients).
+- `list_pinchofyum_recipes` (https://pinchofyum.com/recipes): Category/list page with no recipe: detect() finds nothing (WS11, bug 2), so the app shows the 'No recipe found' sheet. The eval follows 'Extract anyway' (wholePageCandidate) so the golden stays a whole-page run; the prompt asks for 'NO RECIPE' here and a parsed result must also pass RecipeKeeperClipConfig.accept (≥ 2 quantity ingredients).
 - `long_theperfectloaf_sourdough` (https://www.theperfectloaf.com/beginners-sourdough-bread/): Very long page (~31k chars readable) with a WPRM Recipe node; structured rendering must stay compact.
 - `micro_nigella_banana_bread` (https://www.nigella.com/recipes/banana-bread): Microdata (itemtype schema.org/Recipe) converted to pseudo-JSON-LD by capture.js; ~23k chars readable.

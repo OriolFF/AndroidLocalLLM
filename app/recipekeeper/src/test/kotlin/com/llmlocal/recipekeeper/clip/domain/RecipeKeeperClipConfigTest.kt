@@ -140,6 +140,21 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `collection page of two-line cards yields nothing, even with a recipe-ish path`() {
+        // WS12 A: tasteofhome.com/collection/recipes-with-ground-beef/ offered every card.
+        val cards = (1..6).map { n -> section("Card $n", 3, "1 lb ground beef\n2 cups rice\nA quick dinner idea number $n.", top = n * 100) }
+        val sections = listOf(section("Recipes with ground beef", 1, "Our favourites.", top = 0)) + cards
+
+        assertThat(config.detect(snapshot(url = "https://www.example.com/collection/recipes-with-ground-beef/", sections = sections))).isEmpty()
+        // Not list-style, but several relaxed sections: still no sheet of look-alikes.
+        assertThat(config.detect(snapshot(url = "https://www.example.com/recipes/ground-beef-ideas", sections = sections))).isEmpty()
+        // List-style words never relax, even for a single card.
+        val single = listOf(section("Card", 1, "1 lb ground beef\n2 cups rice\nCook.", top = 0))
+        assertThat(config.detect(snapshot(url = "https://www.example.com/category/recipes/beef", sections = single))).isEmpty()
+        assertThat(config.detect(snapshot(url = "https://www.example.com/recipes/beef-rice", sections = single))).hasSize(1)
+    }
+
+    @Test
     fun `a page with no recipe yields nothing, however long its readable text`() {
         // WS10 bug 2: a WholePage candidate from detect() made single-candidate
         // routing skip the "No recipe found" sheet on list / home pages.
@@ -332,12 +347,70 @@ class RecipeKeeperClipConfigTest {
     @Test
     fun `isComplete needs three ingredients and two steps, and the skip switch is on`() {
         assertThat(config.skipModelWhenStructuredComplete).isTrue()
-        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix.", "Bake.")))).isTrue()
-        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour"), steps = listOf("Mix.", "Bake.")))).isFalse()
+        val steps = listOf("Mix the dry ingredients with the eggs.", "Bake for thirty minutes until golden.")
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = steps))).isTrue()
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour"), steps = steps))).isFalse()
         assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix and bake.")))).isFalse()
         // Nigella's microdata: 12 ingredients, instructions lumped into one step → the model should still run.
         val structured = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
         assertThat(config.isComplete(config.fallback(config.detect(structured).single(), structured)!!)).isTrue()
+    }
+
+    @Test
+    fun `isComplete also needs substance - short steps and dash-joined ingredients fail`() {
+        val ingredients = listOf("1 egg", "2 cups flour", "milk")
+        // Mean 5 chars, total 10: paraphrase-thin.
+        assertThat(config.isComplete(recipe(ingredients = ingredients, steps = listOf("Mix.", "Bake.")))).isFalse()
+        // Short steps but a long total method still passes (≥ 120 chars).
+        val many = List(8) { "Fold gently, then rest." }
+        assertThat(config.isComplete(recipe(ingredients = ingredients, steps = many))).isTrue()
+        // receptes.cat: the whole list in one line.
+        val joined = listOf("1 egg", "2 cups flour - 75 g butter - 1 tsp salt - 3 apples", "milk")
+        val steps = listOf("Mix the dry ingredients with the eggs.", "Bake for thirty minutes until golden.")
+        assertThat(config.isComplete(recipe(ingredients = joined, steps = steps))).isFalse()
+    }
+
+    @Test
+    fun `accept rejects a TEXT result whose steps paraphrase a longer method`() {
+        val method = listOf(
+            "Melt the butter in a wide pan, add the onion and tomatoes, and simmer gently for forty-five minutes, crushing the tomatoes with a spoon.",
+            "Meanwhile cook the pasta in well-salted water until just al dente and reserve a cup of the cooking water before draining.",
+            "Discard the onion, toss the pasta in the sauce with a splash of pasta water, and serve right away with grated cheese.",
+        )
+        val ingredients = listOf("2 cups tomatoes", "3 tbsp butter", "1 onion", "1 lb pasta")
+        val page = snapshot(
+            sections = listOf(section("Tomato sauce", 2, (ingredients + method).joinToString("\n"), 0)),
+        )
+        val candidate = config.detect(page).single()
+        config.renderLlmInput(candidate, page, 9_000)
+
+        val paraphrase = recipe(ingredients = ingredients, steps = listOf("Sauté the onion in the butter until softened.", "Add the tomatoes and salt to taste."))
+        val faithful = recipe(ingredients = ingredients, steps = method)
+
+        assertThat(config.accept(candidate, paraphrase)).isFalse()
+        assertThat(config.accept(candidate, faithful)).isTrue()
+    }
+
+    @Test
+    fun `fallback attaches the page's notes section, capped at 600 chars`() {
+        val long = "Use a deep skillet. ".repeat(60)
+        val page = snapshot(
+            jsonLd = listOf(loadJsonLd("single_recipe")),
+            sections = listOf(
+                section("Ingredients", 2, "3 ripe bananas", 0),
+                section("Notes", 2, long, 100),
+            ),
+        )
+        val recipe = config.fallback(config.detect(page).single(), page)!!
+
+        assertThat(recipe.notes).isNotNull()
+        assertThat(recipe.notes!!.length).isAtMost(601)
+        assertThat(recipe.notes).startsWith("Use a deep skillet.")
+        // No notes section → null; round-up (two recipes) → null.
+        val bare = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        assertThat(config.fallback(config.detect(bare).single(), bare)!!.notes).isNull()
+        val roundUp = page.copy(jsonLd = listOf(loadJsonLd("single_recipe"), loadJsonLd("howto_sections")))
+        assertThat(config.fallback(config.detect(roundUp).first(), roundUp)!!.notes).isNull()
     }
 
     @Test
@@ -395,8 +468,8 @@ class RecipeKeeperClipConfigTest {
 
         assertThat(picked).containsExactly(
             "https://cdn.example.com/lasagne-1x1.jpg",
-            "https://cdn.example.com/lasagne-4x3.jpg",
-            "https://cdn.example.com/lasagne-16x9.jpg",
+            "https://cdn.example.com/lasagne-side.jpg",
+            "https://cdn.example.com/lasagne-slice.jpg",
             "https://cdn.example.com/tw.jpg",
             "https://cdn.example.com/hero.jpg",
             "https://cdn.example.com/step-small.jpg",
@@ -427,8 +500,8 @@ class RecipeKeeperClipConfigTest {
         val lasagne = config.rankPictures(candidates[0], page, max = 8)
         assertThat(lasagne).containsExactly(
             PicturePick("https://cdn.example.com/lasagne-1x1.jpg"),
-            PicturePick("https://cdn.example.com/lasagne-4x3.jpg"),
-            PicturePick("https://cdn.example.com/lasagne-16x9.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-side.jpg"),
+            PicturePick("https://cdn.example.com/lasagne-slice.jpg"),
         ).inOrder()
         val banana = config.rankPictures(candidates[1], page, max = 8)
         assertThat(banana.map { it.url }).containsExactly("https://cdn.example.com/banana-bread.jpg")

@@ -54,7 +54,7 @@ class SchemaOrgRecipeMapper(
             id = id,
             title = name(raw).ifBlank { untitledTitle },
             description = description(raw),
-            servings = yieldText(raw),
+            servings = TextCleaner.shortServings(yieldText(raw)),
             prepMinutes = prep,
             cookMinutes = cook,
             totalMinutes = totalMinutes(raw, prep, cook),
@@ -81,7 +81,24 @@ class SchemaOrgRecipeMapper(
     /** Ingredient lines, HTML stripped, `250.0g` tidied to `250g`, blanks removed. */
     fun ingredients(raw: JSONObject): List<String> {
         val value = raw.opt("recipeIngredient") ?: raw.opt("ingredients") ?: return emptyList()
-        return flattenStrings(value).map { TextCleaner.tidyNumbers(TextCleaner.oneLine(it)) }.filter { it.isNotBlank() }
+        return flattenStrings(value)
+            .map { TextCleaner.tidyNumbers(TextCleaner.oneLine(it)) }
+            .filter { it.isNotBlank() }
+            .flatMap(::splitJoinedIngredient)
+            .map(TextCleaner::separateUnits)
+    }
+
+    /**
+     * Some sites emit the whole list as one dash-joined string
+     * (`150grs de farina-75grs de margarina-…`, `a - b - c`). Split it when
+     * that yields at least [MIN_JOINED_PARTS] parts; otherwise keep the line.
+     */
+    private fun splitJoinedIngredient(line: String): List<String> {
+        val spaced = line.split(spacedDash).map { it.trim() }.filter { it.isNotEmpty() }
+        if (spaced.size >= MIN_JOINED_PARTS) return spaced
+        val glued = line.split(gluedDash).map { it.trim().trimEnd('-').trim() }.filter { it.isNotEmpty() }
+        if (glued.size >= MIN_JOINED_PARTS) return glued
+        return listOf(line)
     }
 
     /** Instruction steps flattened from any of the schema.org shapes. */
@@ -187,12 +204,23 @@ class SchemaOrgRecipeMapper(
      * numbers.
      */
     private fun splitTextSteps(text: String): List<String> {
-        val lines = text.split('\n').map { it.trim().trimStart('-', '•', '*').trim() }.filter { it.isNotEmpty() }
+        val rawLines = text.split('\n').map { it.trim().trimStart('-', '•', '*').trim() }.filter { it.isNotEmpty() }
+        // A newline is not always a step boundary: a lower-case continuation
+        // belongs to the previous step, and "To see a video…" lines are not steps.
+        val lines = mutableListOf<String>()
+        for (line in rawLines) {
+            when {
+                promoLine.containsMatchIn(line) -> Unit
+                lines.isNotEmpty() && line.first().isLowerCase() -> lines[lines.lastIndex] = lines.last() + " " + line
+                else -> lines += line
+            }
+        }
         if (lines.size > 1) return lines.map(::stripLeadingNumber)
         val single = lines.firstOrNull() ?: return emptyList()
-        val numbered = Regex("(?:(?<=^)|(?<=[.!?]\\s))\\d{1,2}[.)]\\s+")
-        val parts = single.split(numbered).map { it.trim() }.filter { it.isNotEmpty() }
-        return if (parts.size > 1) parts else listOf(stripLeadingNumber(single))
+        val parts = single.split(numberedStep).map { it.trim() }.filter { it.isNotEmpty() }
+        if (parts.size > 1) return parts
+        val one = stripLeadingNumber(single)
+        return if (one.length > BLOB_CHARS) one.split(sentenceBoundary).map { it.trim() }.filter { it.isNotEmpty() } else listOf(one)
     }
 
     private fun stripLeadingNumber(step: String): String =
@@ -240,5 +268,16 @@ class SchemaOrgRecipeMapper(
             is JSONObject, is JSONArray -> null
             else -> value.toString()
         }
+    }
+
+    private companion object {
+        const val MIN_JOINED_PARTS = 3
+        /** A single un-numbered instruction longer than this is split into sentences. */
+        const val BLOB_CHARS = 200
+        val promoLine = Regex("^(?:to see\\b|see our\\b|click\\b|video\\b|watch (?:the |our |a )?(?:video|tutorial|how)\\b)", RegexOption.IGNORE_CASE)
+        val spacedDash = Regex("\\s+[-–]\\s+")
+        val gluedDash = Regex("(?<=\\p{L})-(?=\\d)")
+        val numberedStep = Regex("(?:(?<=^)|(?<=[.!?]\\s))\\d{1,2}[.)]\\s+")
+        val sentenceBoundary = Regex("(?<=[.!?])\\s+(?=[\\p{Lu}¡¿\\d])")
     }
 }

@@ -203,7 +203,8 @@ class EvalParserTest(private val fixture: EvalFixture) {
     }
 
     private fun tokens(lines: List<String>): Set<String> =
-        lines.flatMap { it.lowercase().split(Regex("[^\\p{L}\\p{N}]+")) }.filter { it.isNotBlank() }.toSet()
+        // `250g` and `250 g` are the same ingredient (the mapper now spaces glued units).
+        lines.flatMap { it.lowercase().split(Regex("[^\\p{L}\\p{N}]+|(?<=\\d)(?=\\p{L})")) }.filter { it.isNotBlank() }.toSet()
 }
 
 /**

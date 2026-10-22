@@ -41,7 +41,7 @@ class RecipeKeeperParser : TaskParser<ClippedRecipe> {
             id = "",
             title = parsed.title.orEmpty(),
             description = parsed.description,
-            servings = parsed.servings,
+            servings = TextCleaner.shortServings(parsed.servings),
             prepMinutes = prep,
             cookMinutes = cook,
             totalMinutes = total,
