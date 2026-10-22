@@ -1,0 +1,64 @@
+{
+  "quickScan": 0,
+  "capture": {
+    "url": "https://lacocinademarta.example/bizcocho-de-yogur/",
+    "title": "Bizcocho de yogur casero | La cocina de Marta",
+    "siteName": null,
+    "jsonLd": [],
+    "microdata": [],
+    "og": {},
+    "readable": {
+      "title": "Bizcocho de yogur casero | La cocina de Marta",
+      "byline": null,
+      "excerpt": "El bizcocho de yogur es la receta más fácil que conozco: se mide todo con el mismo vasito y sale esponjoso siempre. Lo preparo cada domingo para el desayuno y nunca sobra ni una miga, así que os recomiendo hacer doble cantidad.",
+      "siteName": null,
+      "textContent": "\n    \n      \n      El bizcocho de yogur es la receta más fácil que conozco: se mide todo con el mismo vasito y sale esponjoso siempre. Lo preparo cada domingo para el desayuno y nunca sobra ni una miga, así que os recomiendo hacer doble cantidad.\n      \n      Ingredientes\n      \n        Harina de trigo, 3 vasitos\n        Azúcar, 2 vasitos\n        Aceite de girasol, 1 vasito\n        Huevos, 3 unidades\n        Levadura química, 1 sobre\n        1 yogur natural\n      \n      Elaboración\n      \n        Precalienta el horno a 180 grados y engrasa un molde.\n        Mezcla el yogur con el azúcar, los huevos y el aceite.\n        Añade la harina con la levadura tamizadas y mezcla sin batir en exceso.\n        Hornea 35 minutos y deja enfriar sobre una rejilla.\n      \n      Notas\n      Se conserva tres días en un recipiente hermético.\n    \n  ",
+      "length": 841
+    },
+    "sections": [
+      {
+        "heading": "Bizcocho de yogur casero",
+        "level": 1,
+        "text": "El bizcocho de yogur es la receta más fácil que conozco: se mide todo con el mismo vasito y sale esponjoso siempre. Lo preparo cada domingo para el desayuno y nunca sobra ni una miga, así que os recomiendo hacer doble cantidad.",
+        "imageSrcs": [
+          "https://lacocinademarta.example/uploads/bizcocho.jpg"
+        ],
+        "topOffset": 0
+      },
+      {
+        "heading": "Ingredientes",
+        "level": 4,
+        "text": "Harina de trigo, 3 vasitos\nAzúcar, 2 vasitos\nAceite de girasol, 1 vasito\nHuevos, 3 unidades\nLevadura química, 1 sobre\n1 yogur natural",
+        "imageSrcs": [],
+        "topOffset": 300
+      },
+      {
+        "heading": "Elaboración",
+        "level": 4,
+        "text": "Precalienta el horno a 180 grados y engrasa un molde.\nMezcla el yogur con el azúcar, los huevos y el aceite.\nAñade la harina con la levadura tamizadas y mezcla sin batir en exceso.\nHornea 35 minutos y deja enfriar sobre una rejilla.",
+        "imageSrcs": [],
+        "topOffset": 500
+      },
+      {
+        "heading": "Notas",
+        "level": 5,
+        "text": "Se conserva tres días en un recipiente hermético.",
+        "imageSrcs": [],
+        "topOffset": 700
+      }
+    ],
+    "images": [
+      {
+        "src": "https://lacocinademarta.example/uploads/bizcocho.jpg",
+        "alt": "Bizcocho de yogur",
+        "width": 700,
+        "height": 500,
+        "naturalWidth": 1400,
+        "naturalHeight": 1000,
+        "top": 200,
+        "inRecipeCard": false
+      }
+    ],
+    "truncated": false
+  }
+}

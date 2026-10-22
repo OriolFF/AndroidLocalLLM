@@ -50,19 +50,21 @@ internal object RecipeLineGrammar {
     )
 
     private val headerSynonyms: List<Pair<Section, Regex>> = listOf(
-        Section.TITLE to words("Title", "Name", "Recipe", "Recipe name", "Recipe title", "Titre", "Título", "Titulo", "Titel", "Titolo", "Títol"),
-        Section.DESCRIPTION to words("Description", "Summary", "Descripción", "Descripcion", "Beschreibung", "Descrizione", "Descripció"),
-        Section.SERVINGS to words("Servings", "Serves", "Yield", "Yields", "Portions", "Porciones", "Raciones", "Portionen", "Porzioni", "Racions"),
-        Section.PREP to words("PrepMinutes", "Prep Minutes", "Prep time", "Preparation time", "Prep", "Tiempo de preparación", "Vorbereitungszeit", "Temps de préparation"),
-        Section.COOK to words("CookMinutes", "Cook Minutes", "Cook time", "Cooking time", "Cook", "Tiempo de cocción", "Kochzeit", "Temps de cuisson"),
-        Section.TOTAL to words("TotalMinutes", "Total Minutes", "Total time", "Total", "Tiempo total", "Gesamtzeit", "Temps total"),
-        Section.INGREDIENTS to words("Ingredients", "Ingredientes", "Zutaten", "Ingrédients", "Ingredienti", "Ingredients list"),
+        Section.TITLE to words("Title", "Name", "Recipe", "Recipe name", "Recipe title", "Titre", "Título", "Titulo", "Titel", "Titolo", "Títol", "Τίτλος"),
+        Section.DESCRIPTION to words("Description", "Summary", "Descripción", "Descripcion", "Beschreibung", "Descrizione", "Descripció", "Περιγραφή"),
+        Section.SERVINGS to words("Servings", "Serves", "Yield", "Yields", "Portions", "Porciones", "Raciones", "Portionen", "Porzioni", "Racions", "Personas", "Persones", "Comensals", "Comensales", "Μερίδες", "Άτομα", "Ατομα"),
+        Section.PREP to words("PrepMinutes", "Prep Minutes", "Prep time", "Preparation time", "Prep", "Tiempo de preparación", "Vorbereitungszeit", "Temps de préparation", "Temps de preparació", "Tiempo de preparacion", "Χρόνος προετοιμασίας", "Προετοιμασία"),
+        Section.COOK to words("CookMinutes", "Cook Minutes", "Cook time", "Cooking time", "Cook", "Tiempo de cocción", "Kochzeit", "Temps de cuisson", "Tiempo de cocinado", "Temps de cocció", "Χρόνος μαγειρέματος", "Μαγείρεμα"),
+        Section.TOTAL to words("TotalMinutes", "Total Minutes", "Total time", "Total", "Tiempo total", "Gesamtzeit", "Temps total", "Συνολικός χρόνος"),
+        Section.INGREDIENTS to words("Ingredients", "Ingredientes", "Zutaten", "Ingrédients", "Ingredienti", "Ingredients list", "Υλικά", "Συστατικά"),
         Section.STEPS to words(
             "Steps", "Instructions", "Method", "Directions", "Preparation", "Procedure",
             "Pasos", "Instrucciones", "Preparación", "Preparacion", "Elaboración", "Elaboracion",
             "Zubereitung", "Anleitung", "Schritte", "Préparation", "Étapes", "Etapes", "Preparazione", "Procedimento", "Passaggi",
+            "Paso a paso", "Modo de preparación", "Modo de preparacion", "Procedimiento", "Elaboració", "Preparació", "Pas a pas", "Com es fa", "Instruccions", "Procediment",
+            "Εκτέλεση", "Διαδικασία", "Οδηγίες", "Βήματα", "Παρασκευή", "Μέθοδος",
         ),
-        Section.NOTES to words("Notes", "Note", "Tips", "Tip", "Notas", "Consejos", "Hinweise", "Tipps", "Remarques", "Conseils"),
+        Section.NOTES to words("Notes", "Note", "Tips", "Tip", "Notas", "Consejos", "Hinweise", "Tipps", "Remarques", "Conseils", "Consells", "Σημειώσεις", "Συμβουλές"),
     )
 
     private fun words(vararg names: String): Regex {

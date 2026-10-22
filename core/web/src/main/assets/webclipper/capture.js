@@ -26,6 +26,7 @@
   "use strict";
 
   var MAX_SECTIONS = 20;
+  var MAX_SCANNED_SECTIONS = 80; // built before capSections trims to MAX_SECTIONS
   var MAX_SECTION_CHARS = 6000;
   var READABILITY_SIZE_GUARD = 4 * 1024 * 1024; // outerHTML chars
   var MIN_DISPLAYED_AREA = 150 * 150;
@@ -85,12 +86,53 @@
     return (text || "").replace(/[ \t\f\v\u00a0]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
   }
 
+  // Blogs that style recipe cards with h4/h5, role="heading" or a bold-only
+  // paragraph have fewer than two h1-h3; on those pages the wider set below
+  // starts sections too (see buildSections). Set once per capture.
+  var MIN_CLASSIC_HEADINGS = 2;
+  var MAX_BOLD_HEADING_CHARS = 80;
+  var extendedHeadings = false;
+  var extendedSet = null;
+
+  function isBoldOnlyBlock(el) {
+    if (!el || el.nodeType !== 1 || !/^(P|DIV|SPAN)$/.test(el.tagName) || el.children.length !== 1) return false;
+    var child = el.children[0];
+    if (!/^(STRONG|B)$/.test(child.tagName)) return false;
+    var text = collapse(el.textContent);
+    return text.length > 1 && text.length <= MAX_BOLD_HEADING_CHARS && !/^[\d½¼¾⅓⅔⅛]/.test(text) && text === collapse(child.textContent);
+  }
+
+  function extendedCandidates(body) {
+    var found = [];
+    var all = body.querySelectorAll("h4, h5, h6, [role='heading'], p, div, span");
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (/^H[4-6]$/.test(el.tagName) || el.getAttribute("role") === "heading" || isBoldOnlyBlock(el)) found.push(el);
+    }
+    return found;
+  }
+
   function isHeading(el) {
-    return !!el && el.nodeType === 1 && /^H[1-3]$/.test(el.tagName);
+    if (!el || el.nodeType !== 1) return false;
+    if (/^H[1-3]$/.test(el.tagName)) return true;
+    return extendedHeadings && extendedSet.indexOf(el) !== -1;
   }
 
   function containsHeading(el) {
-    return !!el && el.nodeType === 1 && !!el.querySelector && !!el.querySelector("h1, h2, h3");
+    if (!el || el.nodeType !== 1 || !el.querySelector) return false;
+    if (el.querySelector("h1, h2, h3")) return true;
+    if (!extendedHeadings) return false;
+    for (var i = 0; i < extendedSet.length; i++) {
+      if (el !== extendedSet[i] && el.contains(extendedSet[i])) return true;
+    }
+    return false;
+  }
+
+  function headingLevel(el) {
+    if (/^H[1-6]$/.test(el.tagName)) return parseInt(el.tagName.substring(1), 10);
+    var aria = parseInt(el.getAttribute && el.getAttribute("aria-level"), 10);
+    if (aria >= 1 && aria <= 6) return aria;
+    return el.getAttribute && el.getAttribute("role") === "heading" ? 4 : 5; // bold-only block
   }
 
   function documentTop(el) {
@@ -364,7 +406,8 @@
   }
 
   /**
-   * Walk h1–h3 in document order. Each section collects the content that
+   * Walk h1–h3 (plus h4–h6, role="heading" and bold-only blocks when the page
+   * has fewer than two h1–h3) in document order. Each section collects the content that
    * follows its heading until the next heading. When a heading's siblings
    * run out (headings are usually wrapped in a <header> or a card <div>)
    * the walk climbs to the parent's next sibling, so content after the
@@ -374,6 +417,21 @@
     var body = document.body;
     if (!body) return [];
     var headings = body.querySelectorAll("h1, h2, h3");
+    extendedHeadings = false;
+    extendedSet = null;
+    if (headings.length < MIN_CLASSIC_HEADINGS) {
+      var extra = extendedCandidates(body);
+      // A bold-only block nested in another candidate adds nothing; keep the outermost.
+      extendedSet = extra.filter(function (el) {
+        return !extra.some(function (other) { return other !== el && other.contains(el); });
+      });
+      if (extendedSet.length > 0) {
+        extendedHeadings = true;
+        headings = Array.prototype.slice.call(headings).concat(extendedSet).sort(function (a, b) {
+          return a.compareDocumentPosition(b) & 4 ? -1 : 1; // 4 = b follows a
+        });
+      }
+    }
     var sections = [];
 
     if (headings.length === 0) {
@@ -392,7 +450,7 @@
       sections.push({ heading: null, level: 0, text: leading.slice(0, MAX_SECTION_CHARS), imageSrcs: [], topOffset: 0 });
     }
 
-    for (var i = 0; i < headings.length && sections.length < MAX_SECTIONS; i++) {
+    for (var i = 0; i < headings.length && sections.length < MAX_SCANNED_SECTIONS; i++) {
       var h = headings[i];
       var acc = { parts: [], chars: 0, imageSrcs: [] };
       var stopped = collectUntilHeading(h.nextSibling, acc);
@@ -403,13 +461,42 @@
       }
       sections.push({
         heading: collapse(h.textContent) || null,
-        level: parseInt(h.tagName.substring(1), 10),
+        level: headingLevel(h),
         text: acc.parts.join("\n").slice(0, MAX_SECTION_CHARS),
         imageSrcs: dedupe(acc.imageSrcs),
         topOffset: documentTop(h),
       });
     }
-    return sections;
+    return capSections(sections);
+  }
+
+  function hasQuantityLines(text) {
+    var n = 0;
+    var lines = text.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      if (/^\s*[-*•–]?\s*[\d½¼¾⅓⅔⅛]/.test(lines[i]) && ++n >= 2) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Keep at most MAX_SECTIONS. Mega-menus put dozens of h3 before the
+   * article, so a plain "first 20" can drop the recipe: sections with
+   * quantity-looking lines (and the heading before each, usually the
+   * recipe title) win the slots, the rest fill up in document order.
+   */
+  function capSections(all) {
+    if (all.length <= MAX_SECTIONS) return all;
+    var keep = {};
+    var count = 0;
+    function take(i) {
+      if (i >= 0 && i < all.length && !keep[i] && count < MAX_SECTIONS) { keep[i] = true; count++; }
+    }
+    for (var i = 0; i < all.length; i++) {
+      if (hasQuantityLines(all[i].text)) { take(i - 1); take(i); }
+    }
+    for (var j = 0; j < all.length; j++) take(j);
+    return all.filter(function (_, idx) { return keep[idx]; });
   }
 
   /**
