@@ -25,9 +25,9 @@
     <string name="webclipper_candidates_candidates_title">Which recipe?</string>
     <string name="webclipper_candidates_source_structured">Structured</string>
     <string name="webclipper_candidates_source_text">Text</string>
-    <string name="webclipper_candidates_nothing_detected_title">No recipe found on this page</string>
-    <string name="webclipper_candidates_nothing_detected_message">Open the recipe itself — list, search and category pages don\'t contain the ingredients.</string>
-    <string name="webclipper_candidates_extract_anyway">Extract anyway</string>
+    <string name="webclipper_candidates_nothing_detected_title">No direct recipe found on this page</string>
+    <string name="webclipper_candidates_nothing_detected_message">This page doesn\'t expose a recipe we can read directly. You can still ask the on-device model to extract it.</string>
+    <string name="webclipper_candidates_extract_anyway">Extract with AI</string>
     <string name="webclipper_candidates_keep_browsing">Keep browsing</string>
     <string name="webclipper_candidates_not_this_one">Not this one?</string>
     <string name="webclipper_extraction_title">Clipping recipe</string>

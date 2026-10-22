@@ -42,10 +42,10 @@ fun testWebClipperLabels(
     sourceStructured = "Structured",
     sourceText = "Text",
     candidateThumbnailDescription = { t -> "Picture of $t" },
-    nothingDetectedTitle = "No recipe found on this page",
+    nothingDetectedTitle = "No direct recipe found on this page",
     nothingDetectedMessage =
-        "Open the recipe itself — list, search and category pages don't contain the ingredients.",
-    extractAnyway = "Extract anyway",
+        "This page doesn't expose a recipe we can read directly. You can still ask the on-device model to extract it.",
+    extractAnyway = "Extract with AI",
     keepBrowsing = "Keep browsing",
     notThisOne = "Not this one?",
 

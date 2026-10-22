@@ -51,8 +51,7 @@ data class WebClipperLabels(
     val sourceText: String,
     val candidateThumbnailDescription: (String) -> String,
     val nothingDetectedTitle: String,
-    val nothingDetectedMessage: String =
-        "Open the recipe itself — list, search and category pages don't contain the ingredients.",
+    val nothingDetectedMessage: String,
     val extractAnyway: String,
     val keepBrowsing: String,
     val notThisOne: String,

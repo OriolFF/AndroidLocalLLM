@@ -18,7 +18,7 @@ import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.feature.webclipper.presentation.WebClipperLabels
 
 /**
- * "No recipe found on this page" sheet with *Extract anyway* (whole
+ * "No direct recipe found on this page" sheet with *Extract with AI* (whole
  * readable article) and *Keep browsing*.
  */
 @OptIn(ExperimentalMaterial3Api::class)
