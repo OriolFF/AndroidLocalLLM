@@ -41,6 +41,10 @@ class MultilingualDetectionTest {
     fun `greek page with role=heading headings, k s and gr`() = assertOneTextCandidate("el-rolehead", "Μπισκότα βουτύρου")
 
     @Test
+    fun `real spanish news-site recipe page (cronica) yields one text candidate`() =
+        assertOneTextCandidate("es-cronica-real", "Esta receta utiliza el vasito de yogur como unidad de medida, garantizando un dulce perfecto y delicioso sin la necesidad de balanzas ni equipos especiales.")
+
+    @Test
     fun `spanish category and index pages of two-line cards yield nothing`() {
         val cards = (1..8).map { n ->
             section("Receta $n", 3, "2 tazas de harina\n1 cucharada de aceite\nUna receta rápida número $n.", top = n * 100)
