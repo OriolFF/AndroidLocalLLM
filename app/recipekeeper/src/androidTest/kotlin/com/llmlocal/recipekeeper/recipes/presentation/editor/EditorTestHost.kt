@@ -8,12 +8,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.test.platform.app.InstrumentationRegistry
 import com.llmlocal.core.designsystem.theme.AppTheme
 import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 import com.llmlocal.recipekeeper.recipes.domain.EditSection
 import com.llmlocal.recipekeeper.recipes.domain.EditableLine
 import com.llmlocal.recipekeeper.recipes.domain.RecipeEdit
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
+import com.llmlocal.recipekeeper.recipes.domain.usecase.SplitPastedLinesUseCase
 import kotlinx.coroutines.flow.emptyFlow
 
 /** Draft with [ingredients] ingredient and [steps] step rows. */
@@ -66,7 +71,12 @@ private fun RecipeEdit.reduce(intent: RecipeEditorIntent, newKey: () -> Long): R
         lines.toMutableList().also { it.add(intent.to, it.removeAt(intent.from)) }
     }
     is RecipeEditorIntent.LineChanged -> mapLines(intent.section) { lines ->
-        lines.map { if (it.key == intent.key) it.copy(text = intent.text) else it }
+        // Mirrors RecipeEditorViewModel.changeLine: a value with a newline is a paste and becomes rows.
+        val parts = if ('\n' in intent.text) SplitPastedLinesUseCase()(intent.text, intent.section) else listOf(intent.text)
+        lines.flatMap { line ->
+            if (line.key != intent.key) listOf(line)
+            else listOf(line.copy(text = parts.firstOrNull().orEmpty())) + parts.drop(1).map { EditableLine(newKey(), it) }
+        }
     }
     else -> this
 }
@@ -74,4 +84,14 @@ private fun RecipeEdit.reduce(intent: RecipeEditorIntent, newKey: () -> Long): R
 private fun RecipeEdit.mapLines(section: EditSection, f: (List<EditableLine>) -> List<EditableLine>) = when (section) {
     EditSection.INGREDIENTS -> copy(ingredients = f(ingredients))
     EditSection.STEPS -> copy(steps = f(steps))
+}
+
+/** Invokes the custom accessibility action with [label] the way TalkBack's actions menu does. */
+internal fun SemanticsNodeInteraction.performCustomAccessibilityActionWithLabel(label: String): SemanticsNodeInteraction {
+    val action = fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions)
+        ?.firstOrNull { it.label == label }
+        ?: throw AssertionError("No custom accessibility action \"$label\" on the node")
+    // The custom action is a plain lambda on the node; run it on the main thread like an accessibility service would.
+    InstrumentationRegistry.getInstrumentation().runOnMainSync { action.action() }
+    return this
 }
