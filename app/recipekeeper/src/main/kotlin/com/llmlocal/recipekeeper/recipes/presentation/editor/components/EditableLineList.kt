@@ -1,7 +1,13 @@
 package com.llmlocal.recipekeeper.recipes.presentation.editor.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -32,11 +38,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -49,10 +57,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import com.llmlocal.core.designsystem.component.NumberBadge
 import com.llmlocal.recipekeeper.recipes.domain.EditSection
 import com.llmlocal.recipekeeper.recipes.domain.EditableLine
 import com.llmlocal.recipekeeper.recipes.presentation.editor.RecipeEditorIntent
+
+/** Time for `animateItem` placement to finish before the focused row is brought into view again. */
+private const val PLACEMENT_SETTLE_MS = 350L
 
 /** Lazy-list item key of one editor row; sections share a list, so the section prefixes the row key. */
 internal fun lineItemKey(section: EditSection, key: Long): String = "${section.name}-$key"
@@ -173,6 +185,7 @@ internal fun LazyListScope.editableLineItems(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun EditableLineRow(
     section: EditSection,
@@ -193,6 +206,23 @@ private fun EditableLineRow(
     val currentLines by rememberUpdatedState(lines)
     val currentIntent by rememberUpdatedState(onIntent)
     val density = LocalDensity.current
+
+    // B1: the IME opens after focus lands and shrinks the viewport, so the
+    // focused row has to be brought into view again once the keyboard is up.
+    val bringIntoView = remember { BringIntoViewRequester() }
+    var focused by remember { mutableStateOf(false) }
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(focused, imeVisible) {
+        if (focused) {
+            // One frame lets the list apply the new bottom padding first; a second
+            // request after the item-placement animation catches rows that were
+            // still moving (a freshly added row) when the first one ran.
+            withFrameNanos { }
+            bringIntoView.bringIntoView()
+            delay(PLACEMENT_SETTLE_MS)
+            bringIntoView.bringIntoView()
+        }
+    }
 
     LaunchedEffect(editor.pendingFocus) {
         if (editor.pendingFocus == section to line.key) {
@@ -279,7 +309,11 @@ private fun EditableLineRow(
                     }
                 },
             ),
-            modifier = Modifier.weight(1f).focusRequester(requester),
+            modifier = Modifier
+                .weight(1f)
+                .bringIntoViewRequester(bringIntoView)
+                .focusRequester(requester)
+                .onFocusChanged { focused = it.isFocused },
         )
         IconButton(onClick = { onIntent(RecipeEditorIntent.RemoveLine(section, line.key)) }) {
             Icon(Icons.Outlined.Close, contentDescription = copy.remove(position))

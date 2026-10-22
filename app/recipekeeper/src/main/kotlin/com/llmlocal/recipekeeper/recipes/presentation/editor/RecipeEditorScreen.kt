@@ -11,9 +11,14 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -213,7 +218,11 @@ fun RecipeEditorScreen(
     }
 }
 
-/** A scrolling list that clears system bars and the IME through [innerPadding] plus a 16dp gutter. */
+/**
+ * A scrolling list that clears system bars and the IME through [innerPadding]
+ * plus a 16dp gutter; `imeNestedScroll` lets a downward drag dismiss the keyboard.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditorColumn(
     listState: LazyListState,
@@ -222,14 +231,19 @@ private fun EditorColumn(
     content: LazyListScope.() -> Unit,
 ) {
     val direction = LocalLayoutDirection.current
+    // The keyboard has to shrink the viewport itself: as content padding only,
+    // the viewport would still extend under it and a focused row hidden behind
+    // the keyboard would count as visible (B1).
+    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    val barsBottom = (innerPadding.calculateBottomPadding() - imeBottom).coerceAtLeast(0.dp)
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxHeight(),
+        modifier = modifier.fillMaxHeight().padding(bottom = imeBottom).imeNestedScroll(),
         contentPadding = PaddingValues(
             start = innerPadding.calculateStartPadding(direction) + SideGutter,
             end = innerPadding.calculateEndPadding(direction) + SideGutter,
             top = innerPadding.calculateTopPadding() + 8.dp,
-            bottom = innerPadding.calculateBottomPadding() + 24.dp,
+            bottom = barsBottom + 24.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = content,

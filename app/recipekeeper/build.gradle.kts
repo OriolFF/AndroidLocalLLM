@@ -67,4 +67,7 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    androidTestImplementation(libs.truth)
+    // Compose ui-test drags in espresso 3.5.0, which fails on API 36 (InputManager.getInstance).
+    androidTestImplementation(libs.androidx.test.espresso.core)
 }
