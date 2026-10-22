@@ -191,7 +191,10 @@ class RecipeKeeperClipConfig(
             is CandidatePayload.Text -> renderSection(payload.section, snapshot, available)
             CandidatePayload.WholePage -> renderWholePage(snapshot)
         }
-        return header + "\n\n" + truncateAtParagraph(body, available)
+        val trimmed = truncateAtParagraph(body, available)
+        // [accept] has no snapshot: remember what the model was shown for a TEXT candidate.
+        if (candidate.payload is CandidatePayload.Text) renderedText[candidate.id] = trimmed
+        return header + "\n\n" + trimmed
     }
 
     private fun pageHeader(snapshot: PageSnapshot): String {
@@ -378,11 +381,67 @@ class RecipeKeeperClipConfig(
      */
     override fun accept(candidate: ClipCandidate, item: ClippedRecipe): Boolean {
         val quantityLines = item.ingredients.count { quantityLine.containsMatchIn(it.trim()) }
-        return when (candidate.payload) {
+        return when (val payload = candidate.payload) {
             CandidatePayload.WholePage -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES
+            is CandidatePayload.Text ->
+                (quantityLines >= MIN_ACCEPT_QUANTITY_LINES || item.steps.size >= MIN_COMPLETE_STEPS) &&
+                    stepsCoverMethod(renderedText[candidate.id] ?: sectionText(payload.section), item.steps)
             else -> quantityLines >= MIN_ACCEPT_QUANTITY_LINES || item.steps.size >= MIN_COMPLETE_STEPS
         }
     }
+
+    /** Rendered body of the last TEXT candidate per id, for [accept]'s coverage check. */
+    private val renderedText = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /**
+     * Smitten-style failure: the page has long method paragraphs and the model
+     * answered with a two-line paraphrase. The method is the text after the
+     * last instructions heading (else after the last quantity line) up to a
+     * notes heading; the parsed [steps] must reuse ≥ [MIN_METHOD_COVERAGE] of
+     * its words and number at least half its paragraphs. Without a clear
+     * method (fewer than two paragraphs) there is nothing to compare, so the
+     * result is believed.
+     */
+    private fun stepsCoverMethod(rendered: String, steps: List<String>): Boolean {
+        val paragraphs = methodParagraphs(rendered)
+        if (paragraphs.size < 2) return true
+        val source = paragraphs.flatMap(::words).toSet()
+        if (source.isEmpty()) return true
+        val parsed = steps.flatMap(::words).toSet()
+        val coverage = source.count { it in parsed }.toDouble() / source.size
+        return coverage >= MIN_METHOD_COVERAGE && steps.size * 2 >= paragraphs.size
+    }
+
+    private fun methodParagraphs(rendered: String): List<String> {
+        val lines = rendered.lines()
+        val headingIdx = lines.indexOfLast { it.startsWith("## ") && instructionsWord.containsMatchIn(it) }
+        val method = mutableListOf<String>()
+        if (headingIdx >= 0) {
+            for (line in lines.drop(headingIdx + 1)) {
+                if (line.startsWith("## ") && notesWord.containsMatchIn(line)) break
+                val trimmed = line.trim()
+                if (isParagraph(trimmed)) method += trimmed
+            }
+            return method
+        }
+        // No instructions heading (blog prose): only the run of paragraphs right
+        // after the ingredient lines counts; the first short line (related links,
+        // comments header, …) ends it, so page furniture is never "the method".
+        val start = lines.indexOfLast { quantityLine.containsMatchIn(it.trim()) } + 1
+        for (line in lines.drop(start)) {
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) continue
+            if (!isParagraph(trimmed)) break
+            method += trimmed
+        }
+        return method
+    }
+
+    private fun isParagraph(line: String): Boolean =
+        line.length >= MIN_PARAGRAPH_CHARS && !line.startsWith("## ") && !quantityLine.containsMatchIn(line)
+
+    private fun words(text: String): List<String> =
+        wordRegex.findAll(text.lowercase()).map { it.value }.filter { it.length >= 3 }.toList()
 
     override fun pickPictures(candidate: ClipCandidate, snapshot: PageSnapshot, max: Int): List<String> =
         rankPictures(candidate, snapshot, max).map { it.url }
@@ -487,6 +546,9 @@ class RecipeKeeperClipConfig(
         private const val SNIPPET_CHARS = 100
         private const val MIN_BODY_CHARS = 200
         private const val MIN_NATURAL_PX = 300
+        private const val MIN_METHOD_COVERAGE = 0.6
+        private const val MIN_PARAGRAPH_CHARS = 40
+        private val wordRegex = Regex("\\p{L}+")
 
         /** `2 cups flour`, `½ tsp salt`, `200 g butter`, `1/2 onion`, `3 eggs`. */
         val quantityLine: Regex = Regex(

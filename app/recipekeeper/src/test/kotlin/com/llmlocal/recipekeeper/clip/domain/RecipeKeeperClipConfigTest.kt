@@ -356,6 +356,27 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `accept rejects a TEXT result whose steps paraphrase a longer method`() {
+        val method = listOf(
+            "Melt the butter in a wide pan, add the onion and tomatoes, and simmer gently for forty-five minutes, crushing the tomatoes with a spoon.",
+            "Meanwhile cook the pasta in well-salted water until just al dente and reserve a cup of the cooking water before draining.",
+            "Discard the onion, toss the pasta in the sauce with a splash of pasta water, and serve right away with grated cheese.",
+        )
+        val ingredients = listOf("2 cups tomatoes", "3 tbsp butter", "1 onion", "1 lb pasta")
+        val page = snapshot(
+            sections = listOf(section("Tomato sauce", 2, (ingredients + method).joinToString("\n"), 0)),
+        )
+        val candidate = config.detect(page).single()
+        config.renderLlmInput(candidate, page, 9_000)
+
+        val paraphrase = recipe(ingredients = ingredients, steps = listOf("Sauté the onion in the butter until softened.", "Add the tomatoes and salt to taste."))
+        val faithful = recipe(ingredients = ingredients, steps = method)
+
+        assertThat(config.accept(candidate, paraphrase)).isFalse()
+        assertThat(config.accept(candidate, faithful)).isTrue()
+    }
+
+    @Test
     fun `accept requires two quantity ingredients for whole-page results`() {
         val page = snapshot(url = "https://news.example.com/x", readable = readable("word ".repeat(200), title = "Long article"))
         val whole = wholePageCandidate(page)
