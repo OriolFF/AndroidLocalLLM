@@ -26,6 +26,7 @@
   "use strict";
 
   var MAX_SECTIONS = 20;
+  var MAX_SCANNED_SECTIONS = 80; // built before capSections trims to MAX_SECTIONS
   var MAX_SECTION_CHARS = 6000;
   var READABILITY_SIZE_GUARD = 4 * 1024 * 1024; // outerHTML chars
   var MIN_DISPLAYED_AREA = 150 * 150;
@@ -449,7 +450,7 @@
       sections.push({ heading: null, level: 0, text: leading.slice(0, MAX_SECTION_CHARS), imageSrcs: [], topOffset: 0 });
     }
 
-    for (var i = 0; i < headings.length && sections.length < MAX_SECTIONS; i++) {
+    for (var i = 0; i < headings.length && sections.length < MAX_SCANNED_SECTIONS; i++) {
       var h = headings[i];
       var acc = { parts: [], chars: 0, imageSrcs: [] };
       var stopped = collectUntilHeading(h.nextSibling, acc);
@@ -466,7 +467,36 @@
         topOffset: documentTop(h),
       });
     }
-    return sections;
+    return capSections(sections);
+  }
+
+  function hasQuantityLines(text) {
+    var n = 0;
+    var lines = text.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      if (/^\s*[-*•–]?\s*[\d½¼¾⅓⅔⅛]/.test(lines[i]) && ++n >= 2) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Keep at most MAX_SECTIONS. Mega-menus put dozens of h3 before the
+   * article, so a plain "first 20" can drop the recipe: sections with
+   * quantity-looking lines (and the heading before each, usually the
+   * recipe title) win the slots, the rest fill up in document order.
+   */
+  function capSections(all) {
+    if (all.length <= MAX_SECTIONS) return all;
+    var keep = {};
+    var count = 0;
+    function take(i) {
+      if (i >= 0 && i < all.length && !keep[i] && count < MAX_SECTIONS) { keep[i] = true; count++; }
+    }
+    for (var i = 0; i < all.length; i++) {
+      if (hasQuantityLines(all[i].text)) { take(i - 1); take(i); }
+    }
+    for (var j = 0; j < all.length; j++) take(j);
+    return all.filter(function (_, idx) { return keep[idx]; });
   }
 
   /**
