@@ -52,8 +52,8 @@ no known issues). The eval Jaccard now ignores digit/letter spacing (`250g` = `2
 | `micro_nigella_banana_bread` | –/–/**180** (derived 1 h soak + bake) | –/–/**–** | the inferred total is gone — the targeted defect (QA-sites defect 10) |
 | `plain_joyofbaking_pancakes` | 15/**3**/**18** | 15/**2**/**17** | **not fixed**: the model still derives cook/total from "2-3 minutes" in the steps (page states only "Preparation time 15 minutes"); the numbers moved, the behaviour did not |
 | `roundup_guardian_slater` | 15/10/25 | 15/10/25 | **not fixed**: node has no time fields, model still derives them from step text. Not user-visible in the app: Guardian is STRUCTURED+complete and skips the model |
-| `graph_pinchofyum_cookies` | 5 steps | 7 steps | more steps = the "do not merge" rule biting (mapper has the page's own steps) |
-| `plain_cfe_banana_bread`, `micro_nigella…` | 11 steps | 12 / 11 steps | ±1 step, no content lost; cfe passes the new TEXT acceptance check (steps cover the method) |
+| `graph_pinchofyum_cookies` | 5 steps | 7 steps | more steps (unverified against the page's own count; Jaccard 1.00, nothing dropped) |
+| `plain_cfe_banana_bread`, `micro_nigella_banana_bread` | 11 / 9 steps | 12 / 11 steps | more, finer steps; cfe passes the new TEXT acceptance check |
 | `howto_recipetineats_tikka` | 16 steps | 15 steps | one merged step (mapper has 16); Jaccard still 1.00 |
 | others | OK | OK | unchanged; `list_pinchofyum_recipes` still answers `NO RECIPE` |
 
