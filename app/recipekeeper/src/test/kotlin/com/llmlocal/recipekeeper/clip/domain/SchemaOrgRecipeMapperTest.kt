@@ -187,4 +187,25 @@ class SchemaOrgRecipeMapperTest {
         assertThat(recipeWith(ingredients = JSONArray(listOf("2tablespoon Aceite", "1teaspoon Ajo en polvo", "1l Agua"))).ingredients)
             .containsExactly("2 tablespoon Aceite", "1 teaspoon Ajo en polvo", "1 l Agua").inOrder()
     }
+
+    @Test
+    fun `newline inside a step does not split a continuation and promo lines are dropped`() {
+        val steps = recipeWith(
+            instructions = JSONArray(
+                listOf(
+                    "Bake until golden brown, about 30 minutes.\n\nTo see a full visual walkthrough of this recipe, see our video on how to make Classic Birthday Cake.",
+                    "Let the cake cool completely\nbefore frosting it with the buttercream.",
+                    "Whisk the eggs.\nwatch the sugar so it does not burn.",
+                    "Watch the oven carefully near the end.",
+                ),
+            ),
+        ).steps
+
+        assertThat(steps).containsExactly(
+            "Bake until golden brown, about 30 minutes.",
+            "Let the cake cool completely before frosting it with the buttercream.",
+            "Whisk the eggs. watch the sugar so it does not burn.",
+            "Watch the oven carefully near the end.",
+        ).inOrder()
+    }
 }

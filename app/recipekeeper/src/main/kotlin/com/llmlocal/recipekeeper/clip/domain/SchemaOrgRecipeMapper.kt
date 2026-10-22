@@ -204,7 +204,17 @@ class SchemaOrgRecipeMapper(
      * numbers.
      */
     private fun splitTextSteps(text: String): List<String> {
-        val lines = text.split('\n').map { it.trim().trimStart('-', '•', '*').trim() }.filter { it.isNotEmpty() }
+        val rawLines = text.split('\n').map { it.trim().trimStart('-', '•', '*').trim() }.filter { it.isNotEmpty() }
+        // A newline is not always a step boundary: a lower-case continuation
+        // belongs to the previous step, and "To see a video…" lines are not steps.
+        val lines = mutableListOf<String>()
+        for (line in rawLines) {
+            when {
+                promoLine.containsMatchIn(line) -> Unit
+                lines.isNotEmpty() && line.first().isLowerCase() -> lines[lines.lastIndex] = lines.last() + " " + line
+                else -> lines += line
+            }
+        }
         if (lines.size > 1) return lines.map(::stripLeadingNumber)
         val single = lines.firstOrNull() ?: return emptyList()
         val parts = single.split(numberedStep).map { it.trim() }.filter { it.isNotEmpty() }
@@ -264,6 +274,7 @@ class SchemaOrgRecipeMapper(
         const val MIN_JOINED_PARTS = 3
         /** A single un-numbered instruction longer than this is split into sentences. */
         const val BLOB_CHARS = 200
+        val promoLine = Regex("^(?:to see\\b|see our\\b|click\\b|video\\b|watch (?:the |our |a )?(?:video|tutorial|how)\\b)", RegexOption.IGNORE_CASE)
         val spacedDash = Regex("\\s+[-–]\\s+")
         val gluedDash = Regex("(?<=\\p{L})-(?=\\d)")
         val numberedStep = Regex("(?:(?<=^)|(?<=[.!?]\\s))\\d{1,2}[.)]\\s+")
