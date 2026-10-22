@@ -50,6 +50,7 @@ truth = "1.4.5"
 turbine = "1.2.1"
 androidx-test-ext = "1.3.0"
 androidx-espresso = "3.7.0"
+kotlinx-serialization = "1.8.1"   # androidTest only: room-testing 2.8.5 needs >= 1.8 (generated serializers call typeParametersSerializers)
 
 [libraries]
 # AndroidX core
@@ -133,6 +134,8 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidx-espresso" }
 
 [plugins]

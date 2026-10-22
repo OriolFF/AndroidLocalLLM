@@ -56,4 +56,15 @@ dependencies {
 
     // F2: MigrationTestHelper for the v1 → v2 migration test.
     androidTestImplementation(libs.androidx.room.testing)
+    // B3: the androidTest classpath is aligned to debugRuntimeClasspath, which
+    // resolves kotlinx-serialization 1.7.3; room-testing's generated serializers
+    // need >= 1.8 (AbstractMethodError typeParametersSerializers). Pin it on the
+    // debug runtime only — release is untouched.
+    debugImplementation(libs.kotlinx.serialization.core)
+    debugImplementation(libs.kotlinx.serialization.json)
+
+    // X1: Compose UI tests (editor IME, reorder actions, favourite semantics).
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
