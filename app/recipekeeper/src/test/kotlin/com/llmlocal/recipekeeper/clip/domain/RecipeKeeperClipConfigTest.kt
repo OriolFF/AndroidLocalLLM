@@ -140,6 +140,21 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `collection page of two-line cards yields nothing, even with a recipe-ish path`() {
+        // WS12 A: tasteofhome.com/collection/recipes-with-ground-beef/ offered every card.
+        val cards = (1..6).map { n -> section("Card $n", 3, "1 lb ground beef\n2 cups rice\nA quick dinner idea number $n.", top = n * 100) }
+        val sections = listOf(section("Recipes with ground beef", 1, "Our favourites.", top = 0)) + cards
+
+        assertThat(config.detect(snapshot(url = "https://www.example.com/collection/recipes-with-ground-beef/", sections = sections))).isEmpty()
+        // Not list-style, but several relaxed sections: still no sheet of look-alikes.
+        assertThat(config.detect(snapshot(url = "https://www.example.com/recipes/ground-beef-ideas", sections = sections))).isEmpty()
+        // List-style words never relax, even for a single card.
+        val single = listOf(section("Card", 1, "1 lb ground beef\n2 cups rice\nCook.", top = 0))
+        assertThat(config.detect(snapshot(url = "https://www.example.com/category/recipes/beef", sections = single))).isEmpty()
+        assertThat(config.detect(snapshot(url = "https://www.example.com/recipes/beef-rice", sections = single))).hasSize(1)
+    }
+
+    @Test
     fun `a page with no recipe yields nothing, however long its readable text`() {
         // WS10 bug 2: a WholePage candidate from detect() made single-candidate
         // routing skip the "No recipe found" sheet on list / home pages.

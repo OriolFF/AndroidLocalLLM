@@ -28,7 +28,8 @@ import kotlin.math.abs
  * finds nothing): a heading section is a TEXT candidate when its text has
  * at least [MIN_QUANTITY_LINES] quantity-unit lines, or its heading is an
  * "ingredients" word and an "instructions" word follows within the next
- * sections. A recipe-ish URL path relaxes the line threshold by one. When
+ * sections. A recipe-ish URL path relaxes the line threshold by one, but only when that
+ * yields a single section and the path is not list-style (collection, category, tag, search, gallery, round-up). When
  * neither tier finds anything the list is **empty**: the feature then shows
  * its "No recipe found" sheet, whose "Extract anyway" builds the `WholePage`
  * candidate itself (`wholePageCandidate(snapshot)`); `detect` never offers
@@ -117,16 +118,18 @@ class RecipeKeeperClipConfig(
     private fun detectText(snapshot: PageSnapshot): List<ClipCandidate> {
         val sections = snapshot.sections
         if (sections.isEmpty()) return emptyList()
-        val threshold = if (hasRecipePath(snapshot.url)) MIN_QUANTITY_LINES - 1 else MIN_QUANTITY_LINES
 
-        val picked = mutableListOf<Pair<Int, TextSection>>()
-        var coveredLevel: Int? = null // level of the last candidate; deeper sections until a shallower heading are "covered"
-        sections.forEachIndexed { index, section ->
-            if (coveredLevel != null && section.level <= coveredLevel!!) coveredLevel = null
-            if (coveredLevel != null) return@forEachIndexed
-            if (isRecipeSection(sections, index, threshold)) {
-                picked += index to section
-                coveredLevel = section.level
+        // Strict threshold first. A recipe-ish path may relax it by one, but only
+        // when that finds exactly one section: a real recipe page has one
+        // ingredient block, a collection page has one per card (WS12 A), and a
+        // list-style path never relaxes.
+        var threshold = MIN_QUANTITY_LINES
+        var picked = pickSections(sections, threshold)
+        if (picked.isEmpty() && hasRecipePath(snapshot.url) && !hasListPath(snapshot.url)) {
+            val relaxed = pickSections(sections, MIN_QUANTITY_LINES - 1)
+            if (relaxed.size == 1) {
+                picked = relaxed
+                threshold = MIN_QUANTITY_LINES - 1
             }
         }
 
@@ -146,6 +149,20 @@ class RecipeKeeperClipConfig(
                     payload = CandidatePayload.Text(section),
                 )
             }
+    }
+
+    private fun pickSections(sections: List<TextSection>, threshold: Int): List<Pair<Int, TextSection>> {
+        val picked = mutableListOf<Pair<Int, TextSection>>()
+        var coveredLevel: Int? = null // level of the last candidate; deeper sections until a shallower heading are "covered"
+        sections.forEachIndexed { index, section ->
+            if (coveredLevel != null && section.level <= coveredLevel!!) coveredLevel = null
+            if (coveredLevel != null) return@forEachIndexed
+            if (isRecipeSection(sections, index, threshold)) {
+                picked += index to section
+                coveredLevel = section.level
+            }
+        }
+        return picked
     }
 
     private fun isRecipeSection(sections: List<TextSection>, index: Int, threshold: Int): Boolean {
@@ -544,6 +561,9 @@ class RecipeKeeperClipConfig(
     private fun hasRecipePath(url: String): Boolean =
         recipePath.containsMatchIn(runCatching { java.net.URI(url).path.orEmpty() }.getOrDefault(url))
 
+    private fun hasListPath(url: String): Boolean =
+        listPath.containsMatchIn(runCatching { java.net.URI(url).path.orEmpty() }.getOrDefault(url))
+
     private fun isRecipeType(type: String): Boolean =
         type.equals("Recipe", ignoreCase = true) || type.endsWith("/Recipe", ignoreCase = true) || type.endsWith(":Recipe", ignoreCase = true)
 
@@ -594,6 +614,8 @@ class RecipeKeeperClipConfig(
             RegexOption.IGNORE_CASE,
         )
         val notesWord: Regex = Regex("\\b(notes?|tips?|notas|consejos|hinweise|tipps|remarques|conseils|serving|storage)\\b", RegexOption.IGNORE_CASE)
+        /** List-style URL paths: collections, categories, tags, search, galleries, round-ups. */
+        val listPath: Regex = Regex("(?:^|[/_\\-])(?:collections?|categor(?:y|ies)|tags?|search|galleries|gallery|roundups?)(?:[/_\\-.]|$)", RegexOption.IGNORE_CASE)
         val recipePath: Regex = Regex("(recipe|recipes|rezept|rezepte|receta|recetas|recepta|receptes|recette|recettes|ricetta|ricette)", RegexOption.IGNORE_CASE)
     }
 }
