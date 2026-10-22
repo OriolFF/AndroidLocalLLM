@@ -82,7 +82,21 @@ class FakeWebClipConfig(
         parser = TITLE_PARSER,
     )
 
-    override fun detect(snapshot: PageSnapshot): List<ClipCandidate> = candidates
+    /** Hosts passed to [onPageLoaded], in call order. */
+    val pageLoadedHosts = mutableListOf<String?>()
+
+    /** Everything that happened, in order: `"loaded:<host>"` then `"detect"`. */
+    val callOrder = mutableListOf<String>()
+
+    override suspend fun onPageLoaded(host: String?) {
+        pageLoadedHosts += host
+        callOrder += "loaded:$host"
+    }
+
+    override fun detect(snapshot: PageSnapshot): List<ClipCandidate> {
+        callOrder += "detect"
+        return candidates
+    }
 
     override fun renderLlmInput(candidate: ClipCandidate, snapshot: PageSnapshot, budgetChars: Int): String {
         renderedInputs += candidate

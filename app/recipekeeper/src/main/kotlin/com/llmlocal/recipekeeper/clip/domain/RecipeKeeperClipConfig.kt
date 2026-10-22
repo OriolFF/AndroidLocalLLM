@@ -11,7 +11,11 @@ import com.llmlocal.feature.webclipper.domain.CandidateSource
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
 import com.llmlocal.feature.webclipper.domain.PicturePick
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
+import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHints
+import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHintsSource
+import com.llmlocal.recipekeeper.clip.domain.detection.QuantityShape
 import com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe
+import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 import kotlin.math.abs
 
@@ -54,6 +58,15 @@ import kotlin.math.abs
  *   (WS2) in production, a lambda in tests
  * @param idFactory id for saved recipes (the fallback path); UUID by default
  * @param clock epoch millis for `clippedAt`
+ * @param hintsSource learned detection hints (units, heading words, quantity
+ *   shapes); [onPageLoaded] loads the hints for the page's host before each
+ *   [detect]. Default: nothing learned.
+ *
+ * **Learned hints.** `detect` stays synchronous: [onPageLoaded] (called by
+ * `ScanPageUseCase`) swaps in a [Lexicon] built from the hints, which extends
+ * the built-in unit / heading words and may switch on the trailing-number,
+ * number-word and no-unit shapes. A TEXT candidate that the built-in rules alone
+ * would not have found is flagged [ClipCandidate.detectedByHints].
  */
 class RecipeKeeperClipConfig(
     private val untitledTitle: String,
@@ -61,9 +74,36 @@ class RecipeKeeperClipConfig(
     private val mapper: SchemaOrgRecipeMapper = SchemaOrgRecipeMapper(untitledTitle, durationParser),
     private val idFactory: () -> String = { java.util.UUID.randomUUID().toString() },
     private val clock: () -> Long = System::currentTimeMillis,
+    private val hintsSource: DetectionHintsSource = DetectionHintsSource.NONE,
 ) : WebClipConfig<ClippedRecipe> {
 
     override val llmConfig: LlmTaskConfig<ClippedRecipe> = RecipeKeeperTaskConfig
+
+    @Volatile
+    private var hints: DetectionHints = DetectionHints.EMPTY
+
+    @Volatile
+    private var lexicon: Lexicon = Lexicon.BUILT_IN
+
+    /** The hints [detect] is currently using (what a failed hint-detected extraction should penalise). */
+    fun currentHints(): DetectionHints = hints
+
+    override suspend fun onPageLoaded(host: String?) {
+        val loaded = try {
+            hintsSource.hintsFor(host)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            DetectionHints.EMPTY
+        }
+        hints = loaded
+        lexicon = if (loaded.isEmpty) Lexicon.BUILT_IN else Lexicon.from(loaded)
+    }
+
+    // Everything outside detection (render, accept, titles) reads the current lexicon.
+    private val quantityLine: Regex get() = lexicon.quantityLine
+    private val ingredientsWord: Regex get() = lexicon.ingredientsWord
+    private val instructionsWord: Regex get() = lexicon.instructionsWord
 
     // -----------------------------------------------------------------------
     // Detect
@@ -116,6 +156,18 @@ class RecipeKeeperClipConfig(
     }
 
     private fun detectText(snapshot: PageSnapshot): List<ClipCandidate> {
+        val lex = lexicon
+        val found = detectText(snapshot, lex)
+        if (lex === Lexicon.BUILT_IN || found.isEmpty()) return found
+        // Flag what the built-in rules alone would have missed.
+        val builtIn = detectText(snapshot, Lexicon.BUILT_IN).mapNotNull { (it.payload as? CandidatePayload.Text)?.section }
+        return found.map { c ->
+            val section = (c.payload as? CandidatePayload.Text)?.section
+            if (section != null && builtIn.none { it === section }) c.copy(detectedByHints = true) else c
+        }
+    }
+
+    private fun detectText(snapshot: PageSnapshot, lex: Lexicon): List<ClipCandidate> {
         val sections = snapshot.sections
         if (sections.isEmpty()) return emptyList()
 
@@ -124,9 +176,9 @@ class RecipeKeeperClipConfig(
         // ingredient block, a collection page has one per card (WS12 A), and a
         // list-style path never relaxes.
         var threshold = MIN_QUANTITY_LINES
-        var picked = pickSections(sections, threshold)
+        var picked = pickSections(sections, threshold, lex)
         if (picked.isEmpty() && hasRecipePath(snapshot.url) && !hasListPath(snapshot.url)) {
-            val relaxed = pickSections(sections, MIN_QUANTITY_LINES - 1)
+            val relaxed = pickSections(sections, MIN_QUANTITY_LINES - 1, lex)
             if (relaxed.size == 1) {
                 picked = relaxed
                 threshold = MIN_QUANTITY_LINES - 1
@@ -136,7 +188,7 @@ class RecipeKeeperClipConfig(
         return picked
             .sortedWith(compareBy({ it.second.level }, { it.second.topOffset }, { it.first }))
             .mapIndexed { rank, (index, section) ->
-                val title = textCandidateTitle(sections, index, snapshot)
+                val title = textCandidateTitle(sections, index, snapshot, lex)
                 ClipCandidate(
                     id = "text-$rank",
                     title = title,
@@ -144,20 +196,20 @@ class RecipeKeeperClipConfig(
                         ?: snapshot.openGraph["og:image"],
                     snippet = snippet(section.text),
                     source = CandidateSource.TEXT,
-                    ingredientCount = quantityLines(section.text).takeIf { it >= threshold },
+                    ingredientCount = quantityLines(section.text, lex).takeIf { it >= threshold },
                     totalMinutes = null,
                     payload = CandidatePayload.Text(section),
                 )
             }
     }
 
-    private fun pickSections(sections: List<TextSection>, threshold: Int): List<Pair<Int, TextSection>> {
+    private fun pickSections(sections: List<TextSection>, threshold: Int, lex: Lexicon): List<Pair<Int, TextSection>> {
         val picked = mutableListOf<Pair<Int, TextSection>>()
         var coveredLevel: Int? = null // level of the last candidate; deeper sections until a shallower heading are "covered"
         sections.forEachIndexed { index, section ->
             if (coveredLevel != null && section.level <= coveredLevel!!) coveredLevel = null
             if (coveredLevel != null) return@forEachIndexed
-            if (isRecipeSection(sections, index, threshold)) {
+            if (isRecipeSection(sections, index, threshold, lex)) {
                 picked += index to section
                 coveredLevel = section.level
             }
@@ -165,31 +217,38 @@ class RecipeKeeperClipConfig(
         return picked
     }
 
-    private fun isRecipeSection(sections: List<TextSection>, index: Int, threshold: Int): Boolean {
+    private fun isRecipeSection(sections: List<TextSection>, index: Int, threshold: Int, lex: Lexicon): Boolean {
         val section = sections[index]
-        if (quantityLines(section.text) >= threshold) return true
+        if (quantityLines(section.text, lex) >= threshold) return true
         val heading = section.heading ?: return false
-        if (!ingredientsWord.containsMatchIn(heading)) return false
+        if (!lex.ingredientsWord.containsMatchIn(heading)) return false
         // "Ingredients" heading followed (same text or next few sections) by an instructions word.
-        if (instructionsWord.containsMatchIn(section.text)) return true
-        return sections.drop(index + 1).take(LOOKAHEAD_SECTIONS).any { next ->
-            next.heading?.let { instructionsWord.containsMatchIn(it) } == true
-        }
+        if (lex.instructionsWord.containsMatchIn(section.text)) return true
+        if (sections.drop(index + 1).take(LOOKAHEAD_SECTIONS).any { next ->
+                next.heading?.let { lex.instructionsWord.containsMatchIn(it) } == true
+            }
+        ) return true
+        // Learned "no units" shape: a bare list of names under a learned ingredients heading.
+        return lex.noUnits && lex.learnedIngredientHeading.containsMatchIn(heading) && bareListLines(section.text) >= MIN_BARE_LINES
     }
+
+    /** Short, sentence-less lines: the shape of a unit-less ingredient list. */
+    private fun bareListLines(text: String): Int =
+        text.lineSequence().map { it.trim() }.count { it.isNotEmpty() && it.length <= MAX_BARE_LINE_CHARS && !it.endsWith(".") }
 
     /**
      * An "Ingredients" h3 belongs to the nearest preceding shallower heading
      * ("Chocolate cake" h2); the page title is the last resort.
      */
-    private fun textCandidateTitle(sections: List<TextSection>, index: Int, snapshot: PageSnapshot): String {
+    private fun textCandidateTitle(sections: List<TextSection>, index: Int, snapshot: PageSnapshot, lex: Lexicon): String {
         val section = sections[index]
         val heading = section.heading?.trim().orEmpty()
-        val generic = heading.isBlank() || ingredientsWord.containsMatchIn(heading) || instructionsWord.containsMatchIn(heading)
+        val generic = heading.isBlank() || lex.ingredientsWord.containsMatchIn(heading) || lex.instructionsWord.containsMatchIn(heading)
         if (!generic) return heading
         for (i in index - 1 downTo 0) {
             val prev = sections[i]
             val h = prev.heading?.trim().orEmpty()
-            if (prev.level < section.level && h.isNotBlank() && !ingredientsWord.containsMatchIn(h)) return h
+            if (prev.level < section.level && h.isNotBlank() && !lex.ingredientsWord.containsMatchIn(h)) return h
         }
         return snapshot.readable?.title?.takeIf { it.isNotBlank() }
             ?: snapshot.title?.takeIf { it.isNotBlank() }
@@ -427,15 +486,26 @@ class RecipeKeeperClipConfig(
 
     /**
      * Smitten-style failure: the page has long method paragraphs and the model
-     * answered with a two-line paraphrase. The method is the text after the
-     * last instructions heading (else after the last quantity line) up to a
-     * notes heading; the parsed [steps] must reuse ≥ [MIN_METHOD_COVERAGE] of
-     * its words and number at least half its paragraphs. Without a clear
-     * method (fewer than two paragraphs) there is nothing to compare, so the
-     * result is believed.
+     * answered with a two-line paraphrase.
+     *
+     * With an instructions heading (built-in or learned) in [rendered], the
+     * method is the text after the last one up to a notes heading; the parsed
+     * [steps] must reuse ≥ [MIN_METHOD_COVERAGE] of its words and number at
+     * least half its paragraphs (fewer than two paragraphs: nothing to compare,
+     * believed).
+     *
+     * Without one (blog prose, e.g. cronica.com.ar) no paragraph run can be
+     * trusted to be "the method", so the whole text after the ingredient block
+     * is the reference and the result is rejected only when it is both a thin
+     * paraphrase (< [MIN_PROSE_COVERAGE] of those words) **and** short
+     * (< [MIN_PROSE_STEPS] steps); a reference of fewer than [MIN_PROSE_WORDS]
+     * distinct words is too thin to compare against.
      */
     private fun stepsCoverMethod(rendered: String, steps: List<String>): Boolean {
-        val paragraphs = methodParagraphs(rendered)
+        val lines = rendered.lines()
+        val headingIdx = lines.indexOfLast { it.startsWith("## ") && instructionsWord.containsMatchIn(it) }
+        if (headingIdx < 0) return proseCovered(lines, steps)
+        val paragraphs = methodParagraphs(lines, headingIdx)
         if (paragraphs.size < 2) return true
         val source = paragraphs.flatMap(::words).toSet()
         if (source.isEmpty()) return true
@@ -444,29 +514,24 @@ class RecipeKeeperClipConfig(
         return coverage >= MIN_METHOD_COVERAGE && steps.size * 2 >= paragraphs.size
     }
 
-    private fun methodParagraphs(rendered: String): List<String> {
-        val lines = rendered.lines()
-        val headingIdx = lines.indexOfLast { it.startsWith("## ") && instructionsWord.containsMatchIn(it) }
+    private fun methodParagraphs(lines: List<String>, headingIdx: Int): List<String> {
         val method = mutableListOf<String>()
-        if (headingIdx >= 0) {
-            for (line in lines.drop(headingIdx + 1)) {
-                if (line.startsWith("## ") && notesWord.containsMatchIn(line)) break
-                val trimmed = line.trim()
-                if (isParagraph(trimmed)) method += trimmed
-            }
-            return method
-        }
-        // No instructions heading (blog prose): only the run of paragraphs right
-        // after the ingredient lines counts; the first short line (related links,
-        // comments header, …) ends it, so page furniture is never "the method".
-        val start = lines.indexOfLast { quantityLine.containsMatchIn(it.trim()) } + 1
-        for (line in lines.drop(start)) {
+        for (line in lines.drop(headingIdx + 1)) {
+            if (line.startsWith("## ") && notesWord.containsMatchIn(line)) break
             val trimmed = line.trim()
-            if (trimmed.isEmpty()) continue
-            if (!isParagraph(trimmed)) break
-            method += trimmed
+            if (isParagraph(trimmed)) method += trimmed
         }
         return method
+    }
+
+    /** No instructions heading: compare against everything after the ingredient block. */
+    private fun proseCovered(lines: List<String>, steps: List<String>): Boolean {
+        if (steps.size >= MIN_PROSE_STEPS) return true
+        val start = lines.indexOfLast { quantityLine.containsMatchIn(it.trim()) } + 1
+        val source = lines.drop(start).filterNot { it.startsWith("## ") }.flatMap(::words).toSet()
+        if (source.size < MIN_PROSE_WORDS) return true // too little text to call anything a paraphrase of it
+        val parsed = steps.flatMap(::words).toSet()
+        return source.count { it in parsed }.toDouble() / source.size >= MIN_PROSE_COVERAGE
     }
 
     private fun isParagraph(line: String): Boolean =
@@ -549,8 +614,8 @@ class RecipeKeeperClipConfig(
 
     private val PageImage.area: Int get() = width * height
 
-    private fun quantityLines(text: String): Int =
-        text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.count { quantityLine.containsMatchIn(it) }
+    private fun quantityLines(text: String, lex: Lexicon = lexicon): Int =
+        text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.count { lex.quantityLine.containsMatchIn(it) }
 
     private fun snippet(text: String): String? {
         val flat = TextCleaner.oneLine(text)
@@ -571,6 +636,51 @@ class RecipeKeeperClipConfig(
         is String -> listOf(t)
         is org.json.JSONArray -> (0 until t.length()).mapNotNull { t.optString(it).takeIf(String::isNotBlank) }
         else -> emptyList()
+    }
+
+    /**
+     * The words and shapes detection matches against: the built-in lists, plus
+     * whatever [DetectionHints] add. [BUILT_IN] is the hint-free lexicon.
+     *
+     * @property noUnits a learned NO_UNITS shape: bare name lines under a learned
+     *   ingredients heading count as an ingredient block
+     * @property learnedIngredientHeading matches only the *learned* ingredient headings
+     */
+    private class Lexicon(
+        val quantityLine: Regex,
+        val ingredientsWord: Regex,
+        val instructionsWord: Regex,
+        val noUnits: Boolean,
+        val learnedIngredientHeading: Regex,
+    ) {
+        companion object {
+            private val NEVER = Regex("(?!)")
+
+            val BUILT_IN = Lexicon(
+                quantityLine = RecipeKeeperClipConfig.quantityLine,
+                ingredientsWord = RecipeKeeperClipConfig.ingredientsWord,
+                instructionsWord = RecipeKeeperClipConfig.instructionsWord,
+                noUnits = false,
+                learnedIngredientHeading = NEVER,
+            )
+
+            fun from(hints: DetectionHints): Lexicon {
+                val shapes = hints.quantityShapes()
+                val ingredientHeadings = hints.ingredientHeadings()
+                val instructionHeadings = hints.instructionHeadings()
+                return Lexicon(
+                    quantityLine = buildQuantityLine(
+                        extraUnits = hints.units(),
+                        numberAfter = QuantityShape.NUMBER_AFTER in shapes,
+                        numberWords = QuantityShape.NUMBER_WORDS in shapes,
+                    ),
+                    ingredientsWord = headingWord(*(ingredientHeadingWords + ingredientHeadings).toTypedArray()),
+                    instructionsWord = headingWord(*(instructionHeadingWords + instructionHeadings).toTypedArray()),
+                    noUnits = QuantityShape.NO_UNITS in shapes,
+                    learnedIngredientHeading = if (ingredientHeadings.isEmpty()) NEVER else headingWord(*ingredientHeadings.toTypedArray()),
+                )
+            }
+        }
     }
 
     companion object {
@@ -594,6 +704,11 @@ class RecipeKeeperClipConfig(
         private const val MIN_NATURAL_PX = 300
         private const val MAX_NOTES_CHARS = 600
         private const val MIN_METHOD_COVERAGE = 0.6
+        private const val MIN_PROSE_COVERAGE = 0.3
+        private const val MIN_PROSE_STEPS = 3
+        private const val MIN_PROSE_WORDS = 25
+        private const val MIN_BARE_LINES = 5
+        private const val MAX_BARE_LINE_CHARS = 60
         private const val MIN_PARAGRAPH_CHARS = 40
         private val wordRegex = Regex("\\p{L}+")
 
@@ -626,10 +741,31 @@ class RecipeKeeperClipConfig(
             "κ.γ.", "κουταλάκι", "κουταλάκια", "πρέζα", "σκελίδα", "σκελίδες", "φέτα", "φέτες", "κονσέρβα", "κονσέρβες", "τεμ.", "τεμάχιο", "τεμάχια",
             "ματσάκι", "χούφτα", "ποτήρι", "ποτήρια",
         )
-        private val unit = "(?:${alternation(unitWords)})$WORD_END"
         private const val NUMBER = "[\\d½¼¾⅓⅔⅛][\\d/.,\\-–½¼¾⅓⅔⅛]*"
+        private const val BARE_NUMBER = "[\\d½¼¾⅓⅔⅛][\\d/,\\-–½¼¾⅓⅔⅛]*"
         private const val NUMBER_WORD = "(?:un|una|uno|dos|tres|dues|ένα|μία|μια|δύο|τρία|τρεις)"
+        private const val NUMBER_WORD_EXTRA = "(?:one|two|three|four|five|six|ein|eine|zwei|drei|deux|trois|due|tre|un|una|uno|dos|tres|dues|ένα|μία|μια|δύο|τρία|τρεις)"
         private const val BULLET = "(?:[-*•–·]\\s*)?"
+
+        /**
+         * Builds the quantity-line regex over the built-in units plus [extraUnits]
+         * (learned). [numberAfter] lets a bare trailing number count (`Harina 200`),
+         * [numberWords] lets a number word before any word count (`dos huevos`).
+         */
+        private fun buildQuantityLine(extraUnits: Set<String>, numberAfter: Boolean, numberWords: Boolean): Regex {
+            val unit = "(?:${alternation(unitWords + extraUnits)})$WORD_END"
+            return Regex(
+                "^$BULLET(?:(?:about|aprox\\.?|unos|unas)\\s+)?(?:" +
+                    "$NUMBER\\s*(?:$unit\\.?\\s+\\S|\\s+\\p{L})" +
+                    "|$WORD_START$NUMBER_WORD\\s+$unit\\.?\\s+\\S" +
+                    (if (numberWords) "|$WORD_START$NUMBER_WORD_EXTRA\\s+\\p{L}" else "") +
+                    ")" +
+                    "|^$BULLET\\p{L}[^\\d\\n]{0,60}?[,:]?\\s+$NUMBER\\s*$unit\\.?\\s*$" +
+                    // Learned: a short sentence-less name followed by a bare number (`Harina 200`).
+                    (if (numberAfter) "|^$BULLET\\p{L}[^\\d\\n.!?]{0,40}?[,:]?\\s+$BARE_NUMBER\\s*$" else ""),
+                RegexOption.IGNORE_CASE,
+            )
+        }
 
         /**
          * `2 cups flour`, `½ tsp salt`, `200 g butter`, `1/2 onion`, `3 eggs`,
@@ -637,25 +773,20 @@ class RecipeKeeperClipConfig(
          * word plus unit (`una lata`, `δύο σκελίδες`) and the name-first shape
          * `farina, 200 g` / `αλεύρι 200 γρ.`.
          */
-        val quantityLine: Regex = Regex(
-            "^$BULLET(?:(?:about|aprox\\.?|unos|unas)\\s+)?(?:" +
-                "$NUMBER\\s*(?:$unit\\.?\\s+\\S|\\s+\\p{L})" +
-                "|$WORD_START$NUMBER_WORD\\s+$unit\\.?\\s+\\S" +
-                ")" +
-                "|^$BULLET\\p{L}[^\\d\\n]{0,60}?[,:]?\\s+$NUMBER\\s*$unit\\.?\\s*$",
-            RegexOption.IGNORE_CASE,
-        )
-        val ingredientsWord: Regex = headingWord(
+        val quantityLine: Regex = buildQuantityLine(emptySet(), numberAfter = false, numberWords = false)
+        private val ingredientHeadingWords = listOf(
             "ingredients", "ingredient", "ingredientes", "zutaten", "ingrédients", "ingredients", "ingredienti",
             "υλικά", "υλικα", "συστατικά", "συστατικα",
         )
-        val instructionsWord: Regex = headingWord(
+        private val instructionHeadingWords = listOf(
             "instructions", "instruction", "method", "directions", "steps", "preparation", "procedure", "how to make",
             "instrucciones", "preparación", "preparacion", "elaboración", "elaboracion", "pasos", "paso a paso", "modo de preparación", "modo de preparacion",
             "procedimiento", "zubereitung", "anleitung", "schritte", "préparation", "étapes", "etapes", "preparazione", "procedimento",
             "elaboració", "preparació", "pas a pas", "com es fa", "instruccions", "procediment",
             "εκτέλεση", "εκτελεση", "διαδικασία", "διαδικασια", "οδηγίες", "οδηγιες", "βήματα", "βηματα", "παρασκευή", "παρασκευη", "μέθοδος", "μεθοδος",
         )
+        val ingredientsWord: Regex = headingWord(*ingredientHeadingWords.toTypedArray())
+        val instructionsWord: Regex = headingWord(*instructionHeadingWords.toTypedArray())
         val notesWord: Regex = headingWord(
             "notes", "note", "tips", "tip", "notas", "consejos", "hinweise", "tipps", "remarques", "conseils", "serving", "storage",
             "notes", "consells", "σημειώσεις", "σημειωσεις", "συμβουλές", "συμβουλες",

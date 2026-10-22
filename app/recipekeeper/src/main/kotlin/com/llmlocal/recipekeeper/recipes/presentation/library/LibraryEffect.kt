@@ -18,6 +18,9 @@ sealed interface LibraryEffect {
     /** Open the recipe editor: [id] to edit that recipe, `null` to create a new one. */
     data class NavigateToEditor(val id: String?) : LibraryEffect
 
+    /** Learned detection was cleared: show the confirmation snackbar. */
+    data object DetectionReset : LibraryEffect
+
     /** Undo arrived after the window closed. */
     data object UndoFailed : LibraryEffect
 }

@@ -37,6 +37,7 @@ class ScanPageUseCase(
         when (val outcome = scanner.capture()) {
             is Outcome.Success -> {
                 val snapshot = outcome.value
+                config.onPageLoaded(hostOf(snapshot.url))
                 val candidates = withContext(dispatchers.default) {
                     config.detect(snapshot).take(MAX_CANDIDATES)
                 }
@@ -46,7 +47,15 @@ class ScanPageUseCase(
             is Outcome.Failure -> Outcome.Failure(outcome.error)
         }
 
+    private fun hostOf(url: String): String? =
+        runCatching { java.net.URI(url).host }.getOrNull()
+            ?.lowercase()
+            ?.let { hostPrefix.replaceFirst(it, "") }
+            ?.takeIf { it.isNotBlank() }
+
     companion object {
+        /** Same host normalisation as the app's page-header host (`www.` / `m.` / `mobile.` dropped). */
+        private val hostPrefix = Regex("^(?:www|m|mobile)\\.(?=[^.]+\\.)")
         const val MAX_CANDIDATES = 10
     }
 }

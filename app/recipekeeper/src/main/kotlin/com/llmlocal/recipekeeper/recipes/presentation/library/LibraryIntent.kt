@@ -35,6 +35,15 @@ sealed interface LibraryIntent {
     /** Tile menu → Edit recipe. */
     data class EditRecipe(val id: String) : LibraryIntent
 
+    /** Overflow → "Reset learned detection": ask for confirmation first. */
+    data object RequestResetDetection : LibraryIntent
+
+    /** Reset dialog dismissed / cancelled. */
+    data object DismissResetDetection : LibraryIntent
+
+    /** Reset dialog confirmed: forget everything learned. */
+    data object ConfirmResetDetection : LibraryIntent
+
     /** Top-bar "New recipe" / empty-state "Write a recipe". */
     data object CreateRecipe : LibraryIntent
 }

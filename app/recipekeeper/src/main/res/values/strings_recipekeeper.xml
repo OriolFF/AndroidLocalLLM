@@ -78,6 +78,16 @@
     <string name="recipekeeper_delete_message">Its saved pictures are removed too.</string>
     <string name="recipekeeper_recipe_deleted">Recipe deleted</string>
     <string name="recipekeeper_undo">Undo</string>
+    <!-- Learned detection (library overflow) -->
+    <string name="recipekeeper_reset_detection">Reset learned detection</string>
+    <plurals name="recipekeeper_learned_hints_count">
+        <item quantity="one">%d learned hint</item>
+        <item quantity="other">%d learned hints</item>
+    </plurals>
+    <string name="recipekeeper_reset_detection_title">Reset learned detection?</string>
+    <string name="recipekeeper_reset_detection_message">Recipe Keeper will forget the units, headings and page layouts it learned from earlier clips, so some pages may need Extract with AI again. Your saved recipes are not touched.</string>
+    <string name="recipekeeper_reset_detection_confirm">Reset</string>
+    <string name="recipekeeper_reset_detection_done">Learned detection reset</string>
     <string name="recipekeeper_undo_delete_failed">Too late to undo — the recipe was already deleted</string>
 
     <!-- Favourites, editor entry points, created recipes -->

@@ -4,6 +4,9 @@ import androidx.room.Room
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.recipekeeper.R
 import com.llmlocal.feature.webclipper.di.WEBCLIPPER_TEMP_DIR_QUALIFIER
+import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHintsStore
+import com.llmlocal.recipekeeper.clip.domain.detection.NoOpDetectionHintsStore
+import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
 import com.llmlocal.recipekeeper.recipes.data.ContentResolverPictureImporter
 import com.llmlocal.recipekeeper.recipes.data.FileRecipePictureStore
 import com.llmlocal.recipekeeper.recipes.data.MIGRATION_1_2
@@ -19,6 +22,7 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeShareTemplates
 import com.llmlocal.recipekeeper.recipes.domain.RecipePictureStore
 import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
@@ -82,6 +86,9 @@ val recipesModule: Module = module {
     factory { ObserveRecipeUseCase(repository = get()) }
     factory { ObserveLibraryModelStatusUseCase(source = get()) }
     factory { ToggleFavouriteUseCase(repository = get()) }
+    // The learned-hints store belongs to the clip feature (`clipModule`); until it is bound, nothing is learned.
+    factory { ObserveLearnedHintCountUseCase(store = getOrNull<DetectionHintsStore>() ?: NoOpDetectionHintsStore) }
+    factory { ResetDetectionHintsUseCase(store = getOrNull<DetectionHintsStore>() ?: NoOpDetectionHintsStore) }
     factory { ToggleIngredientCheckedUseCase(repository = get()) }
     factory { ResetChecksUseCase(repository = get()) }
     factory { RetryRecipePicturesUseCase(repository = get(), fetcher = get(), store = get(), dispatchers = get()) }
@@ -110,6 +117,8 @@ val recipesModule: Module = module {
             deleteWithUndo = get(),
             shareRecipe = get(),
             toggleFavourite = get(),
+            observeLearnedHints = get(),
+            resetDetection = get(),
             dispatchers = get(),
         )
     }
