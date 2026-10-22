@@ -194,4 +194,24 @@ class RecipeKeeperPipelineTest {
         val id = sink.save(parsed.copy(id = "second"), page, candidate, listOf(file), truncated = false, ClipSaveOptions(pictureCandidates = urls, picturesFailed = true))
         assertThat(repository.recipes.single { it.id == id }.picturesFailed).isFalse()
     }
+
+    @Test
+    fun `sink stores only the preferred pictures as retry candidates`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val page = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
+        val candidate = config.detect(page).single()
+        val repository = FakeRecipeRepository()
+        val sink = RecipeKeeperClipSink(
+            repository, FileRecipePictureStore(temp.newFolder()), TestDispatcherProvider(dispatcher), untitledTitle = "Untitled recipe",
+            preferredPictures = { c, s, max -> config.rankPictures(c, s, max).filter { it.preferred }.map { it.url } },
+            idFactory = { "retry" },
+        )
+        val parsed = config.llmConfig.parser.parse(RecipeKeeperParserTest.FULL_OUTPUT)!!
+        val own = "https://cdn.example.com/banana-bread.jpg"
+        val related = "https://cdn.example.com/related-card-photo.jpg"
+
+        sink.save(parsed, page, candidate, emptyList(), truncated = false, ClipSaveOptions(pictureCandidates = listOf(own, related), picturesFailed = true))
+
+        assertThat(repository.recipes.single().pictureCandidates).containsExactly(own)
+    }
 }

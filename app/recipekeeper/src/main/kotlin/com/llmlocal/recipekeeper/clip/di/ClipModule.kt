@@ -21,9 +21,11 @@ val clipModule: Module = module {
     single { RecipeKeeperTaskConfig }
     single<WebClipConfig<ClippedRecipe>> { RecipeKeeperClipConfig(untitledTitle = androidContext().getString(R.string.recipekeeper_untitled_recipe)) }
     single<ClipSink<ClippedRecipe>> {
+        val config = get<WebClipConfig<ClippedRecipe>>()
         RecipeKeeperClipSink(
             repository = get(), pictures = get(), dispatchers = get(),
             untitledTitle = androidContext().getString(R.string.recipekeeper_untitled_recipe),
+            preferredPictures = { candidate, snapshot, max -> config.rankPictures(candidate, snapshot, max).filter { it.preferred }.map { it.url } },
         )
     }
 }

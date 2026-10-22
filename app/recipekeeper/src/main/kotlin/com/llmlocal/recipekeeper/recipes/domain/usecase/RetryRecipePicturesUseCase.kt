@@ -9,7 +9,9 @@ import kotlinx.coroutines.withContext
 
 /**
  * "Retry pictures" after an offline clip: downloads the first
- * [RETRY_PICTURES] stored [ClippedRecipe.pictureCandidates], moves them into
+ * [RETRY_PICTURES] stored [ClippedRecipe.pictureCandidates] — which the clip
+ * sink limits to the clipper's pre-checked (preferred) picks, so a retry never
+ * brings in related-recipe or page images the clip left out — moves them into
  * the recipe's folder and replaces the picture list, clearing
  * `picturesFailed` when at least one arrived.
  */
