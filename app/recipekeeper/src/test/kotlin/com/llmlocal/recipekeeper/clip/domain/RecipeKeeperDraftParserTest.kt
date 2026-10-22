@@ -19,6 +19,15 @@ class RecipeKeeperDraftParserTest {
     }
 
     @Test
+    fun `draft stays empty (waiting hint) until a title, ingredient or step is parsed`() {
+        assertThat(parser.parse("").isEmpty).isTrue()
+        assertThat(parser.parse("\n \n").isEmpty).isTrue()
+        assertThat(parser.parse("Title: Classic Ban").isEmpty).isTrue()
+        assertThat(parser.parse("Title: Classic Banana Bread\n").isEmpty).isFalse()
+        assertThat(parser.parse("Ingredients:\n- 3 ripe bananas\n").isEmpty).isFalse()
+    }
+
+    @Test
     fun `completed lines are promoted, the unfinished line stays in the tail`() {
         val draft = parser.parse("Title: Classic Banana Bread\nIngredients:\n- 3 ripe bananas\n- 1/3 cup mel")
 

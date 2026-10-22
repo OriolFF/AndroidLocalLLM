@@ -16,4 +16,7 @@ data class RecipeDraft(
     val steps: List<String>,
     val notes: String?,
     val tail: String,
-)
+) {
+    /** Nothing readable parsed yet: no title, ingredient or step. */
+    val isEmpty: Boolean get() = title == null && ingredients.isEmpty() && steps.isEmpty()
+}
