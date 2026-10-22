@@ -332,12 +332,27 @@ class RecipeKeeperClipConfigTest {
     @Test
     fun `isComplete needs three ingredients and two steps, and the skip switch is on`() {
         assertThat(config.skipModelWhenStructuredComplete).isTrue()
-        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix.", "Bake.")))).isTrue()
-        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour"), steps = listOf("Mix.", "Bake.")))).isFalse()
+        val steps = listOf("Mix the dry ingredients with the eggs.", "Bake for thirty minutes until golden.")
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = steps))).isTrue()
+        assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour"), steps = steps))).isFalse()
         assertThat(config.isComplete(recipe(ingredients = listOf("1 egg", "2 cups flour", "milk"), steps = listOf("Mix and bake.")))).isFalse()
         // Nigella's microdata: 12 ingredients, instructions lumped into one step → the model should still run.
         val structured = snapshot(jsonLd = listOf(loadJsonLd("single_recipe")))
         assertThat(config.isComplete(config.fallback(config.detect(structured).single(), structured)!!)).isTrue()
+    }
+
+    @Test
+    fun `isComplete also needs substance - short steps and dash-joined ingredients fail`() {
+        val ingredients = listOf("1 egg", "2 cups flour", "milk")
+        // Mean 5 chars, total 10: paraphrase-thin.
+        assertThat(config.isComplete(recipe(ingredients = ingredients, steps = listOf("Mix.", "Bake.")))).isFalse()
+        // Short steps but a long total method still passes (≥ 120 chars).
+        val many = List(8) { "Fold gently, then rest." }
+        assertThat(config.isComplete(recipe(ingredients = ingredients, steps = many))).isTrue()
+        // receptes.cat: the whole list in one line.
+        val joined = listOf("1 egg", "2 cups flour - 75 g butter - 1 tsp salt - 3 apples", "milk")
+        val steps = listOf("Mix the dry ingredients with the eggs.", "Bake for thirty minutes until golden.")
+        assertThat(config.isComplete(recipe(ingredients = joined, steps = steps))).isFalse()
     }
 
     @Test

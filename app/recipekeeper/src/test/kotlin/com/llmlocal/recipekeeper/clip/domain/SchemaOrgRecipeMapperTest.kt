@@ -126,4 +126,35 @@ class SchemaOrgRecipeMapperTest {
         val node = loadJsonLd("legacy_text_array").also { it.raw.remove("name") }
         assertThat(mapper.map(node, url)!!.title).isEqualTo("Untitled recipe")
     }
+
+    private fun recipeWith(ingredients: Any? = null, instructions: Any? = null): com.llmlocal.recipekeeper.recipes.domain.ClippedRecipe {
+        val raw = JSONObject().put("@type", "Recipe").put("name", "X")
+        if (ingredients != null) raw.put("recipeIngredient", ingredients)
+        if (instructions != null) raw.put("recipeInstructions", instructions)
+        return mapper.map(JsonLdNode(listOf("Recipe"), raw), url)!!
+    }
+
+    @Test
+    fun `a single long instruction blob is split on sentence boundaries`() {
+        val blob = "Pela y trocea las verduras y sofríelas en aceite durante cinco minutos. Añade el agua y la pastilla de caldo y lleva a ebullición. " +
+            "Baja el fuego, tapa y ponemos las verduras a cocer 15 minutos desde que el caldo empiece a hervir, removiendo de vez en cuando. Tritura todo y sirve con cilantro picado."
+        val steps = recipeWith(ingredients = JSONArray(listOf("a", "b", "c")), instructions = blob).steps
+
+        assertThat(steps).hasSize(4)
+        assertThat(steps[2]).contains("ponemos las verduras a cocer 15 minutos")
+        // A short instruction stays whole.
+        assertThat(recipeWith(instructions = "Mix. Bake.").steps).containsExactly("Mix. Bake.")
+    }
+
+    @Test
+    fun `dash-joined ingredient strings are split into lines`() {
+        val glued = "150grs de farina-75grs de margarina-400grs de poma-1rovell d'ou-75grs de sucre-"
+        assertThat(recipeWith(ingredients = glued).ingredients).containsExactly(
+            "150grs de farina", "75grs de margarina", "400grs de poma", "1rovell d'ou", "75grs de sucre",
+        ).inOrder()
+        assertThat(recipeWith(ingredients = "2 cups flour - 1 egg - 3 tbsp sugar").ingredients)
+            .containsExactly("2 cups flour", "1 egg", "3 tbsp sugar").inOrder()
+        // Fewer than three parts: untouched.
+        assertThat(recipeWith(ingredients = "1 cup sugar - or honey").ingredients).containsExactly("1 cup sugar - or honey")
+    }
 }

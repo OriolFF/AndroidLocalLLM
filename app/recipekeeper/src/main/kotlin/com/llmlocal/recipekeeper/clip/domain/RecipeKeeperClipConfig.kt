@@ -349,9 +349,18 @@ class RecipeKeeperClipConfig(
      */
     override val skipModelWhenStructuredComplete: Boolean = true
 
-    /** The eval's quality bar: enough ingredients and more than one step. */
-    override fun isComplete(item: ClippedRecipe): Boolean =
-        item.ingredients.size >= MIN_COMPLETE_INGREDIENTS && item.steps.size >= MIN_COMPLETE_STEPS
+    /**
+     * The eval's quality bar: enough ingredients, more than one step, steps
+     * with substance (mean length ≥ [MIN_MEAN_STEP_CHARS] or ≥
+     * [MIN_TOTAL_STEP_CHARS] in all — a one-blob or paraphrased method fails)
+     * and no dash-joined ingredient line (the list was one string).
+     */
+    override fun isComplete(item: ClippedRecipe): Boolean {
+        if (item.ingredients.size < MIN_COMPLETE_INGREDIENTS || item.steps.size < MIN_COMPLETE_STEPS) return false
+        val total = item.steps.sumOf { it.length }
+        if (total / item.steps.size < MIN_MEAN_STEP_CHARS && total < MIN_TOTAL_STEP_CHARS) return false
+        return item.ingredients.none { joinedSeparator.findAll(it).count() >= MIN_JOINED_SEPARATORS }
+    }
 
     /**
      * Quality floor on a parsed model result.
@@ -469,6 +478,10 @@ class RecipeKeeperClipConfig(
         const val MIN_ACCEPT_QUANTITY_LINES = 2
         const val MIN_COMPLETE_INGREDIENTS = 3
         const val MIN_COMPLETE_STEPS = 2
+        const val MIN_MEAN_STEP_CHARS = 25
+        const val MIN_TOTAL_STEP_CHARS = 120
+        private const val MIN_JOINED_SEPARATORS = 3
+        private val joinedSeparator = Regex("\\s[-–]\\s")
         private const val LOOKAHEAD_SECTIONS = 3
         private const val MAX_FOLLOWING_SECTIONS = 6
         private const val SNIPPET_CHARS = 100
