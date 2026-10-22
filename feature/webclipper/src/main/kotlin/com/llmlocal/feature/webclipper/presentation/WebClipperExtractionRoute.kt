@@ -33,6 +33,9 @@ import org.koin.core.parameter.parametersOf
  *   raw streamed text (mirrors `LlmTaskRoute.renderOutput`)
  * @param onSaved called with the saved item id
  * @param onCancelled called when the user stops or goes back to the page
+ * @param onShowSnackbar when set, snackbar messages go here instead of being shown
+ *   from this route's own scope; the host launches them in a scope that outlives
+ *   this destination (a snackbar launched here dies with the pop / navigation)
  * @param snackbarHostState optional host for "Clip cancelled" / "Saved";
  *   `null` drops those messages. Pass the app-wide host: the messages are
  *   emitted right before this screen pops, so a host that lives inside it
@@ -50,6 +53,7 @@ fun <T : Any> WebClipperExtractionRoute(
     onNavigateToModelManagement: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
+    onShowSnackbar: ((String) -> Unit)? = null,
 ) {
     val viewModel: ExtractionViewModel = koinViewModel(key = candidateId) {
         parametersOf(candidateId, config, sink, labels)
@@ -74,9 +78,9 @@ fun <T : Any> WebClipperExtractionRoute(
                 // Launched, not awaited: showSnackbar suspends until the
                 // snackbar is dismissed, and the pop / navigation effect that
                 // follows it in the channel must not wait those seconds.
-                is ExtractionEffect.ShowSnackbar -> snackbarHostState?.let { host ->
-                    launch { host.showSnackbar(effect.message) }
-                }
+                is ExtractionEffect.ShowSnackbar ->
+                    if (onShowSnackbar != null) onShowSnackbar(effect.message)
+                    else snackbarHostState?.let { host -> launch { host.showSnackbar(effect.message) } }
             }
         }
     }
