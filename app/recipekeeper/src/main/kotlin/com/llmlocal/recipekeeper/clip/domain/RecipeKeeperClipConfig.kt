@@ -615,7 +615,7 @@ class RecipeKeeperClipConfig(
             // ES
             "grs", "gramos", "litro", "litros", "taza", "tazas", "cucharada", "cucharadas", "cda", "cdas", "cucharadita", "cucharaditas", "cdta", "cdtas",
             "diente", "dientes", "rebanada", "rebanadas", "lata", "latas", "unidad", "unidades", "ud", "uds", "pieza", "piezas", "manojo", "puñado",
-            "vaso", "vasos", "chorrito", "pizca",
+            "vaso", "vasos", "vasito", "vasitos", "chorrito", "pizca",
             // CA
             "litre", "litres", "tassa", "cullerada", "cullerades", "culleradeta", "culleradetes", "pessic", "gra", "grans", "llesca", "llesques",
             "llauna", "llaunes", "unitat", "unitats", "peça", "peces", "manat", "grapat", "got", "gots", "raig",

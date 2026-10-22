@@ -1,0 +1,57 @@
+{
+  "quickScan": 0,
+  "capture": {
+    "url": "https://cuinadecasa.example/receptes/coca-de-llardons/",
+    "title": "Coca de llardons | Cuina de casa",
+    "siteName": null,
+    "jsonLd": [],
+    "microdata": [],
+    "og": {},
+    "readable": {
+      "title": "Coca de llardons | Cuina de casa",
+      "byline": null,
+      "excerpt": "Una coca tradicional d'aquestes que fa la meva àvia per Sant Joan. Ensucrada per sobre i amb una textura que es desfà a la boca; és ideal per acompanyar un cafè amb la família i els amics a mitja tarda.",
+      "siteName": null,
+      "textContent": "\n    \n      \n      Una coca tradicional d'aquestes que fa la meva àvia per Sant Joan. Ensucrada per sobre i amb una textura que es desfà a la boca; és ideal per acompanyar un cafè amb la família i els amics a mitja tarda.\n      \n      Ingredients\n      \n        300 g de farina de força\n        2 cullerades soperes d'oli\n        1 culleradeta de sal\n        1 pessic de sucre\n        3 grans d'all picat\n        200 ml de llet tèbia\n      \n      Preparació\n      Barregeu la farina amb la sal i el sucre, afegiu l'oli i la llet i amaseu durant deu minuts.\n      Deixeu reposar la massa una hora, estireu-la sobre la safata i courela a 200 graus durant vint minuts.\n    \n  ",
+      "length": 673
+    },
+    "sections": [
+      {
+        "heading": "Coca de llardons",
+        "level": 1,
+        "text": "Una coca tradicional d'aquestes que fa la meva àvia per Sant Joan. Ensucrada per sobre i amb una textura que es desfà a la boca; és ideal per acompanyar un cafè amb la família i els amics a mitja tarda.",
+        "imageSrcs": [
+          "https://cuinadecasa.example/uploads/coca.jpg"
+        ],
+        "topOffset": 0
+      },
+      {
+        "heading": "Ingredients",
+        "level": 5,
+        "text": "300 g de farina de força\n2 cullerades soperes d'oli\n1 culleradeta de sal\n1 pessic de sucre\n3 grans d'all picat\n200 ml de llet tèbia",
+        "imageSrcs": [],
+        "topOffset": 300
+      },
+      {
+        "heading": "Preparació",
+        "level": 5,
+        "text": "Barregeu la farina amb la sal i el sucre, afegiu l'oli i la llet i amaseu durant deu minuts.\nDeixeu reposar la massa una hora, estireu-la sobre la safata i courela a 200 graus durant vint minuts.",
+        "imageSrcs": [],
+        "topOffset": 500
+      }
+    ],
+    "images": [
+      {
+        "src": "https://cuinadecasa.example/uploads/coca.jpg",
+        "alt": "Coca",
+        "width": 700,
+        "height": 500,
+        "naturalWidth": 1400,
+        "naturalHeight": 1000,
+        "top": 200,
+        "inRecipeCard": false
+      }
+    ],
+    "truncated": false
+  }
+}
