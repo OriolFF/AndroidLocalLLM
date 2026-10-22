@@ -46,6 +46,34 @@ internal object TextCleaner {
     /** `250.0g` → `250g`, `Makes 10.0 items` → `Makes 10 items`; `0.05` and `6.75` are untouched. */
     fun tidyNumbers(text: String): String = trailingZero.replace(text, "$1")
 
+    private val units = listOf(
+        // EN
+        "g", "gr", "grs", "gm", "kg", "mg", "ml", "l", "dl", "cl", "cup", "cups", "tbsp", "tbs", "tsp", "tablespoon", "tablespoons", "teaspoon", "teaspoons",
+        "oz", "ounce", "ounces", "lb", "lbs", "pound", "pounds", "pinch", "dash", "clove", "cloves", "slice", "slices", "can", "cans", "stick", "sticks",
+        "bunch", "handful", "piece", "pieces", "level", "heaped", "large", "medium", "small",
+        // ES
+        "taza", "tazas", "cucharada", "cucharadas", "cucharadita", "cucharaditas", "gramo", "gramos", "litro", "litros", "pizca", "diente", "dientes", "rebanada", "rebanadas",
+        // CA
+        "cullerada", "culleradas", "culleradeta", "culleradetes", "tassa", "tasses", "pessic", "rovell", "rovells", "gra", "grams",
+        // DE
+        "el", "tl", "tasse", "tassen", "prise", "stück", "becher", "pck", "pkt", "dose", "bund", "zehe", "zehen", "scheibe", "scheiben", "msp", "esslöffel", "teelöffel",
+        // FR
+        "cuillère", "cuillères", "cuillere", "cuilleres", "cuil", "càs", "càc", "cas", "cac", "pincée", "pincées", "gousse", "gousses", "sachet", "sachets", "tranche", "tranches", "verre", "verres",
+        // IT
+        "cucchiaio", "cucchiai", "cucchiaino", "cucchiaini", "tazza", "tazze", "pizzico", "spicchio", "spicchi", "fetta", "fette", "bicchiere", "bicchieri", "mazzetto", "bustina", "bustine",
+    ).distinct().sortedByDescending { it.length }
+    private val gluedUnit = Regex(
+        "(?<![\\p{L}\\d.,])([\\d½¼¾⅓⅔⅛]+(?:[.,/][\\d]+)?)(" + units.joinToString("|") + ")(?![\\p{L}])",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * `2tablespoon` → `2 tablespoon`, `1level tsp` → `1 level tsp`,
+     * `150grs de farina` → `150 grs de farina`: a quantity glued to a known
+     * unit word (EN/ES/CA/DE/FR/IT). Unknown suffixes (`2nd`, `3D`) are left alone.
+     */
+    fun separateUnits(text: String): String = gluedUnit.replace(text) { m -> m.groupValues[1] + " " + m.groupValues[2] }
+
     /** URL without query / fragment, for de-duplication. */
     fun urlKey(url: String): String = url.substringBefore('#').substringBefore('?').trimEnd('/')
 

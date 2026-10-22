@@ -85,6 +85,7 @@ class SchemaOrgRecipeMapper(
             .map { TextCleaner.tidyNumbers(TextCleaner.oneLine(it)) }
             .filter { it.isNotBlank() }
             .flatMap(::splitJoinedIngredient)
+            .map(TextCleaner::separateUnits)
     }
 
     /**
