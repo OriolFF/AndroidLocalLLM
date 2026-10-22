@@ -56,4 +56,24 @@ internal object TextCleaner {
     fun host(url: String): String = runCatching { java.net.URI(url).host.orEmpty() }
         .getOrDefault("")
         .removePrefix("www.")
+
+    private val firstSentence = Regex("(?<=[.!?])\\s+")
+    private val alternative = Regex("\\s*(?:[;,]\\s*)?\\bor\\b\\s+|\\s*;\\s*", RegexOption.IGNORE_CASE)
+
+    /**
+     * Servings as a chip-sized label: the first sentence, cut before an
+     * alternative ("16 cookies or 20 large ones"), at most [SERVINGS_MAX_CHARS]
+     * characters (word boundary + `…`). The full sentence is not kept.
+     */
+    fun shortServings(text: String?): String? {
+        val flat = oneLine(text).ifBlank { return null }
+        val sentence = flat.split(firstSentence).first().trimEnd('.', ',', ';')
+        val head = sentence.split(alternative, limit = 2).first().trim().ifBlank { sentence }
+        if (head.length <= SERVINGS_MAX_CHARS) return head
+        val cut = head.take(SERVINGS_MAX_CHARS)
+        val space = cut.lastIndexOf(' ')
+        return (if (space > SERVINGS_MAX_CHARS / 2) cut.substring(0, space) else cut).trimEnd(',', ';', ' ', '-') + "…"
+    }
+
+    const val SERVINGS_MAX_CHARS = 40
 }

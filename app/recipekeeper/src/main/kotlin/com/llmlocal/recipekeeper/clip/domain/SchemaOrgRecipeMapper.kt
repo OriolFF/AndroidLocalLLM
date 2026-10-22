@@ -54,7 +54,7 @@ class SchemaOrgRecipeMapper(
             id = id,
             title = name(raw).ifBlank { untitledTitle },
             description = description(raw),
-            servings = yieldText(raw),
+            servings = TextCleaner.shortServings(yieldText(raw)),
             prepMinutes = prep,
             cookMinutes = cook,
             totalMinutes = totalMinutes(raw, prep, cook),

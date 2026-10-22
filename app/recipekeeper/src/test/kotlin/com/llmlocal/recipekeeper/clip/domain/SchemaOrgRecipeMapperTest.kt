@@ -157,4 +157,17 @@ class SchemaOrgRecipeMapperTest {
         // Fewer than three parts: untouched.
         assertThat(recipeWith(ingredients = "1 cup sugar - or honey").ingredients).containsExactly("1 cup sugar - or honey")
     }
+
+    @Test
+    fun `servings are shortened to a chip-sized first clause`() {
+        assertThat(TextCleaner.shortServings("16 XL cookies or 20 medium/large cookies")).isEqualTo("16 XL cookies")
+        assertThat(TextCleaner.shortServings("about 12 slices")).isEqualTo("about 12 slices")
+        assertThat(TextCleaner.shortServings("4")).isEqualTo("4")
+        assertThat(TextCleaner.shortServings("Makes about 4 - 4 1/2 inch (10 cm) square Belgain waffles, or 4 - 6 1/2 inch (16.5 cm) round regular waffles."))
+            .isEqualTo("Makes about 4 - 4 1/2 inch (10 cm)…")
+        assertThat(TextCleaner.shortServings("Serves 6. Keeps well for three days.")).isEqualTo("Serves 6")
+        assertThat(TextCleaner.shortServings("  ")).isNull()
+        val raw = JSONObject().put("@type", "Recipe").put("recipeYield", "16 XL cookies or 20 medium/large cookies").put("recipeIngredient", "a")
+        assertThat(mapper.map(JsonLdNode(listOf("Recipe"), raw), url)!!.servings).isEqualTo("16 XL cookies")
+    }
 }
