@@ -18,6 +18,14 @@ interface WebClipConfig<T : Any> {
     /** Prompt builder + parser; `promptBuilder.userPrompt(listOf(renderedInput))` is what runs. */
     val llmConfig: LlmTaskConfig<T>
 
+    /**
+     * Called by [com.llmlocal.feature.webclipper.domain.usecase.ScanPageUseCase]
+     * with the captured page's host just before [detect], so an app can load
+     * anything host-specific (learned hints, …) that the synchronous [detect]
+     * then uses. Default: nothing to load.
+     */
+    suspend fun onPageLoaded(host: String?) {}
+
     /** Tier A (structured) + Tier B (text) detection, ranked, at most 10. */
     fun detect(snapshot: PageSnapshot): List<ClipCandidate>
 

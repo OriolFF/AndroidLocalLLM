@@ -86,4 +86,10 @@ val TestRecipeKeeperLibraryLabels = RecipeKeeperLibraryLabels(
     shareCreatedTemplate = { _, _, _, _, _ -> "shareCreatedTemplate" },
     shareBullet = { _ -> "shareBullet" },
     shareNumbered = { _, _ -> "shareNumbered" },
+    resetDetection = "resetDetection",
+    learnedHintsCount = { n -> "learnedHintsCount:$n" },
+    resetDetectionTitle = "resetDetectionTitle",
+    resetDetectionMessage = "resetDetectionMessage",
+    resetDetectionConfirm = "resetDetectionConfirm",
+    resetDetectionDone = "resetDetectionDone",
 )

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Settings screen -->
+    <string name="recipekeeper_settings_title">Settings</string>
+    <string name="recipekeeper_settings_description">Settings</string>
+    <string name="recipekeeper_settings_browser_section">Browser</string>
+    <string name="recipekeeper_settings_start_page_title">Start page</string>
+    <string name="recipekeeper_settings_start_page_subtitle">What the browser opens when you tap Clip a recipe</string>
+    <string name="recipekeeper_settings_start_page_google">Google</string>
+    <string name="recipekeeper_settings_start_page_google_subtitle">Search for a recipe right away</string>
+    <string name="recipekeeper_settings_start_page_blank">Blank page</string>
+    <string name="recipekeeper_settings_start_page_blank_subtitle">Opens with the address bar ready to type</string>
+    <string name="recipekeeper_settings_start_page_custom">Custom address</string>
+    <string name="recipekeeper_settings_start_page_custom_subtitle">Your favourite cooking site</string>
+    <string name="recipekeeper_settings_custom_url_label">Web address</string>
+    <string name="recipekeeper_settings_custom_url_hint">example.com</string>
+    <string name="recipekeeper_settings_custom_url_invalid">Enter a valid web address</string>
+    <string name="recipekeeper_settings_custom_url_help">Saved when you press Done</string>
+    <string name="recipekeeper_settings_models_section">On-device model</string>
+    <string name="recipekeeper_settings_manage_models">Manage models</string>
+    <string name="recipekeeper_settings_manage_models_subtitle">Download, switch or remove the model that extracts recipes</string>
+</resources>

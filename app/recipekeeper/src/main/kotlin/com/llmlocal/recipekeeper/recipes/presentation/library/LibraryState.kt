@@ -16,6 +16,8 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
  * @property isLoading `true` until the repository emits for the first time
  * @property filter list filter (favourites only); ANDs with [query]
  * @property modelStatus drives the no-model hero / download card
+ * @property learnedHintCount detection hints learned so far (overflow menu; reset is disabled at 0)
+ * @property resetDetectionDialogOpen the "Reset learned detection?" confirmation is showing
  */
 @Immutable
 data class LibraryState(
@@ -25,6 +27,8 @@ data class LibraryState(
     val isLoading: Boolean = true,
     val modelStatus: LibraryModelStatus = LibraryModelStatus.NoModel,
     val filter: LibraryFilter = LibraryFilter(),
+    val learnedHintCount: Int = 0,
+    val resetDetectionDialogOpen: Boolean = false,
 ) {
     /** Unfiltered library with nothing in it: show the onboarding empty state. */
     val isEmptyLibrary: Boolean

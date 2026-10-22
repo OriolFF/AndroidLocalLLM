@@ -48,6 +48,13 @@ data class DetectionHints(val generic: List<DetectionHint>, val forHost: List<De
 /** Read side, used by the detector. Generic hints at confidence ≥ 40 plus every row of [host]. */
 interface DetectionHintsSource {
     suspend fun hintsFor(host: String?): DetectionHints
+
+    companion object {
+        /** Source with no learned hints: the detector behaves exactly like the built-in lists. */
+        val NONE: DetectionHintsSource = object : DetectionHintsSource {
+            override suspend fun hintsFor(host: String?): DetectionHints = DetectionHints.EMPTY
+        }
+    }
 }
 
 /** Write side, used by learning, penalties and the reset action. */
@@ -62,4 +69,13 @@ interface DetectionHintsStore {
 
     /** Number of stored hints (drives "12 learned hints"). */
     fun count(): Flow<Int>
+}
+
+/** Store that learns nothing; bound until the Room-backed store is available. */
+object NoOpDetectionHintsStore : DetectionHintsStore, DetectionHintsSource {
+    override suspend fun hintsFor(host: String?): DetectionHints = DetectionHints.EMPTY
+    override suspend fun reinforce(hints: List<DetectionHint>) = Unit
+    override suspend fun penalise(host: String?, kinds: Set<HintKind>, tokens: Set<String>) = Unit
+    override suspend fun clear() = Unit
+    override fun count(): kotlinx.coroutines.flow.Flow<Int> = kotlinx.coroutines.flow.flowOf(0)
 }

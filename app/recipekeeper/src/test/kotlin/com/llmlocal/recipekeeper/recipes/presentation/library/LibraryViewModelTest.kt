@@ -2,14 +2,17 @@ package com.llmlocal.recipekeeper.recipes.presentation.library
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
+import com.llmlocal.recipekeeper.testing.FakeDetectionHintsStore
 import com.llmlocal.recipekeeper.testing.FakeLibraryModelStatusSource
 import com.llmlocal.recipekeeper.testing.FakeRecipeRepository
 import com.llmlocal.recipekeeper.testing.MainDispatcherRule
@@ -36,6 +39,7 @@ class LibraryViewModelTest {
         ),
     )
     private val modelStatus = FakeLibraryModelStatusSource(LibraryModelStatus.NoModel)
+    private val hintsStore = FakeDetectionHintsStore()
     private val dispatchers = TestDispatchers(mainDispatcherRule.dispatcher)
 
     private fun viewModel(
@@ -48,6 +52,8 @@ class LibraryViewModelTest {
         deleteWithUndo = deleteWithUndo,
         shareRecipe = ShareRecipeUseCase(repository) { title, url -> "$title|$url" },
         toggleFavourite = ToggleFavouriteUseCase(repository),
+        observeLearnedHints = ObserveLearnedHintCountUseCase(hintsStore),
+        resetDetection = ResetDetectionHintsUseCase(hintsStore),
         dispatchers = dispatchers,
     )
 
@@ -286,5 +292,52 @@ class LibraryViewModelTest {
         val byId = vm.state.value.recipes.associateBy { it.id }
         assertThat(byId.getValue("c").origin).isEqualTo(RecipeOrigin.CREATED)
         assertThat(byId.getValue("a").origin).isEqualTo(RecipeOrigin.CLIPPED)
+    }
+
+    @Test
+    fun `learned hint count follows the store`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.state.value.learnedHintCount).isEqualTo(0)
+
+        hintsStore.setCount(12)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.learnedHintCount).isEqualTo(12)
+    }
+
+    @Test
+    fun `reset detection asks first, dismiss keeps everything`() = runTest {
+        hintsStore.setCount(5)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onIntent(LibraryIntent.RequestResetDetection)
+        assertThat(vm.state.value.resetDetectionDialogOpen).isTrue()
+        vm.onIntent(LibraryIntent.DismissResetDetection)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.resetDetectionDialogOpen).isFalse()
+        assertThat(hintsStore.clearCalls).isEqualTo(0)
+        assertThat(vm.state.value.learnedHintCount).isEqualTo(5)
+    }
+
+    @Test
+    fun `confirming reset clears the store, closes the dialog and emits DetectionReset`() = runTest {
+        hintsStore.setCount(5)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onIntent(LibraryIntent.RequestResetDetection)
+
+        vm.effects.test {
+            vm.onIntent(LibraryIntent.ConfirmResetDetection)
+            advanceUntilIdle()
+
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.DetectionReset)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertThat(hintsStore.clearCalls).isEqualTo(1)
+        assertThat(vm.state.value.resetDetectionDialogOpen).isFalse()
+        assertThat(vm.state.value.learnedHintCount).isEqualTo(0)
     }
 }

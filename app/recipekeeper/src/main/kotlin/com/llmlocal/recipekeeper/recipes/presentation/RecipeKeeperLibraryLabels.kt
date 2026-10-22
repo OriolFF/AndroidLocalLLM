@@ -125,6 +125,14 @@ data class RecipeKeeperLibraryLabels(
     val shareCreatedTemplate: (title: String, ingredientsHeader: String, ingredientLines: String, stepsHeader: String, stepLines: String) -> String,
     val shareBullet: (line: String) -> String,
     val shareNumbered: (number: Int, line: String) -> String,
+
+    // ---- Learned detection reset (library overflow) ----------------------
+    val resetDetection: String,
+    val learnedHintsCount: (count: Int) -> String,
+    val resetDetectionTitle: String,
+    val resetDetectionMessage: String,
+    val resetDetectionConfirm: String,
+    val resetDetectionDone: String,
 )
 
 /** Resource-built [RecipeKeeperLibraryLabels], refreshed when the configuration (locale) changes. */
@@ -219,4 +227,10 @@ fun recipeKeeperLibraryLabels(resources: Resources): RecipeKeeperLibraryLabels =
     shareCreatedTemplate = { title, ingredientsHeader, ingredientLines, stepsHeader, stepLines -> resources.getString(R.string.recipekeeper_share_created_template, title, ingredientsHeader, ingredientLines, stepsHeader, stepLines) },
     shareBullet = { line -> resources.getString(R.string.recipekeeper_share_bullet, line) },
     shareNumbered = { number, line -> resources.getString(R.string.recipekeeper_share_numbered, number, line) },
+    resetDetection = resources.getString(R.string.recipekeeper_reset_detection),
+    learnedHintsCount = { count -> resources.getQuantityString(R.plurals.recipekeeper_learned_hints_count, count, count) },
+    resetDetectionTitle = resources.getString(R.string.recipekeeper_reset_detection_title),
+    resetDetectionMessage = resources.getString(R.string.recipekeeper_reset_detection_message),
+    resetDetectionConfirm = resources.getString(R.string.recipekeeper_reset_detection_confirm),
+    resetDetectionDone = resources.getString(R.string.recipekeeper_reset_detection_done),
 )

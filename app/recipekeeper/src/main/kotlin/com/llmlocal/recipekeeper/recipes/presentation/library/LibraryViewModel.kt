@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
+import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
@@ -50,6 +52,8 @@ class LibraryViewModel(
     private val deleteWithUndo: DeleteRecipeWithUndoUseCase,
     private val shareRecipe: ShareRecipeUseCase,
     private val toggleFavourite: ToggleFavouriteUseCase,
+    observeLearnedHints: ObserveLearnedHintCountUseCase,
+    private val resetDetection: ResetDetectionHintsUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -65,6 +69,9 @@ class LibraryViewModel(
         observeRecipes()
         modelStatus
             .onEach { status -> _state.update { it.copy(modelStatus = status) } }
+            .launchIn(viewModelScope)
+        observeLearnedHints()
+            .onEach { count -> _state.update { it.copy(learnedHintCount = count) } }
             .launchIn(viewModelScope)
     }
 
@@ -104,6 +111,16 @@ class LibraryViewModel(
                 viewModelScope.launch { toggleFavourite(intent.id, intent.favourite) }
             is LibraryIntent.EditRecipe -> emit(LibraryEffect.NavigateToEditor(intent.id))
             LibraryIntent.CreateRecipe -> emit(LibraryEffect.NavigateToEditor(null))
+
+            LibraryIntent.RequestResetDetection -> _state.update { it.copy(resetDetectionDialogOpen = true) }
+            LibraryIntent.DismissResetDetection -> _state.update { it.copy(resetDetectionDialogOpen = false) }
+            LibraryIntent.ConfirmResetDetection -> {
+                _state.update { it.copy(resetDetectionDialogOpen = false) }
+                viewModelScope.launch {
+                    withContext(dispatchers.io) { resetDetection() }
+                    emit(LibraryEffect.DetectionReset)
+                }
+            }
         }
     }
 

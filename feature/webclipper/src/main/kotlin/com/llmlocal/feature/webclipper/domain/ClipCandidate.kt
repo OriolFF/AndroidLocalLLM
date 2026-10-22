@@ -16,6 +16,9 @@ import com.llmlocal.core.web.TextSection
  * @property ingredientCount from structured data when available
  * @property totalMinutes from structured data when available
  * @property payload what the config needs to render the LLM input
+ * @property detectedByHints the candidate was found only thanks to hints the
+ *   app learned earlier (never by the built-in rules); lets the save and
+ *   penalty paths know whether those hints were used
  */
 data class ClipCandidate(
     val id: String,
@@ -26,6 +29,7 @@ data class ClipCandidate(
     val ingredientCount: Int?,
     val totalMinutes: Int?,
     val payload: CandidatePayload,
+    val detectedByHints: Boolean = false,
 )
 
 /** Tier the candidate was detected by. */

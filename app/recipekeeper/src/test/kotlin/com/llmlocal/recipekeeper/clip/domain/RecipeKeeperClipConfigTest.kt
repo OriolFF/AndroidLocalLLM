@@ -392,6 +392,47 @@ class RecipeKeeperClipConfigTest {
     }
 
     @Test
+    fun `accept believes a faithful method on blog prose with no instructions heading (cronica regression)`() {
+        val prose = listOf(
+            "Esta receta utiliza el vasito de yogur como unidad de medida para todos los ingredientes del bizcocho.",
+            "Es un dulce sencillo que se prepara en pocos minutos y que encanta a toda la familia en cualquier época del año.",
+        )
+        val ingredients = listOf("1 yogur natural", "3 huevos", "2 vasitos de azúcar", "3 vasitos de harina", "1 vasito de aceite")
+        val method = (1..15).map { n -> "Paso $n del bizcocho: mezclar con cuidado los ingredientes número $n en el bol grande y reservar un momento." }
+        val text = (ingredients.joinToString("\n")) + "\n" + prose.joinToString("\n") + "\nCómo hacerlo en casa\n" + method.joinToString("\n")
+        val page = snapshot(
+            url = "https://www.cronica.example/recetas/bizcocho",
+            sections = listOf(section("Bizcocho de yogur", 2, text, 0)),
+        )
+        val candidate = config.detect(page).single()
+        config.renderLlmInput(candidate, page, 9_000)
+
+        // 15 faithful steps pass; so do 3 short ones (the "fewer than 3 steps" half of the rule).
+        assertThat(config.accept(candidate, recipe(ingredients = ingredients, steps = method))).isTrue()
+        assertThat(config.accept(candidate, recipe(ingredients = ingredients, steps = listOf("Mezclar.", "Hornear.", "Servir.")))).isTrue()
+        // Two thin steps that reuse almost none of the page text are still a paraphrase.
+        assertThat(config.accept(candidate, recipe(ingredients = ingredients, steps = listOf("Mezclar.", "Hornear.")))).isFalse()
+    }
+
+    @Test
+    fun `accept keeps the strict coverage check when an instructions heading is present`() {
+        val method = (1..4).map { n -> "Step number $n: gently fold the batter with a wooden spoon and rest it for ten minutes before moving on." }
+        val ingredients = listOf("2 cups flour", "3 tbsp butter", "1 egg")
+        val page = snapshot(
+            sections = listOf(
+                section("Cake", 2, ingredients.joinToString("\n"), 0),
+                section("Method", 3, method.joinToString("\n"), 100),
+            ),
+        )
+        val candidate = config.detect(page).single()
+        config.renderLlmInput(candidate, page, 9_000)
+
+        assertThat(config.accept(candidate, recipe(ingredients = ingredients, steps = method))).isTrue()
+        // Three steps would pass on prose, but a headed method must be reproduced.
+        assertThat(config.accept(candidate, recipe(ingredients = ingredients, steps = listOf("Mix.", "Bake.", "Serve.")))).isFalse()
+    }
+
+    @Test
     fun `fallback attaches the page's notes section, capped at 600 chars`() {
         val long = "Use a deep skillet. ".repeat(60)
         val page = snapshot(

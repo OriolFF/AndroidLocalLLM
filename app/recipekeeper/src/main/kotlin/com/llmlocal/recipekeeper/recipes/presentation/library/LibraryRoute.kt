@@ -3,15 +3,28 @@ package com.llmlocal.recipekeeper.recipes.presentation.library
 import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +58,7 @@ fun LibraryRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var overflowOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -67,6 +81,9 @@ fun LibraryRoute(
                 LibraryEffect.UndoFailed -> launch {
                     snackbarHostState.showSnackbar(labels.undoDeleteFailed)
                 }
+                LibraryEffect.DetectionReset -> launch {
+                    snackbarHostState.showSnackbar(labels.resetDetectionDone)
+                }
             }
         }
     }
@@ -88,6 +105,31 @@ fun LibraryRoute(
             IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenModelManagement) }) {
                 Icon(Icons.Outlined.Psychology, contentDescription = labels.manageModelsDescription)
             }
+            Box {
+                IconButton(onClick = { overflowOpen = true }) {
+                    Icon(Icons.Outlined.MoreVert, contentDescription = labels.moreOptions)
+                }
+                DropdownMenu(expanded = overflowOpen, onDismissRequest = { overflowOpen = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(labels.resetDetection)
+                                Text(
+                                    labels.learnedHintsCount(state.learnedHintCount),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.RestartAlt, contentDescription = null) },
+                        enabled = state.learnedHintCount > 0,
+                        onClick = {
+                            overflowOpen = false
+                            viewModel.onIntent(LibraryIntent.RequestResetDetection)
+                        },
+                    )
+                }
+            }
         },
     ) { padding ->
         LibraryScreen(
@@ -97,6 +139,29 @@ fun LibraryRoute(
             modifier = Modifier.padding(padding),
         )
     }
+
+    if (state.resetDetectionDialogOpen) {
+        ResetDetectionDialog(
+            labels = labels,
+            onConfirm = { viewModel.onIntent(LibraryIntent.ConfirmResetDetection) },
+            onDismiss = { viewModel.onIntent(LibraryIntent.DismissResetDetection) },
+        )
+    }
+}
+
+@Composable
+private fun ResetDetectionDialog(
+    labels: RecipeKeeperLibraryLabels,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(labels.resetDetectionTitle) },
+        text = { Text(labels.resetDetectionMessage) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(labels.resetDetectionConfirm) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(labels.cancel) } },
+    )
 }
 
 /** Fires a plain-text `ACTION_SEND` chooser. Shared by the library and detail routes. */
