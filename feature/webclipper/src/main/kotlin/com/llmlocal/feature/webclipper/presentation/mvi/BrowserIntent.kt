@@ -26,6 +26,12 @@ sealed interface BrowserIntent {
     data object DismissSheet : BrowserIntent
     data object OpenModelManagement : BrowserIntent
 
+    /**
+     * The screen attached to a WebView that shows nothing and has nothing to
+     * restore: open the saved start page (or focus the address bar for a blank one).
+     */
+    data object OpenStartPage : BrowserIntent
+
     /** Long-press "Hide on this page": hide the clip button on the current host. */
     data object HideFabForPage : BrowserIntent
 

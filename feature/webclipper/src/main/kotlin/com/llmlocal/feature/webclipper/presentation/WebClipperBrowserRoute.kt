@@ -43,7 +43,8 @@ import org.koin.core.parameter.parametersOf
  * process death restores the page.
  *
  * @param initialUrl page to open on first composition, or `null` to keep
- *   whatever the shared WebView already shows (blank on first launch)
+ *   whatever the shared WebView already shows; on a blank first launch the
+ *   ViewModel opens the saved start page (Google unless changed in settings)
  * @param onNavigateToExtraction called with the picked candidate id
  * @param onBackToLibrary leading back arrow (WebView history is popped first by system back)
  * @param onShowSnackbar when set, snackbar messages go here (the host launches them
@@ -73,7 +74,8 @@ fun <T : Any> WebClipperBrowserRoute(
     val savedWebState = rememberSaveable { Bundle() }
     // True only on a genuinely blank start: no page in the ViewModel, none
     // requested, nothing in the shared WebView and nothing to restore. Then
-    // the screen focuses the address bar; otherwise the page below is synced.
+    // the ViewModel opens the saved start page (or focuses the address bar
+    // for a blank one); otherwise the page below is synced.
     val blankStart = remember(holder, viewModel) {
         viewModel.state.value.url.isBlank() && initialUrl.isNullOrBlank() &&
             holder.currentUrl == null && savedWebState.isEmpty
@@ -109,7 +111,11 @@ fun <T : Any> WebClipperBrowserRoute(
     LaunchedEffect(holder, viewModel) {
         if (viewModel.state.value.url.isNotBlank()) return@LaunchedEffect
         if (holder.currentUrl == null && initialUrl.isNullOrBlank()) holder.restoreState(savedWebState)
-        val url = holder.currentUrl ?: return@LaunchedEffect
+        val url = holder.currentUrl
+        if (url == null) {
+            if (blankStart) viewModel.onIntent(BrowserIntent.OpenStartPage)
+            return@LaunchedEffect
+        }
         if (initialUrl.isNullOrBlank()) {
             viewModel.onIntent(BrowserIntent.PageStarted(url))
             viewModel.onIntent(BrowserIntent.PageFinished(url, holder.currentTitle))
@@ -145,7 +151,8 @@ fun <T : Any> WebClipperBrowserRoute(
         onBackToLibrary = onBackToLibrary,
         snackbarHostState = snackbarHostState,
         modifier = modifier,
-        autoFocusAddressBar = blankStart,
+        // The ViewModel focuses the bar itself when the start page is blank.
+        autoFocusAddressBar = false,
         webView = { slotModifier ->
             key(generation) {
                 AndroidView(

@@ -38,6 +38,8 @@ import com.llmlocal.recipekeeper.recipes.presentation.editor.RecipeEditorRoute
 import com.llmlocal.recipekeeper.recipes.presentation.editor.rememberRecipeEditorLabels
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryRoute
 import com.llmlocal.recipekeeper.recipes.presentation.library.showRecipeDeleted
+import com.llmlocal.recipekeeper.settings.presentation.SettingsRoute
+import com.llmlocal.recipekeeper.settings.presentation.rememberSettingsLabels
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -55,13 +57,15 @@ private val draftParser = RecipeKeeperDraftParser()
  * | Recipe detail    | `recipe/{recipeId}`      | own scaffold (collapsing)  |
  * | Editor (create)  | `recipe/new`             | own scaffold (editor)      |
  * | Editor (edit)    | `recipe/{recipeId}/edit` | own scaffold (editor)      |
+ * | Settings         | `settings`               | `AppScaffold` (in route)   |
  * | Model management | `modelManagement`        | `AppScaffold`              |
  *
  * Back-stack rules: extraction → detail pops extraction with
  * `popUpTo(browser)` so back from a fresh clip returns to the page;
  * browser re-entry (library FAB, "Open original") is `launchSingleTop`;
- * model management is pushed from wherever the user was so back returns
- * there. One [SnackbarHostState] is shared by every scaffold.
+ * model management is pushed from wherever the user was (library banner,
+ * browser FAB, extraction error, settings) so back returns there; settings
+ * is pushed from the library gear. One [SnackbarHostState] is shared by every scaffold.
  */
 @Composable
 fun RecipeKeeperNavHost() {
@@ -98,6 +102,7 @@ fun RecipeKeeperNavHost() {
                 onOpenRecipe = { id -> navController.navigate(Route.Recipe.build(id)) },
                 onOpenBrowser = { url -> navController.navigateToBrowser(url) },
                 onOpenModelManagement = { navController.navigateToModelManagement() },
+                onOpenSettings = { navController.navigateToSettings() },
                 onOpenEditor = { id -> navController.navigateToEditor(id) },
             )
         }
@@ -212,6 +217,15 @@ fun RecipeKeeperNavHost() {
             )
         }
 
+        composable(Route.Settings.pattern) {
+            SettingsRoute(
+                labels = rememberSettingsLabels(),
+                snackbarHostState = snackbarHostState,
+                onBack = { navController.popBackStack() },
+                onOpenModelManagement = { navController.navigateToModelManagement() },
+            )
+        }
+
         composable(Route.ModelManagement.pattern) {
             AppScaffold(
                 title = labels.modelsTitle,
@@ -259,6 +273,8 @@ private sealed class Route(val pattern: String) {
         fun build(id: String): String = "recipe/${Uri.encode(id)}/edit"
     }
 
+    data object Settings : Route("settings")
+
     data object ModelManagement : Route("modelManagement")
 }
 
@@ -276,7 +292,14 @@ private fun NavHostController.navigateToEditor(id: String?) {
     }
 }
 
-/** Pushed from wherever the user is (library, browser FAB, extraction error) so back returns there. */
+/** Pushed from the library gear; `launchSingleTop` so a double tap never stacks two. */
+private fun NavHostController.navigateToSettings() {
+    navigate(Route.Settings.pattern) {
+        launchSingleTop = true
+    }
+}
+
+/** Pushed from wherever the user is (library, browser FAB, extraction error, settings) so back returns there. */
 private fun NavHostController.navigateToModelManagement() {
     navigate(Route.ModelManagement.pattern) {
         launchSingleTop = true

@@ -27,6 +27,8 @@ dependencies {
     implementation(project(":core:web"))
 
     implementation(libs.androidx.webkit)
+    // Browser settings (start page) live in a Preferences DataStore.
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.coil.compose)
 
     testImplementation(libs.junit)

@@ -3,6 +3,7 @@ package com.llmlocal.feature.webclipper.di
 import com.llmlocal.core.llm.di.REAL_ENGINE_QUALIFIER
 import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import com.llmlocal.feature.webclipper.data.CacheDirTempPictureStore
+import com.llmlocal.feature.webclipper.data.DataStoreStartPageRepository
 import com.llmlocal.feature.webclipper.data.EngineLlmGenerationSource
 import com.llmlocal.feature.webclipper.data.ImageDownloaderPictureDownloader
 import com.llmlocal.feature.webclipper.data.InMemoryClipSession
@@ -15,13 +16,16 @@ import com.llmlocal.feature.webclipper.domain.LlmGenerationSource
 import com.llmlocal.feature.webclipper.domain.PageScanner
 import com.llmlocal.feature.webclipper.domain.PictureDownloader
 import com.llmlocal.feature.webclipper.domain.ReadinessSource
+import com.llmlocal.feature.webclipper.domain.StartPageRepository
 import com.llmlocal.feature.webclipper.domain.TempPictureStore
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.domain.usecase.CancelClipUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.CheckDuplicateUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ClipUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveReadinessUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.ObserveStartPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ScanPageUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.SetStartPageUseCase
 import com.llmlocal.feature.webclipper.presentation.BrowserViewModel
 import com.llmlocal.feature.webclipper.presentation.ExtractionViewModel
 import com.llmlocal.feature.webclipper.presentation.WebClipperLabels
@@ -54,6 +58,7 @@ val webClipperModule: Module = module {
     single(named(WEBCLIPPER_TEMP_DIR_QUALIFIER)) { File(androidContext().cacheDir, "webclipper") }
     single<TempPictureStore> { CacheDirTempPictureStore(get(named(WEBCLIPPER_TEMP_DIR_QUALIFIER))) }
     single<ReadinessSource> { ModelReadinessSource(get<ModelReadinessObserver>()) }
+    single<StartPageRepository> { DataStoreStartPageRepository(androidContext()) }
     single<LlmGenerationSource> {
         EngineLlmGenerationSource(engine = get(named(REAL_ENGINE_QUALIFIER)), generateTask = get())
     }
@@ -61,6 +66,8 @@ val webClipperModule: Module = module {
     // use cases
     factory { ScanPageUseCase(scanner = get(), session = get(), dispatchers = get()) }
     factory { ObserveReadinessUseCase(source = get()) }
+    factory { ObserveStartPageUseCase(repository = get()) }
+    factory { SetStartPageUseCase(repository = get()) }
     factory { CheckDuplicateUseCase(dispatchers = get()) }
     factory { CancelClipUseCase(llm = get(), session = get()) }
     factory {
@@ -79,6 +86,7 @@ val webClipperModule: Module = module {
             labels = params.get<WebClipperLabels>(),
             scanPage = get(),
             observeReadiness = get(),
+            observeStartPage = get(),
             session = get(),
             dispatchers = get(),
             initialUrl = params.getOrNull<String>(),

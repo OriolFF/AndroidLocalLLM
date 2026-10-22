@@ -5,7 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -36,8 +36,8 @@ import org.koin.androidx.compose.koinViewModel
 
 /**
  * Stateful wrapper around [LibraryScreen]: creates [LibraryViewModel] via
- * Koin, renders the `AppScaffold` top bar (title, Search toggle, Models
- * action) with the [LibraryFab] in the scaffold's FAB slot, and turns
+ * Koin, renders the `AppScaffold` top bar (title, Search toggle, New recipe,
+ * Settings) with the [LibraryFab] in the scaffold's FAB slot, and turns
  * [LibraryEffect]s into navigation callbacks, the share intent and the
  * undo-delete snackbar.
  *
@@ -52,6 +52,7 @@ fun LibraryRoute(
     onOpenRecipe: (id: String) -> Unit,
     onOpenBrowser: (url: String?) -> Unit,
     onOpenModelManagement: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenEditor: (id: String?) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = koinViewModel(),
@@ -66,6 +67,7 @@ fun LibraryRoute(
                 is LibraryEffect.NavigateToRecipe -> onOpenRecipe(effect.id)
                 is LibraryEffect.NavigateToBrowser -> onOpenBrowser(effect.url)
                 LibraryEffect.NavigateToModelManagement -> onOpenModelManagement()
+                LibraryEffect.NavigateToSettings -> onOpenSettings()
                 is LibraryEffect.NavigateToEditor -> onOpenEditor(effect.id)
                 is LibraryEffect.ShareRecipe -> context.shareText(
                     text = effect.text,
@@ -102,8 +104,9 @@ fun LibraryRoute(
             IconButton(onClick = { viewModel.onIntent(LibraryIntent.CreateRecipe) }) {
                 Icon(Icons.Outlined.Add, contentDescription = labels.newRecipe)
             }
-            IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenModelManagement) }) {
-                Icon(Icons.Outlined.Psychology, contentDescription = labels.manageModelsDescription)
+            // Models moved under Settings: three actions is the top bar's limit.
+            IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenSettings) }) {
+                Icon(Icons.Outlined.Settings, contentDescription = labels.settingsDescription)
             }
             Box {
                 IconButton(onClick = { overflowOpen = true }) {

@@ -86,6 +86,7 @@ class LibraryViewModel(
             is LibraryIntent.OpenRecipe -> emit(LibraryEffect.NavigateToRecipe(intent.id))
             LibraryIntent.ClipRecipe -> emit(LibraryEffect.NavigateToBrowser(url = null))
             LibraryIntent.OpenModelManagement -> emit(LibraryEffect.NavigateToModelManagement)
+            LibraryIntent.OpenSettings -> emit(LibraryEffect.NavigateToSettings)
 
             is LibraryIntent.ShareRecipe -> viewModelScope.launch {
                 val text = withContext(dispatchers.io) { shareRecipe(intent.id) } ?: return@launch

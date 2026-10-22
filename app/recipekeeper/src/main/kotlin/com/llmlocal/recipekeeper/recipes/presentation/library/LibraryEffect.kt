@@ -9,6 +9,8 @@ sealed interface LibraryEffect {
 
     data object NavigateToModelManagement : LibraryEffect
 
+    data object NavigateToSettings : LibraryEffect
+
     /** The route fires `ACTION_SEND` with the ready-made [text]. */
     data class ShareRecipe(val text: String) : LibraryEffect
 

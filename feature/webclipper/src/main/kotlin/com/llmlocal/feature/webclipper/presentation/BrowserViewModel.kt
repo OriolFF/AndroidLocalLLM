@@ -16,7 +16,9 @@ import com.llmlocal.feature.webclipper.presentation.mvi.BrowserSheet
 import com.llmlocal.feature.webclipper.presentation.mvi.BrowserState
 import com.llmlocal.feature.webclipper.presentation.mvi.ClipFabState
 import com.llmlocal.core.llm.readiness.ModelReadiness
+import com.llmlocal.feature.webclipper.domain.StartPage
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveReadinessUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.ObserveStartPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ScanPageUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -47,13 +50,15 @@ import kotlinx.coroutines.launch
  * found (full scan, else proactive quick scan) → idle.
  *
  * @param initialUrl page to open on creation, or `null` to keep whatever
- *   the shared WebView already shows
+ *   the shared WebView already shows; when it shows nothing the route sends
+ *   [BrowserIntent.OpenStartPage] and the saved [StartPage] is loaded
  */
 class BrowserViewModel(
     private val config: WebClipConfig<*>,
     private val labels: WebClipperLabels,
     private val scanPage: ScanPageUseCase,
     observeReadiness: ObserveReadinessUseCase,
+    private val observeStartPage: ObserveStartPageUseCase,
     private val session: ClipSession,
     private val dispatchers: DispatcherProvider,
     initialUrl: String? = null,
@@ -150,6 +155,7 @@ class BrowserViewModel(
             BrowserIntent.ExtractWholePage -> extractWholePage()
             BrowserIntent.DismissSheet -> _state.update { it.copy(sheet = BrowserSheet.None) }
             BrowserIntent.OpenModelManagement -> send(BrowserEffect.NavigateToModelManagement)
+            BrowserIntent.OpenStartPage -> openStartPage()
             BrowserIntent.HideFabForPage -> setFabHidden(hidden = true)
             BrowserIntent.ShowFab -> setFabHidden(hidden = false)
             BrowserIntent.SharePage -> currentUrl()?.let { url ->
@@ -184,6 +190,23 @@ class BrowserViewModel(
     private fun load(url: String) {
         onPageStarted(url)
         send(BrowserEffect.LoadUrl(url))
+    }
+
+    /**
+     * Blank start: load the saved start page, or focus the address bar when
+     * it is [StartPage.Blank]. A no-op once a page is known, so a late
+     * preference read never navigates away from something the user opened.
+     */
+    private fun openStartPage() {
+        if (_state.value.url.isNotBlank()) return
+        viewModelScope.launch {
+            val page = observeStartPage().first()
+            if (_state.value.url.isNotBlank()) return@launch
+            when (val url = page.url) {
+                null -> if (!_state.value.urlFocused) onUrlFocusChanged(focused = true)
+                else -> load(url)
+            }
+        }
     }
 
     // -- page lifecycle ------------------------------------------------------

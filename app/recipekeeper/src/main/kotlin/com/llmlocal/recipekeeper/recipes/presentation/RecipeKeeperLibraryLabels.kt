@@ -31,6 +31,7 @@ data class RecipeKeeperLibraryLabels(
     val libraryTitle: String,
     val modelsTitle: String,
     val manageModelsDescription: String,
+    val settingsDescription: String,
     val back: String,
 
     // ---- Library screen --------------------------------------------------
@@ -148,6 +149,7 @@ fun recipeKeeperLibraryLabels(resources: Resources): RecipeKeeperLibraryLabels =
     libraryTitle = resources.getString(R.string.recipekeeper_library_title),
     modelsTitle = resources.getString(R.string.recipekeeper_models_title),
     manageModelsDescription = resources.getString(R.string.recipekeeper_manage_models_description),
+    settingsDescription = resources.getString(R.string.recipekeeper_settings_description),
     back = resources.getString(R.string.recipekeeper_back),
     libraryFabClip = resources.getString(R.string.recipekeeper_open_browser),
     libraryEmptyTitle = resources.getString(R.string.recipekeeper_library_empty_title),

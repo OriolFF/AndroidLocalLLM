@@ -11,10 +11,13 @@ import com.llmlocal.feature.webclipper.domain.CandidatePayload
 import com.llmlocal.feature.webclipper.domain.WHOLE_PAGE_CANDIDATE_ID
 import com.llmlocal.feature.webclipper.data.InMemoryClipSession
 import com.llmlocal.feature.webclipper.domain.ClipSession
+import com.llmlocal.feature.webclipper.domain.StartPage
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveReadinessUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.ObserveStartPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ScanPageUseCase
 import com.llmlocal.feature.webclipper.fakes.FakePageScanner
 import com.llmlocal.feature.webclipper.fakes.FakeReadinessSource
+import com.llmlocal.feature.webclipper.fakes.FakeStartPageRepository
 import com.llmlocal.feature.webclipper.fakes.FakeWebClipConfig
 import com.llmlocal.feature.webclipper.fakes.MainDispatcherRule
 import com.llmlocal.feature.webclipper.fakes.TestDispatchers
@@ -46,12 +49,14 @@ class BrowserViewModelTest {
     private val readiness = FakeReadinessSource(ModelReadiness.Ready(descriptor))
     private val scanner = FakePageScanner()
     private val config = FakeWebClipConfig()
+    private val startPages = FakeStartPageRepository()
 
     private fun viewModel(initialUrl: String? = null) = BrowserViewModel(
         config = config,
         labels = labels,
         scanPage = ScanPageUseCase(scanner, session, TestDispatchers(mainDispatcherRule.dispatcher)),
         observeReadiness = ObserveReadinessUseCase(readiness),
+        observeStartPage = ObserveStartPageUseCase(startPages),
         session = session,
         dispatchers = TestDispatchers(mainDispatcherRule.dispatcher),
         initialUrl = initialUrl,
@@ -395,5 +400,64 @@ class BrowserViewModelTest {
         assertThat(BrowserViewModel.resolveInput("ftp://x.y", search)).isEqualTo("ftp://x.y")
         assertThat(BrowserViewModel.resolveInput("pasta", search)).isEqualTo("S:pasta")
         assertThat(BrowserViewModel.resolveInput("pasta example.com", search)).isEqualTo("S:pasta example.com")
+    }
+
+    // -- start page ----------------------------------------------------------
+
+    @Test
+    fun `blank start loads the saved start page, Google by default`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(BrowserIntent.OpenStartPage)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(BrowserEffect.LoadUrl(StartPage.Google.url))
+        }
+        assertThat(vm.state.value.url).isEqualTo(StartPage.Google.url)
+        assertThat(vm.state.value.urlFocused).isFalse()
+    }
+
+    @Test
+    fun `blank start loads a custom start page`() = runTest {
+        startPages.current.value = StartPage.Custom("https://www.cooking.example/")
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(BrowserIntent.OpenStartPage)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(BrowserEffect.LoadUrl("https://www.cooking.example/"))
+        }
+    }
+
+    @Test
+    fun `blank start page focuses the address bar instead of loading`() = runTest {
+        startPages.current.value = StartPage.Blank
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(BrowserIntent.OpenStartPage)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+        assertThat(vm.state.value.url).isEmpty()
+        assertThat(vm.state.value.urlFocused).isTrue()
+    }
+
+    @Test
+    fun `start page is ignored once a page is shown`() = runTest {
+        val vm = viewModel(initialUrl = "https://www.cooking.example/recipes/pasta")
+        advanceUntilIdle()
+
+        vm.effects.test {
+            // The constructor's own LoadUrl is still buffered.
+            assertThat(awaitItem()).isEqualTo(BrowserEffect.LoadUrl("https://www.cooking.example/recipes/pasta"))
+            vm.onIntent(BrowserIntent.OpenStartPage)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+        assertThat(vm.state.value.url).isEqualTo("https://www.cooking.example/recipes/pasta")
     }
 }

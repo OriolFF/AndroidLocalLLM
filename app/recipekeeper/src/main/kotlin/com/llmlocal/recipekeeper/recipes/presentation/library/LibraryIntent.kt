@@ -11,6 +11,9 @@ sealed interface LibraryIntent {
     data object ClipRecipe : LibraryIntent
     data object OpenModelManagement : LibraryIntent
 
+    /** Top-bar gear: the settings screen (start page, models). */
+    data object OpenSettings : LibraryIntent
+
     /** Long-press menu → Share: the ViewModel resolves the URL and emits [LibraryEffect.ShareRecipe]. */
     data class ShareRecipe(val id: String) : LibraryIntent
 

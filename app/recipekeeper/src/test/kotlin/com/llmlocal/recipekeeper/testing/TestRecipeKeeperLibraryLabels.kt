@@ -7,6 +7,7 @@ val TestRecipeKeeperLibraryLabels = RecipeKeeperLibraryLabels(
     libraryTitle = "libraryTitle",
     modelsTitle = "modelsTitle",
     manageModelsDescription = "manageModelsDescription",
+    settingsDescription = "settingsDescription",
     back = "back",
     libraryFabClip = "libraryFabClip",
     libraryEmptyTitle = "libraryEmptyTitle",
