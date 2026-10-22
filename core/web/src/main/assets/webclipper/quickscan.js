@@ -1,6 +1,7 @@
 // quickscan.js — tiny count-only script for the proactive clip-button badge.
 // Returns the number of schema.org Recipe-like nodes on the page (JSON-LD
-// + microdata + RDFa). Returns 0 on parse errors. Loaded separately so
+// (JSON-LD; microdata/RDFa only when JSON-LD found none, since pages
+// routinely mark up the same recipe in both). Returns 0 on parse errors. Loaded separately so
 // `quickScanStructured` doesn't pay the Readability cost on every page.
 //
 // Must be an IIFE returning a number so evaluateJavascript yields a
@@ -63,11 +64,14 @@
     count += countRecipeLikeInJsonLd(parsed);
   }
 
-  // Microdata + RDFa roots.
-  count += document.querySelectorAll(
-    '[itemscope][itemtype*="schema.org/Recipe"]'
-  ).length;
-  count += document.querySelectorAll('[typeof~="Recipe"]').length;
+  // Microdata + RDFa roots: only when JSON-LD found nothing, otherwise the
+  // same recipe described twice would be counted twice.
+  if (count === 0) {
+    count += document.querySelectorAll(
+      '[itemscope][itemtype*="schema.org/Recipe"]'
+    ).length;
+    count += document.querySelectorAll('[typeof~="Recipe"]').length;
+  }
 
   return count;
 })();
