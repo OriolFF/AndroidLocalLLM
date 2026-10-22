@@ -597,25 +597,75 @@ class RecipeKeeperClipConfig(
         private const val MIN_PARAGRAPH_CHARS = 40
         private val wordRegex = Regex("\\p{L}+")
 
-        /** `2 cups flour`, `½ tsp salt`, `200 g butter`, `1/2 onion`, `3 eggs`. */
+        /** Not a letter or digit (Unicode-aware, unlike `\\b`, which Greek defeats on some regex engines). */
+        private const val WORD_END = "(?![\\p{L}\\p{N}])"
+        private const val WORD_START = "(?<![\\p{L}\\p{N}])"
+
+        private fun alternation(words: List<String>): String =
+            words.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
+
+        private val unitWords = listOf(
+            // EN
+            "g", "gr", "gram", "grams", "kg", "mg", "ml", "l", "dl", "cl", "cup", "cups", "tbsp", "tablespoon", "tablespoons", "tsp", "teaspoon", "teaspoons",
+            "oz", "ounce", "ounces", "lb", "lbs", "pound", "pounds", "pinch", "dash", "clove", "cloves", "slice", "slices", "can", "cans", "stick", "sticks",
+            "bunch", "handful", "piece", "pieces",
+            // DE / FR / IT
+            "EL", "TL", "Tasse", "Tassen", "Prise", "Stück", "Becher", "cuillère", "cuillere", "cuillères", "cuilleres", "tasse", "tasses", "pincée", "gousse", "gousses",
+            "cucchiaio", "cucchiai", "cucchiaino", "cucchiaini", "tazza", "tazze", "pizzico", "spicchio", "spicchi",
+            // ES
+            "grs", "gramos", "litro", "litros", "taza", "tazas", "cucharada", "cucharadas", "cda", "cdas", "cucharadita", "cucharaditas", "cdta", "cdtas",
+            "diente", "dientes", "rebanada", "rebanadas", "lata", "latas", "unidad", "unidades", "ud", "uds", "pieza", "piezas", "manojo", "puñado",
+            "vaso", "vasos", "chorrito", "pizca",
+            // CA
+            "litre", "litres", "tassa", "cullerada", "cullerades", "culleradeta", "culleradetes", "pessic", "gra", "grans", "llesca", "llesques",
+            "llauna", "llaunes", "unitat", "unitats", "peça", "peces", "manat", "grapat", "got", "gots", "raig",
+            // ES / CA abbreviations
+            "c/s", "c/c", "c.s.", "c.p.",
+            // EL
+            "γρ", "γρ.", "γραμμάρια", "γραμμάριο", "γραμ.", "κιλό", "κιλά", "λίτρο", "λίτρα", "φλ.", "φλιτζάνι", "φλιτζάνια", "κ.σ.", "κουταλιά", "κουταλιές",
+            "κ.γ.", "κουταλάκι", "κουταλάκια", "πρέζα", "σκελίδα", "σκελίδες", "φέτα", "φέτες", "κονσέρβα", "κονσέρβες", "τεμ.", "τεμάχιο", "τεμάχια",
+            "ματσάκι", "χούφτα", "ποτήρι", "ποτήρια",
+        )
+        private val unit = "(?:${alternation(unitWords)})$WORD_END"
+        private const val NUMBER = "[\\d½¼¾⅓⅔⅛][\\d/.,\\-–½¼¾⅓⅔⅛]*"
+        private const val NUMBER_WORD = "(?:un|una|uno|dos|tres|dues|ένα|μία|μια|δύο|τρία|τρεις)"
+        private const val BULLET = "(?:[-*•–·]\\s*)?"
+
+        /**
+         * `2 cups flour`, `½ tsp salt`, `200 g butter`, `1/2 onion`, `3 eggs`,
+         * `2 cucharadas de aceite`, `1 pessic de sal`, `2 κ.σ. λάδι`, a number
+         * word plus unit (`una lata`, `δύο σκελίδες`) and the name-first shape
+         * `farina, 200 g` / `αλεύρι 200 γρ.`.
+         */
         val quantityLine: Regex = Regex(
-            "^(?:[-*•–]\\s*)?(?:about\\s+)?[\\d½¼¾⅓⅔⅛]+(?:[\\d/.,\\-–½¼¾⅓⅔⅛]*)\\s*" +
-                "(?:(?:g|gr|gram|grams|kg|mg|ml|l|dl|cl|cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|" +
-                "pinch|dash|clove|cloves|slice|slices|can|cans|stick|sticks|bunch|handful|piece|pieces|" +
-                "taza|tazas|cucharada|cucharadas|cucharadita|cucharaditas|gramos|litro|litros|" +
-                "EL|TL|Tasse|Tassen|Prise|Stück|Becher|cuill[eè]re|cuill[eè]res|tasse|tasses|pincée|gousse|gousses|" +
-                "cucchiaio|cucchiai|cucchiaino|cucchiaini|tazza|tazze|pizzico|spicchio|spicchi)\\b\\.?\\s+\\S|\\s+[A-Za-zÀ-ÿ])",
+            "^$BULLET(?:(?:about|aprox\\.?|unos|unas)\\s+)?(?:" +
+                "$NUMBER\\s*(?:$unit\\.?\\s+\\S|\\s+\\p{L})" +
+                "|$WORD_START$NUMBER_WORD\\s+$unit\\.?\\s+\\S" +
+                ")" +
+                "|^$BULLET\\p{L}[^\\d\\n]{0,60}?[,:]?\\s+$NUMBER\\s*$unit\\.?\\s*$",
             RegexOption.IGNORE_CASE,
         )
-        val ingredientsWord: Regex = Regex("\\b(ingredients?|ingredientes|ingredients|zutaten|ingr[ée]dients|ingredienti)\\b", RegexOption.IGNORE_CASE)
-        val instructionsWord: Regex = Regex(
-            "\\b(instructions?|method|directions|steps|preparation|procedure|how to make|" +
-                "instrucciones|preparaci[oó]n|elaboraci[oó]n|pasos|zubereitung|anleitung|schritte|pr[ée]paration|[ée]tapes|preparazione|procedimento)\\b",
-            RegexOption.IGNORE_CASE,
+        val ingredientsWord: Regex = headingWord(
+            "ingredients", "ingredient", "ingredientes", "zutaten", "ingrédients", "ingredients", "ingredienti",
+            "υλικά", "υλικα", "συστατικά", "συστατικα",
         )
-        val notesWord: Regex = Regex("\\b(notes?|tips?|notas|consejos|hinweise|tipps|remarques|conseils|serving|storage)\\b", RegexOption.IGNORE_CASE)
+        val instructionsWord: Regex = headingWord(
+            "instructions", "instruction", "method", "directions", "steps", "preparation", "procedure", "how to make",
+            "instrucciones", "preparación", "preparacion", "elaboración", "elaboracion", "pasos", "paso a paso", "modo de preparación", "modo de preparacion",
+            "procedimiento", "zubereitung", "anleitung", "schritte", "préparation", "étapes", "etapes", "preparazione", "procedimento",
+            "elaboració", "preparació", "pas a pas", "com es fa", "instruccions", "procediment",
+            "εκτέλεση", "εκτελεση", "διαδικασία", "διαδικασια", "οδηγίες", "οδηγιες", "βήματα", "βηματα", "παρασκευή", "παρασκευη", "μέθοδος", "μεθοδος",
+        )
+        val notesWord: Regex = headingWord(
+            "notes", "note", "tips", "tip", "notas", "consejos", "hinweise", "tipps", "remarques", "conseils", "serving", "storage",
+            "notes", "consells", "σημειώσεις", "σημειωσεις", "συμβουλές", "συμβουλες",
+        )
+
+        private fun headingWord(vararg words: String): Regex =
+            Regex("$WORD_START(?:${alternation(words.toList())})$WORD_END", RegexOption.IGNORE_CASE)
+
         /** List-style URL paths: collections, categories, tags, search, galleries, round-ups. */
-        val listPath: Regex = Regex("(?:^|[/_\\-])(?:collections?|categor(?:y|ies)|tags?|search|galleries|gallery|roundups?)(?:[/_\\-.]|$)", RegexOption.IGNORE_CASE)
-        val recipePath: Regex = Regex("(recipe|recipes|rezept|rezepte|receta|recetas|recepta|receptes|recette|recettes|ricetta|ricette)", RegexOption.IGNORE_CASE)
+        val listPath: Regex = Regex("(?:^|[/_\\-])(?:collections?|categor(?:y|ies|ia|ias|ía|ías)|etiquetas?|tags?|search|buscar|cerca|galleries|gallery|roundups?|κατηγορ(?:ία|ίες|ια|ιες))(?:[/_\\-.]|$)", RegexOption.IGNORE_CASE)
+        val recipePath: Regex = Regex("(recipe|recipes|rezept|rezepte|receta|recetas|recepta|receptes|recette|recettes|ricetta|ricette|syntag|συνταγ)", RegexOption.IGNORE_CASE)
     }
 }
