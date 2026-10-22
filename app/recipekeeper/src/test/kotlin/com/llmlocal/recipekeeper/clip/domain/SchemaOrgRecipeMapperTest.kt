@@ -208,4 +208,14 @@ class SchemaOrgRecipeMapperTest {
             "Watch the oven carefully near the end.",
         ).inOrder()
     }
+
+    @Test
+    fun `host drops www, m and mobile prefixes`() {
+        assertThat(TextCleaner.host("https://m.joyofbaking.com/waffles.html")).isEqualTo("joyofbaking.com")
+        assertThat(TextCleaner.host("https://mobile.example.co.uk/r")).isEqualTo("example.co.uk")
+        assertThat(TextCleaner.host("https://www.m.example.com/r")).isEqualTo("example.com")
+        assertThat(TextCleaner.host("https://www.bbcgoodfood.com/r")).isEqualTo("bbcgoodfood.com")
+        assertThat(TextCleaner.host("https://m.com/r")).isEqualTo("m.com")
+        assertThat(TextCleaner.host("not a url")).isEmpty()
+    }
 }

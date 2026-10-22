@@ -80,10 +80,12 @@ internal object TextCleaner {
     fun isHttpUrl(url: String?): Boolean =
         url != null && (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true))
 
-    /** Host of [url] without a leading `www.`; empty when unparseable. */
+    private val hostPrefix = Regex("^(?:www|m|mobile)\\.(?=[^.]+\\.)", RegexOption.IGNORE_CASE)
+
+    /** Host of [url] without a leading `www.` / `m.` / `mobile.`; empty when unparseable. */
     fun host(url: String): String = runCatching { java.net.URI(url).host.orEmpty() }
         .getOrDefault("")
-        .removePrefix("www.")
+        .let { host -> generateSequence(host) { h -> hostPrefix.replaceFirst(h, "").takeIf { it != h } }.last() }
 
     private val firstSentence = Regex("(?<=[.!?])\\s+")
     private val alternative = Regex("\\s*(?:[;,]\\s*)?\\bor\\b\\s+|\\s*;\\s*", RegexOption.IGNORE_CASE)
