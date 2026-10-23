@@ -723,7 +723,12 @@ class RecipeKeeperClipConfig(
             // EN
             "g", "gr", "gram", "grams", "kg", "mg", "ml", "l", "dl", "cl", "cup", "cups", "tbsp", "tablespoon", "tablespoons", "tsp", "teaspoon", "teaspoons",
             "oz", "ounce", "ounces", "lb", "lbs", "pound", "pounds", "pinch", "dash", "clove", "cloves", "slice", "slices", "can", "cans", "stick", "sticks",
-            "bunch", "handful", "piece", "pieces",
+            "bunch", "bunches", "handful", "handfuls", "piece", "pieces",
+            "fl oz", "fl. oz", "fl.oz", "quart", "quarts", "qt", "pint", "pints", "pt", "gallon", "gallons", "gal", "litre", "litres", "liter", "liters",
+            "sprig", "sprigs", "sheet", "sheets", "packet", "packets", "package", "packages", "pack", "packs", "jar", "jars", "bottle", "bottles", "tin", "tins",
+            "drop", "drops", "head", "heads", "stalk", "stalks", "stem", "stems", "rib", "ribs", "ear", "ears", "knob", "knobs", "splash", "glug", "squeeze",
+            "inch", "inches", "cm", "mm", "slab", "block", "fillet", "fillets", "breast", "breasts", "thigh", "thighs", "leaf", "leaves", "scoop", "scoops", "cube", "cubes",
+            "large", "medium", "small", "whole", "ripe", "fresh",
             // DE / FR / IT
             "EL", "TL", "Tasse", "Tassen", "Prise", "Stück", "Becher", "cuillère", "cuillere", "cuillères", "cuilleres", "tasse", "tasses", "pincée", "gousse", "gousses",
             "cucchiaio", "cucchiai", "cucchiaino", "cucchiaini", "tazza", "tazze", "pizzico", "spicchio", "spicchi",
@@ -743,8 +748,13 @@ class RecipeKeeperClipConfig(
         )
         private const val NUMBER = "[\\d½¼¾⅓⅔⅛][\\d/.,\\-–½¼¾⅓⅔⅛]*"
         private const val BARE_NUMBER = "[\\d½¼¾⅓⅔⅛][\\d/,\\-–½¼¾⅓⅔⅛]*"
-        private const val NUMBER_WORD = "(?:un|una|uno|dos|tres|dues|ένα|μία|μια|δύο|τρία|τρεις)"
-        private const val NUMBER_WORD_EXTRA = "(?:one|two|three|four|five|six|ein|eine|zwei|drei|deux|trois|due|tre|un|una|uno|dos|tres|dues|ένα|μία|μια|δύο|τρία|τρεις)"
+        private const val NUMBER_WORD = "(?:one|two|three|four|five|six|eight|ten|twelve|a|an|half an?|half|a few|some|a couple of|a couple|" +
+            "ein|eine|einen|zwei|drei|vier|un|une|deux|trois|quatre|uno|una|due|tre|quattro|" +
+            "un|una|uno|dos|tres|cuatro|dues|quatre|ένα|μία|μια|δύο|τρία|τρεις|τέσσερα)"
+        private const val NUMBER_WORD_EXTRA = NUMBER_WORD
+
+        /** English number words count before any noun by default ("two eggs", "half a lemon"); other languages learn that shape. */
+        private const val EN_NUMBER_WORD = "(?:one|two|three|four|five|six|eight|ten|twelve|a|an|half an?|half|a few|some|a couple of|a couple)"
         private const val BULLET = "(?:[-*•–·]\\s*)?"
 
         /**
@@ -758,6 +768,7 @@ class RecipeKeeperClipConfig(
                 "^$BULLET(?:(?:about|aprox\\.?|unos|unas)\\s+)?(?:" +
                     "$NUMBER\\s*(?:$unit\\.?\\s+\\S|\\s+\\p{L})" +
                     "|$WORD_START$NUMBER_WORD\\s+$unit\\.?\\s+\\S" +
+                    "|$WORD_START$EN_NUMBER_WORD\\s+\\p{L}[^.!?:\\n]{0,35}$" +
                     (if (numberWords) "|$WORD_START$NUMBER_WORD_EXTRA\\s+\\p{L}" else "") +
                     ")" +
                     "|^$BULLET\\p{L}[^\\d\\n]{0,60}?[,:]?\\s+$NUMBER\\s*$unit\\.?\\s*$" +
@@ -775,11 +786,13 @@ class RecipeKeeperClipConfig(
          */
         val quantityLine: Regex = buildQuantityLine(emptySet(), numberAfter = false, numberWords = false)
         private val ingredientHeadingWords = listOf(
-            "ingredients", "ingredient", "ingredientes", "zutaten", "ingrédients", "ingredients", "ingredienti",
+            "ingredients", "ingredient", "what you need", "what you'll need", "what you will need", "you will need", "you'll need", "shopping list",
+            "ingredientes", "zutaten", "ingrédients", "ingredients", "ingredienti",
             "υλικά", "υλικα", "συστατικά", "συστατικα",
         )
         private val instructionHeadingWords = listOf(
-            "instructions", "instruction", "method", "directions", "steps", "preparation", "procedure", "how to make",
+            "instructions", "instruction", "method", "directions", "steps", "step by step", "preparation", "procedure", "how to make", "how to",
+            "cooking instructions", "to make", "assembly", "technique", "what to do", "making it", "putting it together",
             "instrucciones", "preparación", "preparacion", "elaboración", "elaboracion", "pasos", "paso a paso", "modo de preparación", "modo de preparacion",
             "procedimiento", "zubereitung", "anleitung", "schritte", "préparation", "étapes", "etapes", "preparazione", "procedimento",
             "elaboració", "preparació", "pas a pas", "com es fa", "instruccions", "procediment",
