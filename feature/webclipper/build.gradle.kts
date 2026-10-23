@@ -21,7 +21,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.datastore.preferences)
     implementation(project(":core:llm"))
     implementation(project(":core:data"))
     implementation(project(":core:web"))
