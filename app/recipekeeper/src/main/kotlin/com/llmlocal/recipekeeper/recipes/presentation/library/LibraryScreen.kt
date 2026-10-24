@@ -192,9 +192,9 @@ private fun LibraryGrid(
                     onAction = { onIntent(LibraryIntent.ClipRecipe) },
                 )
                 TextButton(
-                    onClick = { onIntent(LibraryIntent.CreateRecipe) },
+                    onClick = { onIntent(LibraryIntent.OpenSourceChooser) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                ) { Text(labels.writeRecipe) }
+                ) { Text(labels.moreWaysToAdd) }
             }
             state.isFavouritesEmpty -> item(span = { GridItemSpan(maxLineSpan) }, key = "favourites_empty") {
                 EmptyState(

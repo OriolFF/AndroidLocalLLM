@@ -50,6 +50,7 @@ import com.llmlocal.core.designsystem.theme.designTokens
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
+import com.llmlocal.recipekeeper.recipes.domain.hasSource
 import java.io.File
 
 /**
@@ -59,7 +60,7 @@ import java.io.File
  * output was cut off.
  *
  * Tap opens the recipe; long-press opens a menu (Favourite / Edit / Share /
- * Open original* / Delete; * hidden for created recipes) anchored to the card.
+ * Open original* / Delete; * only for clipped recipes) anchored to the card.
  * A heart toggle sits top-end of the hero. The card is one semantics node whose
  * description is `title, from host`, so TalkBack reads it as a single row
  * and announces the long-press action label.
@@ -78,11 +79,11 @@ fun RecipeTile(
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    val created = summary.origin == RecipeOrigin.CREATED
-    val tileDescription = if (created) {
-        labels.recipeTileDescriptionCreated(summary.title)
-    } else {
-        labels.recipeTileDescription(summary.title, summary.sourceHost)
+    val hasSource = summary.origin.hasSource
+    val tileDescription = when (summary.origin) {
+        RecipeOrigin.CREATED, RecipeOrigin.VOICE -> labels.recipeTileDescriptionCreated(summary.title)
+        RecipeOrigin.IMAGES -> labels.recipeTileDescriptionImages(summary.title)
+        RecipeOrigin.CLIPPED -> labels.recipeTileDescription(summary.title, summary.sourceHost)
     }
     val favouriteState = if (summary.isFavourite) labels.favouriteStateOn else null
 
@@ -162,7 +163,7 @@ fun RecipeTile(
                 leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
                 onClick = { menuOpen = false; onShare() },
             )
-            if (!created) {
+            if (hasSource) {
                 DropdownMenuItem(
                     text = { Text(labels.openOriginal) },
                     leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
@@ -252,6 +253,10 @@ fun IncompleteBadge(text: String, modifier: Modifier = Modifier) {
 /** `host · 30 min`, omitting the time when unknown. */
 private fun tileMeta(summary: RecipeSummary, labels: RecipeKeeperLibraryLabels): String {
     val time = summary.totalMinutes?.let { labels.minutesTemplate(it) }
-    val source = if (summary.origin == RecipeOrigin.CREATED) labels.createdByYou else summary.sourceHost
+    val source = when (summary.origin) {
+        RecipeOrigin.CREATED, RecipeOrigin.VOICE -> labels.createdByYou
+        RecipeOrigin.IMAGES -> labels.fromYourPhotos
+        RecipeOrigin.CLIPPED -> summary.sourceHost
+    }
     return listOfNotNull(source.takeIf { it.isNotBlank() }, time).joinToString(labels.metaSeparator)
 }

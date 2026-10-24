@@ -13,7 +13,10 @@ import com.llmlocal.recipekeeper.designsystem.RecipeKeeperTokens
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryFab
 import com.llmlocal.recipekeeper.recipes.domain.LibraryFilter
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
+import com.llmlocal.feature.webclipper.domain.input.ImagesAvailability
+import com.llmlocal.recipekeeper.recipes.presentation.library.ImagesUnavailableDialog
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryScreen
+import com.llmlocal.recipekeeper.recipes.presentation.library.SourceChooserContent
 import com.llmlocal.recipekeeper.recipes.presentation.library.LibraryState
 
 /**
@@ -46,6 +49,51 @@ private val gridReady = LibraryState(
     isLoading = false,
     modelStatus = LibraryModelStatus.Ready(),
 )
+
+private val gridWithImages = gridReady.copy(recipes = listOf(SampleData.imagesSummary) + SampleData.summaries)
+
+@Preview(name = "Library · images tile", showBackground = true)
+@Composable
+private fun LibraryImagesTilePreview() = LibraryPreviewSurface(gridWithImages)
+
+@Composable
+private fun SourceChooserPreviewSurface(availability: ImagesAvailability, darkTheme: Boolean = false) {
+    val labels = rememberRecipeKeeperLibraryLabels()
+    AppTheme(tokens = RecipeKeeperTokens, darkTheme = darkTheme) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            SourceChooserContent(imagesAvailability = availability, labels = labels, onIntent = {})
+        }
+    }
+}
+
+@Preview(name = "Chooser · images available", showBackground = true)
+@Composable
+private fun ChooserAvailablePreview() = SourceChooserPreviewSurface(ImagesAvailability.Available)
+
+@Preview(name = "Chooser · needs a model", showBackground = true)
+@Composable
+private fun ChooserNoModelPreview() = SourceChooserPreviewSurface(ImagesAvailability.NoModel)
+
+@Preview(name = "Chooser · model can't read images", showBackground = true)
+@Composable
+private fun ChooserLacksVisionPreview() = SourceChooserPreviewSurface(ImagesAvailability.ModelLacksVision)
+
+@Preview(name = "Chooser · images hidden", showBackground = true)
+@Composable
+private fun ChooserDisabledPreview() = SourceChooserPreviewSurface(ImagesAvailability.Disabled)
+
+@Preview(name = "Chooser · dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun ChooserDarkPreview() = SourceChooserPreviewSurface(ImagesAvailability.Available, darkTheme = true)
+
+@Preview(name = "Images unavailable dialog", showBackground = true)
+@Composable
+private fun ImagesUnavailableDialogPreview() {
+    val labels = rememberRecipeKeeperLibraryLabels()
+    AppTheme(tokens = RecipeKeeperTokens) {
+        ImagesUnavailableDialog(modelName = "Phi-3.5 Mini", labels = labels, onOpenModels = {}, onDismiss = {})
+    }
+}
 
 @Preview(name = "Library · grid", showBackground = true)
 @Composable

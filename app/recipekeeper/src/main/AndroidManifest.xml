@@ -45,6 +45,7 @@
         <activity
             android:name=".app.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.LlmLocalAndroid">
             <intent-filter>
@@ -52,6 +53,50 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            System share target. No UI: it parses the share, forwards it to
+            MainActivity (singleTop) and finishes. This entry carries the filter
+            that is always on: a text/plain share containing a link opens the
+            in-app browser on it.
+        -->
+        <activity
+            android:name=".app.ShareReceiverActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.RecipeKeeper.ShareReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Picture shares. Intent filters cannot be toggled by a manifest
+            placeholder, a component can: this alias of ShareReceiverActivity is
+            enabled only when IMAGES_SOURCE is on (build.gradle.kts feeds the same
+            `imagesSource` value to BuildConfig.IMAGES_SOURCE and to
+            ${imagesShareTarget}). Disabled, the system never resolves it, so an
+            image share cannot reach the app and the share sheet does not list it.
+        -->
+        <activity-alias
+            android:name=".app.ShareImagesAlias"
+            android:targetActivity=".app.ShareReceiverActivity"
+            android:enabled="${imagesShareTarget}"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity-alias>
 
         <!--
             Disable WorkManager's default initializer so it uses our

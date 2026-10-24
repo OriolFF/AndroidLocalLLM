@@ -17,12 +17,28 @@ class RecipeKeeperPromptBuilder : PromptBuilder {
 
     override fun systemPrompt(): String = SYSTEM
 
-    override fun userPrompt(inputs: List<String>): String = buildString {
-        append("Extract the recipe from this page.\n\n")
-        append(inputs.joinToString("\n\n").trim())
+    override fun userPrompt(inputs: List<String>): String {
+        // An images clip renders its whole user turn itself (the pictures ride on the request).
+        if (inputs.singleOrNull() == IMAGES_USER_TURN) return IMAGES_USER_TURN
+        return buildString {
+            append("Extract the recipe from this page.\n\n")
+            append(inputs.joinToString("\n\n").trim())
+        }
     }
 
     companion object {
+        /**
+         * Gate-decision guidance for pictures. The repository takes one system
+         * prompt per config, so it travels at the head of the user turn
+         * ([IMAGES_USER_TURN]) rather than as a `SYSTEM_IMAGES` system prompt.
+         */
+        const val IMAGES_GUIDANCE: String =
+            "The pictures are consecutive screenshots or photos of one recipe; read only text that is visible; " +
+                "do not guess amounts you cannot read; omit unknown fields."
+
+        /** User turn of an images clip. */
+        const val IMAGES_USER_TURN: String = "$IMAGES_GUIDANCE\n\nExtract the recipe from these pictures."
+
         val SYSTEM: String = """
             You extract ONE recipe from web page text. Respond ONLY in this format and nothing else:
 

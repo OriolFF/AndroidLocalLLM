@@ -6,3 +6,6 @@ package com.llmlocal.recipekeeper.recipes.domain
  * unknown name reads back as [CLIPPED], so adding a value needs no migration.
  */
 enum class RecipeOrigin { CLIPPED, CREATED, IMAGES, VOICE }
+
+/** Only a clipped recipe has a page behind it: Open original and Re-extract exist for it alone. */
+val RecipeOrigin.hasSource: Boolean get() = this == RecipeOrigin.CLIPPED

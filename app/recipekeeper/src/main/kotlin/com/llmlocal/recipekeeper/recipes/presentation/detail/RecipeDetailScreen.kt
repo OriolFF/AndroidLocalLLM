@@ -113,6 +113,7 @@ import com.llmlocal.core.designsystem.component.AppLoadingIndicator
 import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.core.designsystem.component.GradientHero
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
+import com.llmlocal.recipekeeper.recipes.domain.hasSource
 import com.llmlocal.recipekeeper.recipes.presentation.library.FavouriteToggle
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
 import com.llmlocal.core.designsystem.component.NumberBadge
@@ -290,7 +291,7 @@ private fun CompactDetail(
             }
             DetailTopBar(
                 labels = labels,
-                created = recipe.origin == RecipeOrigin.CREATED,
+                created = !recipe.origin.hasSource,
                 isFavourite = recipe.isFavourite,
                 backgroundAlpha = barAlpha,
                 overImage = hasPicture && barAlpha < 0.5f,
@@ -319,7 +320,7 @@ private fun WideDetail(
         topBar = {
             DetailTopBar(
                 labels = labels,
-                created = recipe.origin == RecipeOrigin.CREATED,
+                created = !recipe.origin.hasSource,
                 isFavourite = recipe.isFavourite,
                 backgroundAlpha = 1f,
                 overImage = false,
@@ -681,10 +682,17 @@ private fun SourceRow(
     labels: RecipeKeeperLibraryLabels,
     onIntent: (RecipeDetailIntent) -> Unit,
 ) {
-    val created = recipe.origin == RecipeOrigin.CREATED
-    val dates = remember(recipe.clippedAt, recipe.editedAt, created, labels) {
+    val origin = recipe.origin
+    val created = !origin.hasSource
+    val dates = remember(recipe.clippedAt, recipe.editedAt, origin, labels) {
         val format = DateFormat.getDateInstance(DateFormat.MEDIUM)
-        val first = format.format(Date(recipe.clippedAt)).let { if (created) labels.createdOn(it) else labels.clippedOn(it) }
+        val first = format.format(Date(recipe.clippedAt)).let {
+            when (origin) {
+                RecipeOrigin.CREATED -> labels.createdOn(it)
+                RecipeOrigin.IMAGES, RecipeOrigin.VOICE -> labels.addedOn(it)
+                RecipeOrigin.CLIPPED -> labels.clippedOn(it)
+            }
+        }
         val edited = recipe.editedAt?.let { labels.editedOn(format.format(Date(it))) }
         listOfNotNull(first, edited).joinToString(labels.metaSeparator)
     }
@@ -692,7 +700,14 @@ private fun SourceRow(
         headlineContent = { Text(recipe.sourceLabel(labels)) },
         supportingContent = { Text(dates) },
         leadingContent = {
-            Icon(if (created) Icons.Outlined.EditNote else Icons.Outlined.Link, contentDescription = null)
+            Icon(
+                when (origin) {
+                    RecipeOrigin.CLIPPED -> Icons.Outlined.Link
+                    RecipeOrigin.IMAGES -> Icons.Outlined.PhotoLibrary
+                    RecipeOrigin.CREATED, RecipeOrigin.VOICE -> Icons.Outlined.EditNote
+                },
+                contentDescription = null,
+            )
         },
         trailingContent = if (created) null else {
             {
@@ -705,9 +720,12 @@ private fun SourceRow(
     )
 }
 
-/** Host for clipped recipes, "Created by you" for written ones. */
-private fun ClippedRecipe.sourceLabel(labels: RecipeKeeperLibraryLabels): String =
-    if (origin == RecipeOrigin.CREATED) labels.createdByYou else sourceHost
+/** Host for clipped recipes, "Created by you" for written ones, the check-the-amounts line for pictures. */
+private fun ClippedRecipe.sourceLabel(labels: RecipeKeeperLibraryLabels): String = when (origin) {
+    RecipeOrigin.CLIPPED -> sourceHost
+    RecipeOrigin.CREATED, RecipeOrigin.VOICE -> labels.createdByYou
+    RecipeOrigin.IMAGES -> labels.fromYourPhotosCheckAmounts
+}
 
 private fun LazyListScope.ingredientsSection(
     recipe: ClippedRecipe,
