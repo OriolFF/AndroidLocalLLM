@@ -44,7 +44,7 @@ private fun LibraryPreviewSurface(state: LibraryState, darkTheme: Boolean = fals
 private val gridReady = LibraryState(
     recipes = SampleData.summaries,
     isLoading = false,
-    modelStatus = LibraryModelStatus.Ready,
+    modelStatus = LibraryModelStatus.Ready(),
 )
 
 @Preview(name = "Library · grid", showBackground = true)
@@ -77,7 +77,7 @@ private fun LibraryDownloadingPreview() = LibraryPreviewSurface(
 @Preview(name = "Library · empty", showBackground = true)
 @Composable
 private fun LibraryEmptyPreview() = LibraryPreviewSurface(
-    LibraryState(isLoading = false, modelStatus = LibraryModelStatus.Ready),
+    LibraryState(isLoading = false, modelStatus = LibraryModelStatus.Ready()),
 )
 
 @Preview(name = "Library · empty · no model · dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
@@ -90,7 +90,7 @@ private fun LibraryEmptyNoModelDarkPreview() = LibraryPreviewSurface(
 @Preview(name = "Library · search empty", showBackground = true)
 @Composable
 private fun LibrarySearchEmptyPreview() = LibraryPreviewSurface(
-    LibraryState(query = "ramen", searchActive = true, isLoading = false, modelStatus = LibraryModelStatus.Ready),
+    LibraryState(query = "ramen", searchActive = true, isLoading = false, modelStatus = LibraryModelStatus.Ready()),
 )
 
 @Preview(name = "Library · searching", showBackground = true)

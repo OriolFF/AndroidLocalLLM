@@ -1,6 +1,7 @@
 package com.llmlocal.feature.webclipper.domain
 
 import com.llmlocal.core.web.JsonLdNode
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
 import com.llmlocal.core.web.TextSection
 
 /**
@@ -33,7 +34,7 @@ data class ClipCandidate(
 )
 
 /** Tier the candidate was detected by. */
-enum class CandidateSource { STRUCTURED, TEXT }
+enum class CandidateSource { STRUCTURED, TEXT, IMAGES, TRANSCRIPT }
 
 /** The page region a [ClipCandidate] points at. */
 sealed interface CandidatePayload {
@@ -45,4 +46,28 @@ sealed interface CandidatePayload {
 
     /** "Extract anyway": the whole readable article. */
     data object WholePage : CandidatePayload
+
+    /** Prepared pictures; [count] of them. */
+    data class Images(val count: Int) : CandidatePayload
+
+    /** A voice transcript (placeholder, unused). */
+    data object Transcript : CandidatePayload
 }
+
+/** Id of the single synthetic candidate of an images clip. */
+const val IMAGES_CANDIDATE_ID = "images"
+
+/**
+ * The one candidate of an images clip; there is nothing to detect in a
+ * picture without running the model. [title] comes from labels (rule 0).
+ */
+fun imagesCandidate(input: ClipInput.Images, title: String): ClipCandidate = ClipCandidate(
+    id = IMAGES_CANDIDATE_ID,
+    title = title,
+    thumbnailUrl = null,
+    snippet = null,
+    source = CandidateSource.IMAGES,
+    ingredientCount = null,
+    totalMinutes = null,
+    payload = CandidatePayload.Images(input.images.size),
+)

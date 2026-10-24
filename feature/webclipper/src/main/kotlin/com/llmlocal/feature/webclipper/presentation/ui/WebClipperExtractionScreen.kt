@@ -415,6 +415,16 @@ private fun ErrorBlock(
                     RawOutput(state = state.copy(streamedText = error.rawOutput, isRunning = false), labels, onIntent)
                 }
             }
+            ExtractionError.ImagesUnsupported -> {
+                EmptyState(
+                    icon = Icons.Outlined.ErrorOutline,
+                    title = labels.imagesUnsupportedTitle,
+                    message = labels.imagesUnsupportedMessage,
+                    actionLabel = labels.openModels,
+                    onAction = onNavigateToModelManagement,
+                )
+                TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(labels.backToPage) }
+            }
             ExtractionError.ModelMissing -> {
                 EmptyState(
                     icon = Icons.Outlined.ErrorOutline,
@@ -531,6 +541,7 @@ fun phaseLabel(phase: Phase, labels: WebClipperLabels): String = when (phase) {
 private fun errorTitle(error: ExtractionError, labels: WebClipperLabels): String = when (error) {
     is ExtractionError.ModelFailed, ExtractionError.ModelMissing -> labels.modelFailedTitle
     is ExtractionError.ParseFailed -> labels.parseFailedTitle
+    ExtractionError.ImagesUnsupported -> labels.imagesUnsupportedTitle
 }
 
 /** The feature's MVI phase status maps 1:1 onto the design-system marker set. */

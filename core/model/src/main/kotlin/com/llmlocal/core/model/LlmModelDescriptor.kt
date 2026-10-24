@@ -7,6 +7,13 @@ package com.llmlocal.core.model
 enum class ModelFamily { GENERAL, CHAT, INSTRUCT, CODE, MULTIMODAL }
 
 /**
+ * What a model can take as input. Unlike [ModelFamily] (a filter-chip
+ * grouping) this is a capability the engine and the UI branch on, e.g. the
+ * "From images" source needs [VISION].
+ */
+enum class ModelCapability { TEXT, VISION, AUDIO }
+
+/**
  * Describes a downloadable on-device LLM model.
  *
  * The catalog (see `LlmModelCatalog`) is the single source of truth for
@@ -32,6 +39,8 @@ enum class ModelFamily { GENERAL, CHAT, INSTRUCT, CODE, MULTIMODAL }
  * @property minRamMb Hint for the UI's "won't run on this device" warning
  *   (informational only — not enforced).
  * @property family Coarse grouping; drives filter chips in the catalog list.
+ * @property capabilities Input kinds the bundle can read; text only unless
+ *   the bundle is known to ship the matching encoder.
  */
 data class LlmModelDescriptor(
     val id: String,
@@ -46,4 +55,5 @@ data class LlmModelDescriptor(
     val author: String = "Unknown",
     val minRamMb: Int = 0,
     val family: ModelFamily = ModelFamily.GENERAL,
+    val capabilities: Set<ModelCapability> = setOf(ModelCapability.TEXT),
 )

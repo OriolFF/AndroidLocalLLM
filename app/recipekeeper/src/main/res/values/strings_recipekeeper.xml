@@ -156,4 +156,25 @@
     <string name="recipekeeper_discard">Discard</string>
     <string name="recipekeeper_keep_editing">Keep editing</string>
     <string name="recipekeeper_editor_save_failed">Couldn\'t save the recipe — try again</string>
+    <string name="recipekeeper_add_recipe">Add a recipe</string>
+    <string name="recipekeeper_more_ways_to_add">More ways to add…</string>
+    <string name="recipekeeper_source_chooser_title">Add a recipe</string>
+    <string name="recipekeeper_source_chooser_subtitle">Choose where it comes from</string>
+    <string name="recipekeeper_source_web">From the web</string>
+    <string name="recipekeeper_source_web_hint">Browse a site and tap Clip</string>
+    <string name="recipekeeper_source_images">From images</string>
+    <string name="recipekeeper_source_images_hint">Screenshots or photos of a recipe</string>
+    <string name="recipekeeper_source_voice">By voice</string>
+    <string name="recipekeeper_source_voice_hint">Dictate a recipe</string>
+    <string name="recipekeeper_source_editor">Write it yourself</string>
+    <string name="recipekeeper_source_editor_hint">Type it in</string>
+    <string name="recipekeeper_coming_soon">Coming soon</string>
+    <string name="recipekeeper_images_needs_model">Choose a model first</string>
+    <string name="recipekeeper_images_model_cant_read">Your current model can\'t read images</string>
+    <string name="recipekeeper_images_unavailable_title">This model can\'t read images</string>
+    <string name="recipekeeper_images_unavailable_message">%1$s only reads text. Pick a model marked \"reads images\" in Models to clip from screenshots and photos.</string>
+    <string name="recipekeeper_from_your_photos">From your photos</string>
+    <string name="recipekeeper_from_your_photos_check_amounts">From your photos · Check the amounts</string>
+    <string name="recipekeeper_tile_description_images">%1$s, from your photos</string>
+    <string name="recipekeeper_added_on">Added %1$s</string>
 </resources>

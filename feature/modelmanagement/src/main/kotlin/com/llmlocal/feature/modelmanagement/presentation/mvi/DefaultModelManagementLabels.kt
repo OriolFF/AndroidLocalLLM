@@ -48,6 +48,7 @@ fun defaultModelManagementLabels(): ModelManagementLabels {
         detailMinRamUnit = stringResource(R.string.modelmanagement_default_detail_min_ram_unit),
         detailFileLabel = stringResource(R.string.modelmanagement_default_detail_file),
         detailUrlLabel = stringResource(R.string.modelmanagement_default_detail_url),
+        capabilityVision = resources.getString(R.string.modelmanagement_capability_vision),
         secondsLeftTemplate = { resources.getString(R.string.modelmanagement_progress_seconds_left, it) },
         minutesLeftTemplate = { resources.getString(R.string.modelmanagement_progress_minutes_left, it) },
         modelSelectedSnackbar = { resources.getString(R.string.modelmanagement_default_selected, it) },

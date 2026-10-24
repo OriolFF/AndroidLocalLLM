@@ -1,6 +1,8 @@
 package com.llmlocal.feature.webclipper.domain
 
 import com.llmlocal.core.web.PageSnapshot
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.domain.input.snapshotOrNull
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -18,11 +20,14 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface ClipSession {
 
-    /** One captured page and the candidates detected on it. */
+    /** One clip input (page, pictures, …) and the candidates detected on it. */
     data class Current(
-        val snapshot: PageSnapshot,
+        val input: ClipInput,
         val candidates: List<ClipCandidate>,
-    )
+    ) {
+        /** Web-only convenience; `null` for images and voice. */
+        val snapshot: PageSnapshot? get() = input.snapshotOrNull
+    }
 
     /** `null` until the first capture, and again after [clear]. */
     val current: StateFlow<Current?>
@@ -33,7 +38,10 @@ interface ClipSession {
     /** One-shot request from the extraction screen to show the picker again. */
     val reopenCandidates: StateFlow<Boolean>
 
-    fun set(snapshot: PageSnapshot, candidates: List<ClipCandidate>)
+    fun set(input: ClipInput, candidates: List<ClipCandidate>)
+
+    fun set(snapshot: PageSnapshot, candidates: List<ClipCandidate>) =
+        set(ClipInput.WebPage(snapshot), candidates)
 
     /** Candidate by id in the current page, or `null` when unknown / cleared. */
     fun candidate(id: String): ClipCandidate?

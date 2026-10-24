@@ -98,4 +98,15 @@ class RecipePictureStoreAndConvertersTest {
         assertThat(row.isFavourite).isTrue()
         assertThat(row.origin).isEqualTo(RecipeOrigin.CREATED)
     }
+
+    @Test
+    fun `origin round-trips through the text column and an unknown name reads back as CLIPPED`() {
+        RecipeOrigin.entries.forEach { origin ->
+            val row = RecipeSummaryRow("id", "T", "", null, null, false, 1L, origin = origin.name).toDomain()
+            assertThat(row.origin).isEqualTo(origin)
+        }
+        assertThat(RecipeSummaryRow("id", "T", "", null, null, false, 1L, origin = "HOLOGRAM").toDomain().origin)
+            .isEqualTo(RecipeOrigin.CLIPPED)
+        assertThat(RecipeOrigin.entries).containsAtLeast(RecipeOrigin.IMAGES, RecipeOrigin.VOICE)
+    }
 }

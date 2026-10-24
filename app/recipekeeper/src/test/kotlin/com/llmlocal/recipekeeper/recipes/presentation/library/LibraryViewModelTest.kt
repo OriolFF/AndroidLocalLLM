@@ -6,6 +6,7 @@ import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCas
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveImagesAvailabilityUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
@@ -54,6 +55,7 @@ class LibraryViewModelTest {
         toggleFavourite = ToggleFavouriteUseCase(repository),
         observeLearnedHints = ObserveLearnedHintCountUseCase(hintsStore),
         resetDetection = ResetDetectionHintsUseCase(hintsStore),
+        observeImagesAvailability = ObserveImagesAvailabilityUseCase(),
         dispatchers = dispatchers,
     )
 
@@ -182,9 +184,9 @@ class LibraryViewModelTest {
         advanceUntilIdle()
         assertThat(vm.state.value.modelStatus).isEqualTo(LibraryModelStatus.NoModel)
 
-        modelStatus.status.value = LibraryModelStatus.Ready
+        modelStatus.status.value = LibraryModelStatus.Ready()
         advanceUntilIdle()
-        assertThat(vm.state.value.modelStatus).isEqualTo(LibraryModelStatus.Ready)
+        assertThat(vm.state.value.modelStatus).isEqualTo(LibraryModelStatus.Ready())
     }
 
     @Test

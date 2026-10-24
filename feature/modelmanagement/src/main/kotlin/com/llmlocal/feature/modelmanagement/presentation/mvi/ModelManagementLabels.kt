@@ -65,6 +65,10 @@ data class ModelManagementLabels(
     val detailFileLabel: String,
     val detailUrlLabel: String,
 
+    // Capabilities
+    /** Tag shown for models whose descriptor lists `ModelCapability.VISION` (rendered by stream I3). */
+    val capabilityVision: String,
+
     // Download progress
     val secondsLeftTemplate: (Int) -> String,
     val minutesLeftTemplate: (Int) -> String,

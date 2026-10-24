@@ -18,9 +18,11 @@ package com.llmlocal.core.llm.engine
  *    model emits free text.
  *  - [temperature] — overrides the engine's default sampling temperature
  *    for this call only. `null` keeps the engine default.
- *
- * Text only by design: pictures are stored alongside results, never sent to
- * the model, so there is deliberately no image/audio field.
+ *  - [images] — pictures the model should read, in reading order, sent
+ *    before the prompt text. Empty (the default) keeps the request text only.
+ *    An engine without vision answers with [UnsupportedImagesException].
+ *  - [visualTokenBudget] — tokens the vision encoder may spend per image;
+ *    `null` keeps the runtime default.
  */
 data class LlmRequest(
     val prompt: String,
@@ -28,4 +30,24 @@ data class LlmRequest(
     val maxOutputTokens: Int? = null,
     val jsonSchema: String? = null,
     val temperature: Double? = null,
+    val images: List<LlmImage> = emptyList(),
+    val visualTokenBudget: Int? = null,
 )
+
+/** One picture for the model. Not a data class: [ByteArray] equality is identity and that is fine here. */
+class LlmImage(
+    val bytes: ByteArray,
+    val mimeType: String = "image/jpeg",
+    val width: Int = 0,
+    val height: Int = 0,
+)
+
+/** What a loaded engine can take; meaningful after `initialize()`. */
+data class LlmCapabilities(
+    val vision: Boolean = false,
+    val audio: Boolean = false,
+    val maxImages: Int = 0,
+)
+
+/** Carried by [LlmToken.Error] when [LlmRequest.images] is non-empty and the engine has no vision. */
+class UnsupportedImagesException(message: String) : IllegalStateException(message)

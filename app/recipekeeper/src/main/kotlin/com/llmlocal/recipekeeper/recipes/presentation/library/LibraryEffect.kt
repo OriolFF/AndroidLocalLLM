@@ -25,4 +25,7 @@ sealed interface LibraryEffect {
 
     /** Undo arrived after the window closed. */
     data object UndoFailed : LibraryEffect
+
+    /** Open the prepare/review screen of the images source. */
+    data object NavigateToImagesClip : LibraryEffect
 }

@@ -1,6 +1,8 @@
 package com.llmlocal.feature.webclipper.domain
 
 import com.llmlocal.core.web.PageSnapshot
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.domain.input.snapshotOrNull
 import java.io.File
 
 /**
@@ -39,6 +41,25 @@ interface ClipSink<T : Any> {
         truncated: Boolean,
         options: ClipSaveOptions,
     ): String = save(item, snapshot, candidate, pictures, truncated)
+
+    /**
+     * Input-aware [save]. The default serves web pages and refuses the rest,
+     * so an app opts in per input kind.
+     */
+    suspend fun save(
+        item: T,
+        input: ClipInput,
+        candidate: ClipCandidate,
+        pictures: List<File>,
+        truncated: Boolean,
+        options: ClipSaveOptions,
+    ): String = when (input) {
+        is ClipInput.WebPage -> save(item, input.snapshot, candidate, pictures, truncated, options)
+        else -> throw UnsupportedOperationException("sink does not support ${input::class.simpleName}")
+    }
+
+    /** Input-aware [existingId]; `null` for inputs without a page. */
+    suspend fun existingId(input: ClipInput): String? = input.snapshotOrNull?.let { existingId(it) }
 
     /**
      * Id of an item already saved from [snapshot]'s page, or `null`. Asked

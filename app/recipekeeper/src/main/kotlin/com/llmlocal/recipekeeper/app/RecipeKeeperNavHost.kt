@@ -23,9 +23,11 @@ import androidx.navigation.navArgument
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
 import com.llmlocal.feature.webclipper.domain.ClipSink
+import com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.presentation.WebClipperBrowserRoute
 import com.llmlocal.feature.webclipper.presentation.WebClipperExtractionRoute
+import com.llmlocal.feature.webclipper.presentation.images.WebClipperImagesRoute
 import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperDraftParser
 import com.llmlocal.recipekeeper.clip.presentation.ClipDraftCard
 import com.llmlocal.recipekeeper.clip.presentation.rememberRecipeKeeperClipperLabels
@@ -53,6 +55,7 @@ private val draftParser = RecipeKeeperDraftParser()
  * |------------------|--------------------------|----------------------------|
  * | Library (start)  | `library`                | `AppScaffold` (in route)   |
  * | Browser          | `browser?url={url}`      | own scaffold (feature)     |
+ * | Images clip      | `clip/images`            | own scaffold (feature)     |
  * | Extraction       | `extract/{candidateId}`  | own scaffold (feature)     |
  * | Recipe detail    | `recipe/{recipeId}`      | own scaffold (collapsing)  |
  * | Editor (create)  | `recipe/new`             | own scaffold (editor)      |
@@ -104,6 +107,26 @@ fun RecipeKeeperNavHost() {
                 onOpenModelManagement = { navController.navigateToModelManagement() },
                 onOpenSettings = { navController.navigateToSettings() },
                 onOpenEditor = { id -> navController.navigateToEditor(id) },
+                onOpenImagesClip = { navController.navigateToImagesClip() },
+            )
+        }
+
+        // Prepare/review screen of the images source; a placeholder until stream I2 and unreachable
+        // while IMAGES_SOURCE is off.
+        composable(Route.ClipImages.pattern) {
+            WebClipperImagesRoute(
+                config = koinInject<WebClipConfig<ClippedRecipe>>(),
+                labels = rememberRecipeKeeperClipperLabels(),
+                pendingUris = null,
+                onNavigateToExtraction = { candidateId ->
+                    navController.navigate(Route.Extract.build(candidateId)) {
+                        popUpTo(Route.ClipImages.pattern) { inclusive = true }
+                    }
+                },
+                onClosed = { navController.popBackStack() },
+                onNavigateToModelManagement = { navController.navigateToModelManagement() },
+                snackbarHostState = snackbarHostState,
+                onShowSnackbar = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
             )
         }
 
@@ -151,7 +174,8 @@ fun RecipeKeeperNavHost() {
                 },
                 onSaved = { id ->
                     navController.navigate(Route.Recipe.build(id)) {
-                        popUpTo(Route.Browser.pattern)
+                        // An images clip has no browser behind it: back from the saved recipe lands on the library.
+                        popUpTo(if (candidateId == IMAGES_CANDIDATE_ID) Route.Library.pattern else Route.Browser.pattern)
                     }
                 },
                 onCancelled = { navController.popBackStack() },
@@ -266,6 +290,8 @@ private sealed class Route(val pattern: String) {
         fun build(recipeId: String): String = "recipe/${Uri.encode(recipeId)}"
     }
 
+    data object ClipImages : Route("clip/images")
+
     data object NewRecipe : Route("recipe/new")
 
     data object EditRecipe : Route("recipe/{recipeId}/edit") {
@@ -288,6 +314,13 @@ private fun NavHostController.navigateToBrowser(url: String?) {
 /** Editor entry: `null` creates a recipe, an id edits it; `launchSingleTop` so a double tap never stacks editors. */
 private fun NavHostController.navigateToEditor(id: String?) {
     navigate(if (id == null) Route.NewRecipe.pattern else Route.EditRecipe.build(id)) {
+        launchSingleTop = true
+    }
+}
+
+/** Images source entry; `launchSingleTop` so a double tap never stacks two. */
+private fun NavHostController.navigateToImagesClip() {
+    navigate(Route.ClipImages.pattern) {
         launchSingleTop = true
     }
 }

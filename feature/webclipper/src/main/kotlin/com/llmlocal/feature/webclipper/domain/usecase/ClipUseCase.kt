@@ -70,7 +70,13 @@ class ClipUseCase<T : Any>(
 
     operator fun invoke(config: WebClipConfig<T>, sink: ClipSink<T>, request: ClipRequest): Flow<ClipProgress> =
         channelFlow {
-            val run = Run(this, config, sink, request)
+            // Images and voice inputs arrive with stream I2; until then only pages run.
+            val snapshot = request.snapshot
+            if (snapshot == null) {
+                send(ClipProgress.Failed(ExtractionError.ModelFailed("Unsupported clip input: ${request.input::class.simpleName}")))
+                return@channelFlow
+            }
+            val run = Run(this, config, sink, request, snapshot)
             session.setActiveExtraction(request.candidate.id)
             var saved = false
             try {
@@ -91,9 +97,9 @@ class ClipUseCase<T : Any>(
         private val config: WebClipConfig<T>,
         private val sink: ClipSink<T>,
         private val request: ClipRequest,
+        private val snapshot: PageSnapshot,
     ) : CoroutineScope by out {
         private val candidate: ClipCandidate = request.candidate
-        private val snapshot: PageSnapshot = request.snapshot
 
         private val tempFiles = mutableListOf<File>()
         private var keptFiles = emptyList<File>()

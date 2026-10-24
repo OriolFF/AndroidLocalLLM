@@ -35,4 +35,5 @@
     <string name="medical_modelmanagement_removed">%1$s removed</string>
     <string name="medical_modelmanagement_not_downloaded">%1$s is not downloaded yet.</string>
     <string name="medical_modelmanagement_unknown_model">Unknown model: %1$s</string>
+    <string name="medical_modelmanagement_capability_vision">Reads images</string>
 </resources>

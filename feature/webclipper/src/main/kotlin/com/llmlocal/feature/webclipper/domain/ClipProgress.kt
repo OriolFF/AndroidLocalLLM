@@ -1,6 +1,8 @@
 package com.llmlocal.feature.webclipper.domain
 
 import com.llmlocal.core.web.PageSnapshot
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.domain.input.snapshotOrNull
 import java.io.File
 
 /** The four clip phases, in display order. */
@@ -22,6 +24,9 @@ sealed interface ExtractionError {
 
     /** Model file disappeared mid-flow. */
     data object ModelMissing : ExtractionError
+
+    /** The selected model cannot read the pictures of an images clip. */
+    data object ImagesUnsupported : ExtractionError
 }
 
 /**
@@ -33,10 +38,20 @@ sealed interface ExtractionError {
  */
 class ClipRequest(
     val candidate: ClipCandidate,
-    val snapshot: PageSnapshot,
+    val input: ClipInput,
     val replaceId: String? = null,
     val isPictureKept: (url: String) -> Boolean = { true },
-)
+) {
+    constructor(
+        candidate: ClipCandidate,
+        snapshot: PageSnapshot,
+        replaceId: String? = null,
+        isPictureKept: (url: String) -> Boolean = { true },
+    ) : this(candidate, ClipInput.WebPage(snapshot), replaceId, isPictureKept)
+
+    /** The captured page, or `null` for images and voice. */
+    val snapshot: PageSnapshot? get() = input.snapshotOrNull
+}
 
 /** A picture the config proposed; [keep] is its initial checkbox. */
 data class ProposedPicture(val url: String, val keep: Boolean)

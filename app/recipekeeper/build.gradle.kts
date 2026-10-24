@@ -9,6 +9,11 @@ android {
         applicationId = "com.llmlocal.recipekeeper"
         versionCode = 1
         versionName = "0.1.0"
+        // Input sources: the "From images" row and ImagePolicy.enabled. Stays false
+        // until the lead flips it at merge; the placeholder carries the same switch
+        // to the manifest (the image/* share filters, added by stream I3).
+        buildConfigField("boolean", "IMAGES_SOURCE", "false")
+        manifestPlaceholders["imagesShareTarget"] = "false"
         // WS7: the on-device eval runner (src/androidTest/.../EvalRunnerTest)
         // is driven by tools/eval/run_local_model.sh --device.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

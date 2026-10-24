@@ -51,6 +51,12 @@ interface LlmEngine {
     fun generateStream(prompt: String): Flow<LlmToken> = generateStream(LlmRequest(prompt))
 
     /**
+     * What the loaded engine can take; meaningful after [initialize].
+     * Default: text only.
+     */
+    fun capabilities(): LlmCapabilities = LlmCapabilities()
+
+    /**
      * Cancels any in-flight generation. Safe to call when no generation is
      * running.
      */
