@@ -1,6 +1,7 @@
 package com.llmlocal.core.llm.model
 
 import com.llmlocal.core.model.LlmModelDescriptor
+import com.llmlocal.core.model.ModelCapability
 import com.llmlocal.core.model.ModelFamily
 
 /**
@@ -25,6 +26,13 @@ object LlmModelCatalog {
      * NPU. For Google Tensor G5 devices (Pixel 9+), use
      * `gemma-4-E2B-it_Google_Tensor_G5.litertlm`. The generic
      * `gemma-4-E2B-it.litertlm` runs cross-platform via CPU.
+     *
+     * Reads images (`VISION`): the bundle ships a vision encoder capped at 280
+     * tokens per image, CPU only. To check another bundle, open it with
+     * `ModelInfo.from(path)` (`inputModalities()`, `maxVisionTokenBudget()`,
+     * `supportedBackends(Modality.VISION)`) or `litert_lm.ModelInfo` in the
+     * Python wheel; the `.litertlm` manifest lists the `input_modalities`.
+     * Add `ModelCapability.VISION` to a descriptor only after that check.
      */
     val DEFAULT_MODEL: LlmModelDescriptor = LlmModelDescriptor(
         id = "gemma-4-E2B-it",
@@ -40,6 +48,7 @@ object LlmModelCatalog {
         author = "Google",
         minRamMb = 4_096,
         family = ModelFamily.INSTRUCT,
+        capabilities = setOf(ModelCapability.TEXT, ModelCapability.VISION),
     )
 
     /** Smaller, quantised variant of the default — same family, faster download. */
