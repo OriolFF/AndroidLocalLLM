@@ -1,0 +1,23 @@
+Title: Pancake Recipe
+Description: A recipe for pancakes.
+Servings: 4
+PrepMinutes: 10
+CookMinutes: 10
+TotalMinutes: 20
+Ingredients:
+- 1 cup (130 grains) all-purpose flour
+- 1 ½ teaspoons baking powder
+- 1 teaspoon salt
+- 2 tablespoons (28 grams) granulated white sugar
+- 1 large egg, lightly beaten
+- 1 cup (240 ml) milk
+- 2 tablespoons (28 grams) unsalted butter, melted
+Steps:
+1. Mix the dry ingredients together.
+2. Mix the wet ingredients together.
+3. Combine the dry ingredients and wet ingredients.
+4. Cook the pancakes on a hot griddle until golden brown.
+Notes:
+- Pancakes can be made in any size and shape.
+- Range from small to large.
+- Cook until they are golden brown.

@@ -1,0 +1,63 @@
+[
+ {
+  "id": "bbc_pancakes",
+  "url": "https://www.bbcgoodfood.com/recipes/classic-pancakes",
+  "kind": "jsonld",
+  "fixture": "single_bbcgoodfood_pancakes"
+ },
+ {
+  "id": "pinch_cookies",
+  "url": "https://pinchofyum.com/the-best-soft-chocolate-chip-cookies",
+  "kind": "jsonld",
+  "fixture": "graph_pinchofyum_cookies"
+ },
+ {
+  "id": "rte_tikka",
+  "url": "https://www.recipetineats.com/chicken-tikka-masala/",
+  "kind": "jsonld",
+  "fixture": "howto_recipetineats_tikka"
+ },
+ {
+  "id": "nigella_banana",
+  "url": "https://www.nigella.com/recipes/banana-bread",
+  "kind": "jsonld",
+  "fixture": "micro_nigella_banana_bread"
+ },
+ {
+  "id": "joy_pancakes",
+  "url": "https://www.joyofbaking.com/breakfast/Pancakes.html",
+  "kind": "plain",
+  "fixture": "plain_joyofbaking_pancakes"
+ },
+ {
+  "id": "cfe_banana",
+  "url": "https://www.cookingforengineers.com/recipe/108/Banana-Nut-Bread",
+  "kind": "plain",
+  "fixture": "plain_cfe_banana_bread"
+ },
+ {
+  "id": "guardian_roundup",
+  "url": "https://www.theguardian.com/food/2024/dec/09/smoked-salmon-pancakes-mincemeat-mascarpone-fig-ice-cream-nigel-slater-recipes",
+  "kind": "roundup",
+  "fixture": "roundup_guardian_slater",
+  "recipeIndex": 0,
+  "needle": "feta and potato pancakes"
+ },
+ {
+  "id": "es_hojaldre",
+  "url": "https://www.directoalpaladar.com/postres/hojaldre-manzana-tartaletas-faciles-que-gustan-a-todo-mundo",
+  "kind": "jsonld"
+ },
+ {
+  "id": "gr_afrato",
+  "url": "https://www.argiro.gr/recipe/afrato-psomi-me-stafides-kai-kanela/",
+  "kind": "jsonld",
+  "anchor": "^(\u03c5\u03bb\u03b9\u03ba\u03ac|ingredients)"
+ },
+ {
+  "id": "infographic_pancakes",
+  "url": "file:///Users/oriol/.herdr/worktrees/AndroidLocalLLM/recipekeeper-dev/tools/eval/screenshots/infographic/page.html",
+  "kind": "image-only",
+  "anchor": "^zzz-none"
+ }
+]

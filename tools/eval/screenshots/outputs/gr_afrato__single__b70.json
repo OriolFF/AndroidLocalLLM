@@ -1,0 +1,16 @@
+{
+ "id": "gr_afrato__single__b70",
+ "images": 1,
+ "budget": 70,
+ "ttftMs": 992,
+ "totalMs": 6626,
+ "outputChars": 338,
+ "bench": {
+  "ttftS": 0.7688383400000001,
+  "prefillTokens": 433,
+  "prefillTokPerS": 588.8895046766055,
+  "decodeTokens": 170,
+  "decodeTokPerS": 29.80084968824226
+ },
+ "error": null
+}

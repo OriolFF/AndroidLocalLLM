@@ -1,0 +1,14 @@
+Title: Curry Sauce Spices
+Description: A list of spices for a curry sauce.
+Ingredients:
+- 2 tsp turmeric
+- 1 tbsp garam masala (Note 2)
+- 2 tsp coriander
+- 1 tsp cumin
+- 1/8 tsp cardamom powder
+- 1/8 tsp cayenne pepper
+Steps:
+1.
+Notes:
+- Note 2
+- Note 2

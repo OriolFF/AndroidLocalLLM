@@ -1,0 +1,16 @@
+{
+ "id": "cfe_banana__multi__b280",
+ "images": 5,
+ "budget": 280,
+ "ttftMs": 31318,
+ "totalMs": 66667,
+ "outputChars": 559,
+ "bench": {
+  "ttftS": 13.553120361,
+  "prefillTokens": 1705,
+  "prefillTokPerS": 127.18354322099289,
+  "decodeTokens": 242,
+  "decodeTokPerS": 6.78896290567791
+ },
+ "error": null
+}

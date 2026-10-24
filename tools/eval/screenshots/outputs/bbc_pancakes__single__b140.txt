@@ -1,0 +1,16 @@
+Title: 300ml milk
+Description: A simple recipe for a milk-based dish.
+Servings:
+PrepMinutes:
+CookMinutes:
+TotalMinutes:
+Ingredients:
+- 300ml milk
+- oil or melted butter, for frying
+Steps:
+1. Sift the flour and a pinch of salt into a bowl.
+2. Make a well in the centre with the back of a spoon then break in the egg and pour in half the milk.
+3. Whisk together, gradually incorporating the flour to make a smooth thick batter.
+4. Beat thoroughly to remove any lumps, then stir in the rest of the milk.
+Notes:
+- Keep the screen awake with cook mode on the Good food app.

@@ -1,0 +1,16 @@
+{
+ "id": "rte_tikka__tall__b70",
+ "images": 1,
+ "budget": 70,
+ "ttftMs": 1081,
+ "totalMs": 11627,
+ "outputChars": 1026,
+ "bench": {
+  "ttftS": 0.75714004625,
+  "prefillTokens": 425,
+  "prefillTokPerS": 587.8287298008148,
+  "decodeTokens": 311,
+  "decodeTokPerS": 29.290863715756558
+ },
+ "error": null
+}

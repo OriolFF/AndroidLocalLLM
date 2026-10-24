@@ -1,0 +1,16 @@
+{
+ "id": "es_hojaldre__multi__b140",
+ "images": 5,
+ "budget": 140,
+ "ttftMs": 3336,
+ "totalMs": 21497,
+ "outputChars": 1974,
+ "bench": {
+  "ttftS": 1.519048206,
+  "prefillTokens": 980,
+  "prefillTokPerS": 659.9465294755814,
+  "decodeTokens": 535,
+  "decodeTokPerS": 29.343226668286366
+ },
+ "error": null
+}

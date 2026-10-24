@@ -1,0 +1,16 @@
+{
+ "id": "nigella_banana__multi__b140",
+ "images": 5,
+ "budget": 140,
+ "ttftMs": 3315,
+ "totalMs": 19196,
+ "outputChars": 1623,
+ "bench": {
+  "ttftS": 1.52010315125,
+  "prefillTokens": 980,
+  "prefillTokPerS": 659.3213819900125,
+  "decodeTokens": 473,
+  "decodeTokPerS": 29.650397677339544
+ },
+ "error": null
+}

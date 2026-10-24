@@ -1,0 +1,28 @@
+Title: Pancake Recipe
+Description: A recipe for pancakes.
+Servings: 3-4 people
+PrepMinutes: 10
+CookMinutes: 10
+TotalMinutes: 20
+Ingredients:
+- 1 cup (130 grams) all-purpose flour
+- 1 ½ teaspoons baking powder
+- 1/4 teaspoon salt
+- 2 tablespoons (28 grams) granulated white sugar
+- 1 large egg, lightly beaten
+- 1 cup (240 ml) milk
+- 2 tablespoons (28 grams) unsalted butter, melted
+- Plus extra melted butter for greasing the pan.
+Steps:
+1. In a large bowl whisk together the flour, baking powder, salt and sugar.
+2. In a separate bowl whisk the egg, milk, and melted butter.
+3. Make a well in the center of the dry ingredients and then pour in the egg mixture, all at once, and stir with a rubber spatula or wooden spoon just until combined.
+4. The batter should have some lumps.
+5. Do not over mix the batter or pancakes will be tough.
+6. Heat a frying pan or griddle over medium high heat until a little oil is in the pan.
+7. Add the temperature as needed.
+8. Cook until light yellow.
+Notes:
+- Cook until light yellow.
+- Do not over mix the batter or pancakes will be tough.
+- Add extra melted butter for greasing the pan.

@@ -1,0 +1,28 @@
+Title: Curry Sauce
+Description: A simple and flavorful curry sauce.
+Servings: 1
+PrepMinutes: 10
+CookMinutes: 20
+TotalMinutes: 30
+Ingredients:
+- 3 tbsp (65ml) vegetable oil
+- 30g / 7 tbsp unsalted butter OR ghee
+- 1 onion, finely chopped (brown, white or yellow)
+- 1 tsp salt
+- cumin
+- paprika (sweet, normal or smoky)
+- 1 tbsp fresh ginger, grated
+- 1 tsp garam masala
+- 1 tsp coriander
+- 1/8 tsp cardamom powder
+- 1/8 tsp cayenne pepper
+- 6 cloves garlic, crushed or grated
+Steps:
+1. Heat vegetable oil in a pan.
+2. Add butter or ghee.
+3. Add onion and cook until soft.
+4. Add ginger, garlic, salt, cumin, paprika, garam masala, coriander, cardamom powder, and cayenne pepper.
+Notes:
+- Note 2
+- Note 3
+- Note 3
