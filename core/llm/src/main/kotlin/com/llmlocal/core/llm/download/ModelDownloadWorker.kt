@@ -16,7 +16,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.llmlocal.core.llm.model.DownloadProgress
-import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.llm.model.catalog.ModelCatalogRepository
 import com.llmlocal.core.model.LlmModelDescriptor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
@@ -47,6 +47,7 @@ class ModelDownloadWorker(
     params: WorkerParameters,
     private val manager: LlmModelManager,
     private val progressStore: ModelDownloadProgressStore,
+    private val catalog: ModelCatalogRepository,
 ) : CoroutineWorker(appContext, params) {
 
     private val tag = "ModelDownloadWorker"
@@ -57,7 +58,7 @@ class ModelDownloadWorker(
             Log.w(tag, "Missing $KEY_MODEL_ID in inputData; cannot start download")
             return Result.failure()
         }
-        val descriptor = LlmModelCatalog.findById(descriptorId)
+        val descriptor = catalog.find(descriptorId)
         if (descriptor == null) {
             Log.w(tag, "Unknown model id '$descriptorId' — not in catalog")
             return Result.failure()

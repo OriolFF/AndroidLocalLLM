@@ -1,5 +1,6 @@
 package com.llmlocal.recipekeeper.recipes.data
 
+import com.llmlocal.core.llm.model.catalog.ModelCatalogRepository
 import com.llmlocal.core.llm.readiness.ModelReadiness
 import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
@@ -24,12 +25,16 @@ import kotlinx.coroutines.flow.stateIn
  */
 class ReadinessLibraryModelStatusSource(
     observer: ModelReadinessObserver,
+    catalog: ModelCatalogRepository,
     scope: CoroutineScope,
 ) : LibraryModelStatusSource {
     override val status: StateFlow<LibraryModelStatus> = observer.observe(scope)
         .map { readiness ->
             when (readiness) {
-                is ModelReadiness.Downloading -> LibraryModelStatus.Downloading(readiness.progress)
+                is ModelReadiness.Downloading -> LibraryModelStatus.Downloading(
+                    progress = readiness.progress,
+                    modelName = catalog.findById(readiness.progress.modelId)?.displayName ?: readiness.progress.modelId,
+                )
                 is ModelReadiness.Ready, ModelReadiness.Initializing -> LibraryModelStatus.Ready
                 ModelReadiness.NoModel, ModelReadiness.Checking, is ModelReadiness.Failed -> LibraryModelStatus.NoModel
             }

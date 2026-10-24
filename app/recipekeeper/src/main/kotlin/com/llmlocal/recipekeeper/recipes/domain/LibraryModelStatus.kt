@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 sealed interface LibraryModelStatus {
     data object NoModel : LibraryModelStatus
 
-    data class Downloading(val progress: PerModelProgress) : LibraryModelStatus {
+    /** @property modelName display name of the downloading model, resolved by the data layer. */
+    data class Downloading(val progress: PerModelProgress, val modelName: String) : LibraryModelStatus {
         /** 0–100, or 0 while the total size is still unknown. */
         val percent: Int
             get() = progress.totalBytes?.takeIf { it > 0 }

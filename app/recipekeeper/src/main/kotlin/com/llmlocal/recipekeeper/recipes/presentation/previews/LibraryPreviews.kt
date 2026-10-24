@@ -71,7 +71,7 @@ private fun LibraryNoModelDarkPreview() = LibraryPreviewSurface(
 @Preview(name = "Library · downloading", showBackground = true)
 @Composable
 private fun LibraryDownloadingPreview() = LibraryPreviewSurface(
-    gridReady.copy(modelStatus = LibraryModelStatus.Downloading(SampleData.downloading)),
+    gridReady.copy(modelStatus = LibraryModelStatus.Downloading(SampleData.downloading, SampleData.downloadingModelName)),
 )
 
 @Preview(name = "Library · empty", showBackground = true)

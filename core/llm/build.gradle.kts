@@ -49,4 +49,6 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    // The discovery parser and the catalog cache use org.json, a stub in android.jar.
+    testImplementation(libs.org.json)
 }

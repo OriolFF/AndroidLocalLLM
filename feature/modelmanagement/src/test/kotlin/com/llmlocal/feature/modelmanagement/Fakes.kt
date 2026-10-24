@@ -3,6 +3,7 @@ package com.llmlocal.feature.modelmanagement
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
+import com.llmlocal.feature.modelmanagement.domain.DiscoveryResult
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgressSource
 import com.llmlocal.feature.modelmanagement.domain.DownloadScheduler
@@ -11,6 +12,7 @@ import com.llmlocal.feature.modelmanagement.domain.DownloadWorkSource
 import com.llmlocal.feature.modelmanagement.domain.DownloadWorkStatus
 import com.llmlocal.feature.modelmanagement.domain.InstalledModelsSource
 import com.llmlocal.feature.modelmanagement.domain.ModelCatalogSource
+import com.llmlocal.feature.modelmanagement.domain.ModelDiscoverySource
 import com.llmlocal.feature.modelmanagement.domain.ModelSelectionSource
 import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabels
 import kotlinx.coroutines.CoroutineDispatcher
@@ -40,8 +42,15 @@ fun progress(id: String, status: DownloadStatus = DownloadStatus.RUNNING) = Down
     speedBytesPerSec = 1, etaSeconds = 9,
 )
 
-class FakeCatalog(private val models: List<LlmModelDescriptor>) : ModelCatalogSource {
-    override fun all() = models
+class FakeCatalog(initial: List<LlmModelDescriptor>) : ModelCatalogSource {
+    val flow = MutableStateFlow(initial)
+    override val models: Flow<List<LlmModelDescriptor>> = flow
+    override fun all() = flow.value
+}
+
+class FakeDiscovery(var result: DiscoveryResult = DiscoveryResult.Skipped) : ModelDiscoverySource {
+    val calls = mutableListOf<Boolean>()
+    override suspend fun discover(force: Boolean): DiscoveryResult { calls += force; return result }
 }
 
 class FakeInstalled(initial: Set<String> = emptySet()) : InstalledModelsSource {

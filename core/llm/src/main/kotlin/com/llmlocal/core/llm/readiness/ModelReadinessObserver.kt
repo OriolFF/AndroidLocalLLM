@@ -8,6 +8,7 @@ import com.llmlocal.core.llm.download.ModelDownloadProgressStore
 import com.llmlocal.core.llm.download.PerModelProgress
 import com.llmlocal.core.llm.engine.LlmEngine
 import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.llm.model.catalog.ModelCatalogRepository
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
 import com.llmlocal.core.model.LlmModelDescriptor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -22,8 +23,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transform
@@ -73,14 +75,15 @@ class ModelReadinessObserver internal constructor(
     private val isInstalled: suspend (LlmModelDescriptor) -> Boolean,
     private val engine: LlmEngine,
     private val dispatchers: DispatcherProvider,
-    private val findDescriptor: (modelId: String) -> LlmModelDescriptor? = LlmModelCatalog::findById,
+    private val findDescriptor: suspend (modelId: String) -> LlmModelDescriptor? = { LlmModelCatalog.findById(it) },
 ) {
 
-    /** Production wiring over the DataStore-backed stores and the file manager. */
+    /** Production wiring over the DataStore-backed stores, the live catalog and the file manager. */
     constructor(
         selectionStore: LlmModelSelectionStore,
         progressStore: ModelDownloadProgressStore,
         manager: LlmModelManager,
+        catalog: ModelCatalogRepository,
         engine: LlmEngine,
         dispatchers: DispatcherProvider,
     ) : this(
@@ -89,6 +92,7 @@ class ModelReadinessObserver internal constructor(
         isInstalled = manager::isInstalled,
         engine = engine,
         dispatchers = dispatchers,
+        findDescriptor = catalog::find,
     )
 
     private val _readiness = MutableStateFlow<ModelReadiness>(ModelReadiness.Checking)
@@ -133,9 +137,17 @@ class ModelReadinessObserver internal constructor(
             .flatMapLatest { id -> readinessFor(id) }
     }
 
-    private fun readinessFor(modelId: String): Flow<ModelReadiness> {
-        val descriptor = findDescriptor(modelId) ?: return flowOf(ModelReadiness.NoModel)
-        return progressFor(modelId)
+    private fun readinessFor(modelId: String): Flow<ModelReadiness> = flow {
+        val descriptor = findDescriptor(modelId)
+        if (descriptor == null) {
+            emit(ModelReadiness.NoModel)
+            return@flow
+        }
+        emitAll(readinessFor(descriptor))
+    }
+
+    private fun readinessFor(descriptor: LlmModelDescriptor): Flow<ModelReadiness> {
+        return progressFor(descriptor.id)
             .distinctUntilChanged()
             .transform { progress ->
                 if (progress?.state == DownloadState.RUNNING) {

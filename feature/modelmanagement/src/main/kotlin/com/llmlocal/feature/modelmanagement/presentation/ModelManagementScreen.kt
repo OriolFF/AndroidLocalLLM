@@ -2,6 +2,8 @@ package com.llmlocal.feature.modelmanagement.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,10 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -53,7 +60,7 @@ fun ModelManagementScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item(key = "header") { Header(state = state) }
+        item(key = "header") { Header(state = state, onIntent = onIntent) }
         item(key = "intro") { IntroCard() }
         item(key = "filters") {
             FilterBar(
@@ -102,7 +109,7 @@ fun ModelManagementScreen(
 }
 
 @Composable
-private fun Header(state: ModelManagementState) {
+private fun Header(state: ModelManagementState, onIntent: (ModelManagementIntent) -> Unit) {
     val labels = modelManagementLabels
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -115,6 +122,29 @@ private fun Header(state: ModelManagementState) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // Discovery: pulls the latest LiteRT-LM bundles from the remote source.
+        if (state.discovering) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                Text(
+                    text = labels.discoveringLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            TextButton(
+                onClick = { onIntent(ModelManagementIntent.DiscoverModels) },
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+            ) {
+                Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(text = labels.discoverAction, modifier = Modifier.padding(start = 6.dp))
+            }
+        }
     }
 }
 

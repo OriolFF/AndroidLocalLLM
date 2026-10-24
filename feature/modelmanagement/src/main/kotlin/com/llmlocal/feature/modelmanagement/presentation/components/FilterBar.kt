@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llmlocal.core.model.ModelAccelerator
 import com.llmlocal.core.model.ModelFamily
 import com.llmlocal.feature.modelmanagement.R
 import com.llmlocal.feature.modelmanagement.domain.ModelFilters
@@ -152,6 +153,16 @@ fun FilterBar(
 }
 
 /** Display name used in the filter chips, the model card and the detail sheet. */
+/** Short accelerator name for spec rows and the detail sheet. */
+@Composable
+fun ModelAccelerator.label(): String = stringResource(
+    when (this) {
+        ModelAccelerator.CPU -> R.string.modelmanagement_accelerator_cpu
+        ModelAccelerator.GPU -> R.string.modelmanagement_accelerator_gpu
+        ModelAccelerator.NPU -> R.string.modelmanagement_accelerator_npu
+    },
+)
+
 @Composable
 fun ModelFamily.label(): String = stringResource(
     when (this) {

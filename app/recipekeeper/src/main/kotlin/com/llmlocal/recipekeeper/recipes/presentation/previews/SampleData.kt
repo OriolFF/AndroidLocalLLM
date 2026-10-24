@@ -102,6 +102,8 @@ internal object SampleData {
         createdSummary,
     )
 
+    val downloadingModelName: String = LlmModelCatalog.DEFAULT_MODEL.displayName
+
     val downloading = PerModelProgress(
         modelId = LlmModelCatalog.DEFAULT_MODEL.id,
         state = DownloadState.RUNNING,

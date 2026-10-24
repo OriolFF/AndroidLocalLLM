@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.AppLoadingIndicator
 import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.core.designsystem.component.GradientHero
-import com.llmlocal.core.llm.model.LlmModelCatalog
 import com.llmlocal.feature.modelmanagement.presentation.components.DownloadProgressBar
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
 
@@ -290,9 +289,7 @@ private fun DownloadCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val modelName = LlmModelCatalog.findById(status.progress.modelId)?.displayName
-        ?: status.progress.modelId
-    val title = labels.downloadingModel(modelName)
+    val title = labels.downloadingModel(status.modelName)
     Surface(
         modifier = modifier
             .fillMaxWidth()

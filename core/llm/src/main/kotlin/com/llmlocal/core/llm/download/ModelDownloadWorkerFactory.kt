@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.ListenableWorker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
+import com.llmlocal.core.llm.model.catalog.ModelCatalogRepository
 
 /**
  * [WorkerFactory] that hands out [ModelDownloadWorker] instances with the
@@ -17,6 +18,7 @@ import androidx.work.WorkerParameters
 class ModelDownloadWorkerFactory(
     private val manager: LlmModelManager,
     private val progressStore: ModelDownloadProgressStore,
+    private val catalog: ModelCatalogRepository,
 ) : WorkerFactory() {
 
     override fun createWorker(
@@ -25,7 +27,7 @@ class ModelDownloadWorkerFactory(
         params: WorkerParameters,
     ): ListenableWorker? =
         if (workerClassName == ModelDownloadWorker::class.java.name) {
-            ModelDownloadWorker(appContext, params, manager, progressStore)
+            ModelDownloadWorker(appContext, params, manager, progressStore, catalog)
         } else {
             null
         }

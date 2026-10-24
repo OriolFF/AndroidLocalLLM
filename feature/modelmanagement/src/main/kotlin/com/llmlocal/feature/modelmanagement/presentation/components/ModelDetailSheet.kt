@@ -122,9 +122,17 @@ fun ModelDetailSheet(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     DetailRow(labels.detailSizeLabel, formatBytes(descriptor.sizeBytes))
-                    DetailRow(labels.detailFamilyLabel, descriptor.family.label())
+                    DetailRow(labels.detailAcceleratorLabel, descriptor.accelerator.label())
                     DetailRow(labels.detailMinRamLabel, "${descriptor.minRamMb} ${labels.detailMinRamUnit}")
+                    descriptor.contextTokens?.let { DetailRow(labels.detailContextLabel, formatTokens(it)) }
+                    DetailRow(labels.detailFamilyLabel, descriptor.family.label())
+                    DetailRow(labels.detailAuthorLabel, descriptor.author)
+                    DetailRow(labels.detailLicenseLabel, descriptor.license)
+                    descriptor.baseModel?.let { DetailRow(labels.detailBaseModelLabel, it) }
+                    descriptor.sourceRepo?.let { DetailRow(labels.detailSourceLabel, it) }
+                    descriptor.updatedAt?.let { DetailRow(labels.detailUpdatedLabel, it.substringBefore('T')) }
                     DetailRow(labels.detailFileLabel, descriptor.filename)
+                    descriptor.sha256?.let { DetailRow(labels.detailChecksumLabel, it, monoLine = false) }
                     DetailRow(labels.detailUrlLabel, descriptor.url, monoLine = false)
                 }
             }

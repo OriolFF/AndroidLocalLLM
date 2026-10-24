@@ -10,6 +10,11 @@ import com.llmlocal.core.llm.download.ModelDownloadWorkerFactory
 import com.llmlocal.core.llm.engine.LiteRtLlmEngine
 import com.llmlocal.core.llm.engine.LlmEngine
 import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.llm.model.catalog.DataStoreDiscoveredModelsStore
+import com.llmlocal.core.llm.model.catalog.DiscoveredModelsStore
+import com.llmlocal.core.llm.model.catalog.ModelCatalogRepository
+import com.llmlocal.core.llm.model.discovery.HuggingFaceModelDiscovery
+import com.llmlocal.core.llm.model.discovery.ModelDiscoverySource
 import com.llmlocal.core.llm.readiness.ModelReadinessObserver
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
 import okhttp3.OkHttpClient
@@ -25,6 +30,9 @@ import org.koin.dsl.module
  *   - [LlmEngine] (real)  — bound to [LiteRtLlmEngine] under the
  *     qualifier [REAL_ENGINE_QUALIFIER]. The model's path is resolved
  *     lazily on each `initialize()` call via [LlmModelSelectionStore].
+ *   - [ModelCatalogRepository] — the live model list: curated built-ins +
+ *     models discovered on Hugging Face ([HuggingFaceModelDiscovery]),
+ *     cached in [DataStoreDiscoveredModelsStore].
  *   - [LlmModelManager]   — file / download / cache management.
  *   - [ModelDownloadProgressStore] — per-model download progress (DataStore).
  *   - [LlmModelSelectionStore]     — currently-selected model id (DataStore).
@@ -47,6 +55,19 @@ val llmModule: Module = module {
 
     single { ModelDownloadProgressStore(androidContext()) }
 
+    // Live catalog: built-ins + discovered models, cached across launches.
+    single<DiscoveredModelsStore> { DataStoreDiscoveredModelsStore(androidContext()) }
+    single<ModelDiscoverySource> { HuggingFaceModelDiscovery(httpClient = get(), dispatchers = get()) }
+    single {
+        ModelCatalogRepository(
+            builtIn = LlmModelCatalog.BUILT_IN,
+            discovery = get(),
+            store = get(),
+            dispatchers = get(),
+            isInstalled = get<LlmModelManager>()::isInstalled,
+        ).also { it.start() }
+    }
+
     // Selection store — a `single` so the in-memory snapshot is shared.
     // The `start()` collector is launched at Koin init via `init` so the
     // snapshot is populated before any consumer reads it.
@@ -58,6 +79,7 @@ val llmModule: Module = module {
         ModelDownloadWorkerFactory(
             manager = get(),
             progressStore = get(),
+            catalog = get(),
         )
     } bind WorkerFactory::class
 
@@ -71,7 +93,7 @@ val llmModule: Module = module {
             modelPathProvider = {
                 val selectionStore = get<LlmModelSelectionStore>()
                 val manager = get<LlmModelManager>()
-                val descriptor = LlmModelCatalog.findById(selectionStore.current())
+                val descriptor = get<ModelCatalogRepository>().findById(selectionStore.current())
                     ?: LlmModelCatalog.DEFAULT_MODEL
                 manager.targetFile(descriptor)
             },
@@ -90,6 +112,7 @@ val llmModule: Module = module {
             selectionStore = get(),
             progressStore = get(),
             manager = get(),
+            catalog = get(),
             engine = get(named(REAL_ENGINE_QUALIFIER)),
             dispatchers = get(),
         )

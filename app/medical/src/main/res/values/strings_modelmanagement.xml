@@ -35,4 +35,24 @@
     <string name="medical_modelmanagement_removed">%1$s removed</string>
     <string name="medical_modelmanagement_not_downloaded">%1$s is not downloaded yet.</string>
     <string name="medical_modelmanagement_unknown_model">Unknown model: %1$s</string>
+
+    <!-- Model specs (detail sheet) -->
+    <string name="medical_modelmanagement_detail_accelerator">Runs on</string>
+    <string name="medical_modelmanagement_detail_license">License</string>
+    <string name="medical_modelmanagement_detail_author">Author</string>
+    <string name="medical_modelmanagement_detail_base_model">Base model</string>
+    <string name="medical_modelmanagement_detail_source">Source</string>
+    <string name="medical_modelmanagement_detail_updated">Updated</string>
+    <string name="medical_modelmanagement_detail_checksum">SHA-256</string>
+    <string name="medical_modelmanagement_detail_context">Context window</string>
+
+    <!-- Discovery -->
+    <string name="medical_modelmanagement_discover_action">Check for new models</string>
+    <string name="medical_modelmanagement_discovering">Checking Hugging Face…</string>
+    <plurals name="medical_modelmanagement_discovery_found">
+        <item quantity="one">%1$d new model found</item>
+        <item quantity="other">%1$d new models found</item>
+    </plurals>
+    <string name="medical_modelmanagement_discovery_nothing_new">No new models</string>
+    <string name="medical_modelmanagement_discovery_failed">Couldn\'t check for new models. Check your connection and try again.</string>
 </resources>

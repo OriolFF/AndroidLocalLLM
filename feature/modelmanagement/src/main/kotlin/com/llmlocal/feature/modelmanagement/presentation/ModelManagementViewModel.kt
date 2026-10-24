@@ -3,9 +3,11 @@ package com.llmlocal.feature.modelmanagement.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llmlocal.core.common.coroutines.DispatcherProvider
+import com.llmlocal.feature.modelmanagement.domain.DiscoveryResult
 import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 import com.llmlocal.feature.modelmanagement.domain.ModelListing
 import com.llmlocal.feature.modelmanagement.domain.usecase.CancelDownloadUseCase
+import com.llmlocal.feature.modelmanagement.domain.usecase.DiscoverModelsUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.DownloadModelUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.FilterModelsUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.ObserveModelListingsUseCase
@@ -48,6 +50,10 @@ import kotlinx.coroutines.launch
  *
  * The view model does **not** itself run downloads — that work belongs to
  * `ModelDownloadWorker` so the OS can keep it alive across process death.
+ *
+ * On creation it runs a silent [DiscoverModelsUseCase] (skipped while the
+ * cache is fresh); [ModelManagementIntent.DiscoverModels] forces one and
+ * reports the result in a snackbar.
  */
 class ModelManagementViewModel(
     observeListings: ObserveModelListingsUseCase,
@@ -56,6 +62,7 @@ class ModelManagementViewModel(
     private val selectModel: SelectModelUseCase,
     private val removeModel: RemoveModelUseCase,
     private val filterModels: FilterModelsUseCase,
+    private val discoverModels: DiscoverModelsUseCase,
     private val dispatchers: DispatcherProvider,
     private val labels: ModelManagementLabels,
 ) : ViewModel() {
@@ -65,6 +72,7 @@ class ModelManagementViewModel(
         val filters: ModelFilters = ModelFilters.DEFAULT,
         val lastError: String? = null,
         val detailsForId: String? = null,
+        val discovering: Boolean = false,
     )
 
     private val local = MutableStateFlow(Local())
@@ -83,6 +91,10 @@ class ModelManagementViewModel(
     private val _effects = Channel<ModelManagementEffect>(Channel.BUFFERED)
     val effects: Flow<ModelManagementEffect> = _effects.receiveAsFlow()
 
+    init {
+        discover(force = false)
+    }
+
     /**
      * Single dispatch point for all user actions. The pattern keeps the
      * UI declarative: `viewModel.onIntent(ModelManagementIntent.X(...))`.
@@ -100,6 +112,7 @@ class ModelManagementViewModel(
             ModelManagementIntent.DismissError ->
                 local.update { it.copy(lastError = null) }
             ModelManagementIntent.Refresh -> refreshRequests.tryEmit(Unit)
+            ModelManagementIntent.DiscoverModels -> discover(force = true)
             is ModelManagementIntent.SetFilters ->
                 local.update { it.copy(filters = intent.filters) }
             ModelManagementIntent.ClearFilters ->
@@ -142,6 +155,30 @@ class ModelManagementViewModel(
         }
     }
 
+    /**
+     * Runs discovery once; a forced run reports its outcome, the silent one
+     * only reports new models. Ignored while another run is in flight.
+     */
+    private fun discover(force: Boolean) {
+        if (local.value.discovering) return
+        local.update { it.copy(discovering = true) }
+        viewModelScope.launch {
+            val result = try {
+                discoverModels(force)
+            } finally {
+                local.update { it.copy(discovering = false) }
+            }
+            val message = when (result) {
+                is DiscoveryResult.Updated ->
+                    if (result.newModels > 0) labels.discoveryFoundSnackbar(result.newModels)
+                    else if (force) labels.discoveryNothingNewSnackbar else null
+                DiscoveryResult.Skipped -> if (force) labels.discoveryNothingNewSnackbar else null
+                is DiscoveryResult.Failed -> if (force) labels.discoveryFailedSnackbar else null
+            }
+            if (message != null) _effects.send(ModelManagementEffect.ShowSnackbar(message))
+        }
+    }
+
     private fun buildState(listings: List<ModelListing>, ui: Local) = ModelManagementState(
         catalog = listings.map { it.descriptor },
         installedIds = listings.filter { it.installed }.map { it.id }.toSet(),
@@ -153,5 +190,6 @@ class ModelManagementViewModel(
         filteredCatalog = filterModels(listings, ui.filters).map { it.descriptor },
         lastError = ui.lastError,
         detailsForId = ui.detailsForId,
+        discovering = ui.discovering,
     )
 }

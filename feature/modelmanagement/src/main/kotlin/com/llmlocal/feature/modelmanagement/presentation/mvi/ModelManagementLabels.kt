@@ -64,6 +64,23 @@ data class ModelManagementLabels(
     val detailMinRamUnit: String,
     val detailFileLabel: String,
     val detailUrlLabel: String,
+    val detailAcceleratorLabel: String,
+    val detailLicenseLabel: String,
+    val detailAuthorLabel: String,
+    val detailBaseModelLabel: String,
+    val detailSourceLabel: String,
+    val detailUpdatedLabel: String,
+    val detailChecksumLabel: String,
+    val detailContextLabel: String,
+
+    // Discovery (more models from the remote source)
+    /** Header action that re-runs discovery. */
+    val discoverAction: String,
+    /** Shown in place of [discoverAction] while discovery runs. */
+    val discoveringLabel: String,
+    val discoveryFoundSnackbar: (newModels: Int) -> String,
+    val discoveryNothingNewSnackbar: String,
+    val discoveryFailedSnackbar: String,
 
     // Download progress
     val secondsLeftTemplate: (Int) -> String,

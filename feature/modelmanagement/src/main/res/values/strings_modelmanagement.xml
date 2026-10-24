@@ -23,6 +23,15 @@
     <string name="modelmanagement_quant_quantised">Quantised</string>
     <string name="modelmanagement_quant_full_precision">Full precision</string>
 
+    <!-- Accelerators -->
+    <string name="modelmanagement_accelerator_cpu">CPU</string>
+    <string name="modelmanagement_accelerator_gpu">GPU</string>
+    <string name="modelmanagement_accelerator_npu">NPU</string>
+    <string name="modelmanagement_spec_min_ram">%1$s RAM</string>
+    <string name="modelmanagement_spec_context">%1$s context</string>
+    <string name="modelmanagement_tokens_k">%1$dk</string>
+    <string name="modelmanagement_tokens">%1$d</string>
+
     <!-- Defaults used by previews (defaultModelManagementLabels) -->
     <string name="modelmanagement_default_screen_title">Available models</string>
     <string name="modelmanagement_default_count">%1$d of %2$d models · %3$d installed</string>
@@ -53,6 +62,22 @@
     <string name="modelmanagement_default_detail_min_ram_unit">MB</string>
     <string name="modelmanagement_default_detail_file">File</string>
     <string name="modelmanagement_default_detail_url">URL</string>
+    <string name="modelmanagement_default_detail_accelerator">Runs on</string>
+    <string name="modelmanagement_default_detail_license">License</string>
+    <string name="modelmanagement_default_detail_author">Author</string>
+    <string name="modelmanagement_default_detail_base_model">Base model</string>
+    <string name="modelmanagement_default_detail_source">Source</string>
+    <string name="modelmanagement_default_detail_updated">Updated</string>
+    <string name="modelmanagement_default_detail_checksum">SHA-256</string>
+    <string name="modelmanagement_default_detail_context">Context window</string>
+    <string name="modelmanagement_default_discover_action">Check for new models</string>
+    <string name="modelmanagement_default_discovering">Checking Hugging Face…</string>
+    <plurals name="modelmanagement_default_discovery_found">
+        <item quantity="one">%1$d new model found</item>
+        <item quantity="other">%1$d new models found</item>
+    </plurals>
+    <string name="modelmanagement_default_discovery_nothing_new">No new models</string>
+    <string name="modelmanagement_default_discovery_failed">Couldn\'t check for new models. Check your connection and try again.</string>
     <string name="modelmanagement_default_selected">%1$s selected</string>
     <string name="modelmanagement_default_removed">%1$s removed</string>
     <string name="modelmanagement_default_not_downloaded">%1$s is not downloaded yet.</string>

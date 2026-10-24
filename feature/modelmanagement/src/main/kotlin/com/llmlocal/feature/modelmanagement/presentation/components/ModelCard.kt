@@ -38,7 +38,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.llmlocal.feature.modelmanagement.R
 import com.llmlocal.core.designsystem.component.StatusDot
 import com.llmlocal.core.designsystem.component.StatusTone
 import com.llmlocal.core.model.LlmModelDescriptor
@@ -148,9 +150,17 @@ fun ModelCard(
                                 )
                             }
                         }
+                        // Specs the user picks by: size, accelerator, RAM, family, license.
                         Text(
-                            text = "${formatBytes(descriptor.sizeBytes)} · " +
-                                "${descriptor.family.label()} · ${descriptor.license}",
+                            text = listOfNotNull(
+                                formatBytes(descriptor.sizeBytes),
+                                descriptor.accelerator.label(),
+                                descriptor.minRamMb.takeIf { it > 0 }
+                                    ?.let { stringResource(R.string.modelmanagement_spec_min_ram, formatBytes(it * 1024L * 1024L)) },
+                                descriptor.contextTokens?.let { stringResource(R.string.modelmanagement_spec_context, formatTokens(it)) },
+                                descriptor.family.label(),
+                                descriptor.license,
+                            ).joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isActive) {
                                 scheme.onPrimaryContainer.copy(alpha = 0.78f)
@@ -168,12 +178,13 @@ fun ModelCard(
                     }
                 }
 
-                // Description preview
+                // Description: the full text, so the choice is informed
+                // without opening the sheet; discovered entries carry the
+                // source repo and base model here.
                 Text(
                     text = descriptor.description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant,
-                    maxLines = 3,
                 )
 
                 // Tag chips

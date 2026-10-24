@@ -3,6 +3,7 @@ package com.llmlocal.feature.modelmanagement.presentation
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.llmlocal.feature.modelmanagement.FakeCatalog
+import com.llmlocal.feature.modelmanagement.FakeDiscovery
 import com.llmlocal.feature.modelmanagement.FakeInstalled
 import com.llmlocal.feature.modelmanagement.FakeProgress
 import com.llmlocal.feature.modelmanagement.FakeScheduler
@@ -12,10 +13,12 @@ import com.llmlocal.feature.modelmanagement.MainDispatcherRule
 import com.llmlocal.feature.modelmanagement.TestDispatchers
 import com.llmlocal.feature.modelmanagement.TestModelManagementLabels
 import com.llmlocal.feature.modelmanagement.descriptor
+import com.llmlocal.feature.modelmanagement.domain.DiscoveryResult
 import com.llmlocal.feature.modelmanagement.domain.DownloadWorkStatus
 import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 import com.llmlocal.feature.modelmanagement.domain.StatusFilter
 import com.llmlocal.feature.modelmanagement.domain.usecase.CancelDownloadUseCase
+import com.llmlocal.feature.modelmanagement.domain.usecase.DiscoverModelsUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.DownloadModelUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.FilterModelsUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.ObserveModelListingsUseCase
@@ -42,6 +45,7 @@ class ModelManagementViewModelTest {
     private val progressSource = FakeProgress()
     private val scheduler = FakeScheduler()
     private val work = FakeWork()
+    private val discovery = FakeDiscovery()
 
     private fun viewModel() = ModelManagementViewModel(
         observeListings = ObserveModelListingsUseCase(catalog, installed, selection, progressSource, work),
@@ -50,6 +54,7 @@ class ModelManagementViewModelTest {
         selectModel = SelectModelUseCase(catalog, installed, selection),
         removeModel = RemoveModelUseCase(catalog, installed),
         filterModels = FilterModelsUseCase(),
+        discoverModels = DiscoverModelsUseCase(discovery),
         dispatchers = TestDispatchers(mainDispatcherRule.dispatcher),
         labels = TestModelManagementLabels,
     )
@@ -143,5 +148,49 @@ class ModelManagementViewModelTest {
         work.flow.value = listOf(DownloadWorkStatus.SUCCEEDED)
         advanceUntilIdle()
         assertThat(vm.state.value.installedIds).containsExactly("a", "b")
+    }
+
+    @Test
+    fun `a silent discovery runs on creation and only reports new models`() = runTest {
+        discovery.result = DiscoveryResult.Updated(newModels = 0)
+        val vm = viewModel()
+        vm.effects.test {
+            advanceUntilIdle()
+            assertThat(discovery.calls).containsExactly(false)
+            expectNoEvents()
+        }
+        assertThat(vm.state.value.discovering).isFalse()
+    }
+
+    @Test
+    fun `discovered models appear in the listing`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        catalog.flow.value = catalog.all() + descriptor("c")
+        advanceUntilIdle()
+        assertThat(vm.state.value.catalog.map { it.id }).containsExactly("a", "b", "c").inOrder()
+    }
+
+    @Test
+    fun `forced discovery reports found, nothing new and failure`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.effects.test {
+            discovery.result = DiscoveryResult.Updated(newModels = 2)
+            vm.onIntent(ModelManagementIntent.DiscoverModels)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ModelManagementEffect.ShowSnackbar("2 new models"))
+
+            discovery.result = DiscoveryResult.Skipped
+            vm.onIntent(ModelManagementIntent.DiscoverModels)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ModelManagementEffect.ShowSnackbar("No new models"))
+
+            discovery.result = DiscoveryResult.Failed("offline")
+            vm.onIntent(ModelManagementIntent.DiscoverModels)
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ModelManagementEffect.ShowSnackbar("Discovery failed"))
+        }
+        assertThat(discovery.calls).containsExactly(false, true, true, true).inOrder()
     }
 }

@@ -8,8 +8,9 @@ import com.llmlocal.feature.modelmanagement.domain.ModelFilters
 /**
  * Aggregated UI state for the model management screen.
  *
- * @property catalog All models known to the app (source of truth =
- *   `LlmModelCatalog.ALL`).
+ * @property catalog All models known to the app: the built-ins plus the
+ *   ones discovered on Hugging Face (`ModelCatalogRepository.models`).
+ * @property discovering `true` while a discovery request is in flight.
  * @property installedIds Set of catalog ids whose files are on disk.
  * @property selectedId Currently-active model id, or `null` if nothing is
  *   selected.
@@ -39,4 +40,5 @@ data class ModelManagementState(
     val filteredCatalog: List<LlmModelDescriptor> = emptyList(),
     val lastError: String? = null,
     val detailsForId: String? = null,
+    val discovering: Boolean = false,
 )

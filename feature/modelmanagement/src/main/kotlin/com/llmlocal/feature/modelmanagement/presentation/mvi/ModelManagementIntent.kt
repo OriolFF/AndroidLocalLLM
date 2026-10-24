@@ -35,6 +35,9 @@ sealed interface ModelManagementIntent {
     /** Re-scans disk for installed models (e.g. after a manual refresh). */
     data object Refresh : ModelManagementIntent
 
+    /** "Check for new models": re-run discovery even if the cache is fresh. */
+    data object DiscoverModels : ModelManagementIntent
+
     /**
      * Replace the active filter set. The view model recomputes
      * [ModelManagementState.filteredCatalog] from `catalog` +

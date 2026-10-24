@@ -7,13 +7,20 @@ package com.llmlocal.core.model
 enum class ModelFamily { GENERAL, CHAT, INSTRUCT, CODE, MULTIMODAL }
 
 /**
+ * Which accelerator a LiteRT-LM bundle was compiled for. The engine's
+ * backend is chosen per build type (`debug` → CPU, `release` → GPU); a
+ * bundle built for another accelerator fails at `Engine.initialize()`.
+ */
+enum class ModelAccelerator { CPU, GPU, NPU }
+
+/**
  * Describes a downloadable on-device LLM model.
  *
- * The catalog (see `LlmModelCatalog`) is the single source of truth for
- * "which models does this app know about?" — every model in
- * `LlmModelCatalog.ALL` must be present here. The descriptor is also the
- * key that the [LlmModelManager][com.llmlocal.core.llm.download.LlmModelManager]
- * uses to download / locate / remove files on disk.
+ * Descriptors come from two places: the curated built-in list
+ * (`LlmModelCatalog.BUILT_IN`) and the models discovered on Hugging Face
+ * (`ModelCatalogRepository`). The descriptor is also the key that the
+ * [LlmModelManager][com.llmlocal.core.llm.download.LlmModelManager] uses
+ * to download / locate / remove files on disk.
  *
  * @property id Stable identifier — primary key for selection, downloads,
  *   installed-set membership. Don't reuse an `id` across different files.
@@ -32,6 +39,14 @@ enum class ModelFamily { GENERAL, CHAT, INSTRUCT, CODE, MULTIMODAL }
  * @property minRamMb Hint for the UI's "won't run on this device" warning
  *   (informational only — not enforced).
  * @property family Coarse grouping; drives filter chips in the catalog list.
+ * @property accelerator Hardware the bundle targets; see [ModelAccelerator].
+ * @property sourceRepo Hugging Face repo the file was discovered in
+ *   (`owner/name`), or `null` for a curated entry.
+ * @property baseModel Upstream checkpoint the bundle was converted from
+ *   (`google/gemma-4-E2B-it`), when known.
+ * @property updatedAt ISO-8601 timestamp of the source's last change, when known.
+ * @property contextTokens Context window (prompt + output tokens) the bundle
+ *   was built with, when the source states it.
  */
 data class LlmModelDescriptor(
     val id: String,
@@ -46,4 +61,9 @@ data class LlmModelDescriptor(
     val author: String = "Unknown",
     val minRamMb: Int = 0,
     val family: ModelFamily = ModelFamily.GENERAL,
+    val accelerator: ModelAccelerator = ModelAccelerator.CPU,
+    val sourceRepo: String? = null,
+    val baseModel: String? = null,
+    val updatedAt: String? = null,
+    val contextTokens: Int? = null,
 )

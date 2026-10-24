@@ -64,11 +64,11 @@ class LlmModelManager(
         }
 
     /**
-     * Returns the set of catalog ids whose files are present on disk. A
-     * descriptor whose file exists but is not in [LlmModelCatalog.ALL] is
-     * ignored (the model has been removed from the catalog).
+     * Returns the ids among [known] whose files are present on disk. A file
+     * that no descriptor in [known] claims is ignored (the model has been
+     * removed from the catalog). Callers pass the live catalog list.
      */
-    suspend fun installedModelIds(): Set<String> = withContext(dispatchers.io) {
+    suspend fun installedModelIds(known: Collection<LlmModelDescriptor>): Set<String> = withContext(dispatchers.io) {
         val dir = modelDirectory()
         if (!dir.exists()) return@withContext emptySet()
         val onDisk = dir.listFiles()
@@ -76,7 +76,7 @@ class LlmModelManager(
             ?.map { it.name }
             ?.toSet()
             .orEmpty()
-        com.llmlocal.core.llm.model.LlmModelCatalog.ALL
+        known
             .filter { it.filename in onDisk }
             .map { it.id }
             .toSet()

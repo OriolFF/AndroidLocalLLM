@@ -79,6 +79,7 @@ val recipesModule: Module = module {
     single<LibraryModelStatusSource> {
         ReadinessLibraryModelStatusSource(
             observer = get(),
+            catalog = get(),
             scope = CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default),
         )
     }

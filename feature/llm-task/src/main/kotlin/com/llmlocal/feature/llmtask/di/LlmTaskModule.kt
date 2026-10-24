@@ -33,7 +33,7 @@ import org.koin.dsl.module
  */
 val llmTaskModule: Module = module {
     factory<ModelReadinessSource> { ModelReadinessSourceImpl(observer = get()) }
-    factory<SelectedModelSource> { SelectedModelSourceImpl(store = get()) }
+    factory<SelectedModelSource> { SelectedModelSourceImpl(store = get(), catalog = get()) }
     factory<LlmGenerationSource> {
         LlmGenerationSourceImpl(engine = get(named(REAL_ENGINE_QUALIFIER)), generate = get())
     }

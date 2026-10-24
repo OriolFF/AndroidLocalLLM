@@ -21,9 +21,10 @@ import kotlinx.coroutines.flow.onStart
  * status into one stream of [ModelListing]s.
  *
  * The installed set is re-scanned on start, whenever a download job
- * reaches `SUCCEEDED`, and whenever [refresh] emits (manual refresh,
- * after a removal). The first emission shows the catalog with nothing
- * installed so the list renders before the disk scan finishes.
+ * reaches `SUCCEEDED`, whenever the catalog changes (a discovery may add
+ * models whose files are already on disk) and whenever [refresh] emits
+ * (manual refresh, after a removal). The first emission shows the catalog
+ * with nothing installed so the list renders before the disk scan finishes.
  */
 class ObserveModelListingsUseCase(
     private val catalog: ModelCatalogSource,
@@ -37,13 +38,14 @@ class ObserveModelListingsUseCase(
         val succeeded = work.observe()
             .map { statuses -> DownloadWorkStatus.SUCCEEDED in statuses }
             .map { }
-        val installedIds = merge(succeeded, refresh)
+        val catalogChanged = catalog.models.map { }
+        val installedIds = merge(succeeded, refresh, catalogChanged)
             .onStart { emit(Unit) }
             .mapLatest { installed.installedIds() }
             .onStart { emit(emptySet()) }
 
-        return combine(installedIds, selection.selectedId, progress.progress) { ids, selectedId, snapshots ->
-            catalog.all().map { descriptor ->
+        return combine(catalog.models, installedIds, selection.selectedId, progress.progress) { models, ids, selectedId, snapshots ->
+            models.map { descriptor ->
                 ModelListing(
                     descriptor = descriptor,
                     installed = descriptor.id in ids,

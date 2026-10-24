@@ -11,8 +11,10 @@ import com.llmlocal.feature.modelmanagement.domain.DownloadScheduler
 import com.llmlocal.feature.modelmanagement.domain.DownloadWorkSource
 import com.llmlocal.feature.modelmanagement.domain.InstalledModelsSource
 import com.llmlocal.feature.modelmanagement.domain.ModelCatalogSource
+import com.llmlocal.feature.modelmanagement.domain.ModelDiscoverySource
 import com.llmlocal.feature.modelmanagement.domain.ModelSelectionSource
 import com.llmlocal.feature.modelmanagement.domain.usecase.CancelDownloadUseCase
+import com.llmlocal.feature.modelmanagement.domain.usecase.DiscoverModelsUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.DownloadModelUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.FilterModelsUseCase
 import com.llmlocal.feature.modelmanagement.domain.usecase.ObserveModelListingsUseCase
@@ -23,6 +25,7 @@ import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementLabe
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.binds
 import org.koin.dsl.module
 
 /**
@@ -38,7 +41,7 @@ import org.koin.dsl.module
  * can serve any app.
  */
 val modelManagementModule: Module = module {
-    single<ModelCatalogSource> { LlmModelCatalogSource() }
+    single { LlmModelCatalogSource(repository = get()) } binds arrayOf(ModelCatalogSource::class, ModelDiscoverySource::class)
     single<InstalledModelsSource> { LlmModelInstalledSource(manager = get(), catalog = get()) }
     single<ModelSelectionSource> { DataStoreModelSelectionSource(store = get()) }
     single<DownloadProgressSource> { StoreDownloadProgressSource(store = get()) }
@@ -59,6 +62,7 @@ val modelManagementModule: Module = module {
     factory { SelectModelUseCase(catalog = get(), installed = get(), selection = get()) }
     factory { RemoveModelUseCase(catalog = get(), installed = get()) }
     factory { FilterModelsUseCase() }
+    factory { DiscoverModelsUseCase(source = get()) }
 
     viewModel { params ->
         ModelManagementViewModel(
@@ -68,6 +72,7 @@ val modelManagementModule: Module = module {
             selectModel = get(),
             removeModel = get(),
             filterModels = get(),
+            discoverModels = get(),
             dispatchers = get(),
             labels = params.get<ModelManagementLabels>(),
         )

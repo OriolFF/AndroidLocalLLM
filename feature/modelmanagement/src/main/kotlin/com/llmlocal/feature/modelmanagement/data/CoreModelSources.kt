@@ -4,23 +4,37 @@ import com.llmlocal.core.llm.download.DownloadState
 import com.llmlocal.core.llm.download.LlmModelManager
 import com.llmlocal.core.llm.download.ModelDownloadProgressStore
 import com.llmlocal.core.llm.download.PerModelProgress
-import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.common.result.Outcome
+import com.llmlocal.core.llm.model.catalog.ModelCatalogRepository
 import com.llmlocal.core.llm.selection.LlmModelSelectionStore
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgressSource
+import com.llmlocal.feature.modelmanagement.domain.DiscoveryResult
 import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
 import com.llmlocal.feature.modelmanagement.domain.InstalledModelsSource
 import com.llmlocal.feature.modelmanagement.domain.ModelCatalogSource
+import com.llmlocal.feature.modelmanagement.domain.ModelDiscoverySource
 import com.llmlocal.feature.modelmanagement.domain.ModelSelectionSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/** [ModelCatalogSource] over the shared [LlmModelCatalog]. */
-class LlmModelCatalogSource : ModelCatalogSource {
-    override fun all(): List<LlmModelDescriptor> = LlmModelCatalog.ALL
+/** [ModelCatalogSource] + [ModelDiscoverySource] over the shared [ModelCatalogRepository]. */
+class LlmModelCatalogSource(
+    private val repository: ModelCatalogRepository,
+) : ModelCatalogSource, ModelDiscoverySource {
+    override val models: Flow<List<LlmModelDescriptor>> = repository.models
 
-    override fun find(id: String): LlmModelDescriptor? = LlmModelCatalog.findById(id)
+    override fun all(): List<LlmModelDescriptor> = repository.current()
+
+    override fun find(id: String): LlmModelDescriptor? = repository.findById(id)
+
+    override suspend fun discover(force: Boolean): DiscoveryResult =
+        when (val outcome = repository.refresh(force)) {
+            is Outcome.Success ->
+                if (outcome.value.skipped) DiscoveryResult.Skipped else DiscoveryResult.Updated(outcome.value.newModels)
+            is Outcome.Failure -> DiscoveryResult.Failed(outcome.error.message)
+        }
 }
 
 /** [InstalledModelsSource] over [LlmModelManager] (files in `filesDir/llm/`). */
@@ -28,7 +42,7 @@ class LlmModelInstalledSource(
     private val manager: LlmModelManager,
     private val catalog: ModelCatalogSource,
 ) : InstalledModelsSource {
-    override suspend fun installedIds(): Set<String> = manager.installedModelIds()
+    override suspend fun installedIds(): Set<String> = manager.installedModelIds(catalog.all())
 
     override suspend fun remove(id: String): Boolean {
         val descriptor = catalog.find(id) ?: return false

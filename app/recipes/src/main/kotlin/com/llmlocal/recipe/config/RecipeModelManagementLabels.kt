@@ -53,5 +53,18 @@ fun rememberRecipeModelManagementLabels(): ModelManagementLabels {
         modelRemovedSnackbar = { resources.getString(R.string.recipes_modelmanagement_removed, it) },
         modelNotDownloadedSnackbar = { resources.getString(R.string.recipes_modelmanagement_not_downloaded, it) },
         unknownModelError = { resources.getString(R.string.recipes_modelmanagement_unknown_model, it) },
+        detailAcceleratorLabel = stringResource(R.string.recipes_modelmanagement_detail_accelerator),
+        detailLicenseLabel = stringResource(R.string.recipes_modelmanagement_detail_license),
+        detailAuthorLabel = stringResource(R.string.recipes_modelmanagement_detail_author),
+        detailBaseModelLabel = stringResource(R.string.recipes_modelmanagement_detail_base_model),
+        detailSourceLabel = stringResource(R.string.recipes_modelmanagement_detail_source),
+        detailUpdatedLabel = stringResource(R.string.recipes_modelmanagement_detail_updated),
+        detailChecksumLabel = stringResource(R.string.recipes_modelmanagement_detail_checksum),
+        detailContextLabel = stringResource(R.string.recipes_modelmanagement_detail_context),
+        discoverAction = stringResource(R.string.recipes_modelmanagement_discover_action),
+        discoveringLabel = stringResource(R.string.recipes_modelmanagement_discovering),
+        discoveryFoundSnackbar = { n -> resources.getQuantityString(R.plurals.recipes_modelmanagement_discovery_found, n, n) },
+        discoveryNothingNewSnackbar = stringResource(R.string.recipes_modelmanagement_discovery_nothing_new),
+        discoveryFailedSnackbar = stringResource(R.string.recipes_modelmanagement_discovery_failed),
     )
 }
