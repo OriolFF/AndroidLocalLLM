@@ -81,4 +81,32 @@ class FakeLlmEngineTest {
         assertThat(engine.initializeCalls).isEqualTo(2)
         assertThat(engine.cancelCalls).isEqualTo(1)
     }
+
+    @Test
+    fun `text-only fake rejects images with UnsupportedImagesException`() = runTest {
+        val engine = FakeLlmEngine.streaming("x")
+        val request = LlmRequest("p", images = listOf(LlmImage(byteArrayOf(1))))
+
+        assertThat(engine.capabilities().vision).isFalse()
+        engine.generateStream(request).test {
+            val error = awaitItem() as LlmToken.Error
+            assertThat(error.error).isInstanceOf(UnsupportedImagesException::class.java)
+            awaitComplete()
+        }
+        assertThat(engine.lastRequest).isEqualTo(request)
+    }
+
+    @Test
+    fun `vision fake accepts images and reports capabilities`() = runTest {
+        val engine = FakeLlmEngine(vision = true) { FakeLlmEngine.chunks("ok") }
+        val images = listOf(LlmImage(byteArrayOf(1)), LlmImage(byteArrayOf(2)))
+
+        assertThat(engine.capabilities().vision).isTrue()
+        engine.generateStream(LlmRequest("p", images = images)).test {
+            assertThat(awaitItem()).isEqualTo(LlmToken.Partial("ok"))
+            assertThat(awaitItem()).isEqualTo(LlmToken.Done)
+            awaitComplete()
+        }
+        assertThat(engine.lastRequest!!.images).containsExactlyElementsIn(images).inOrder()
+    }
 }

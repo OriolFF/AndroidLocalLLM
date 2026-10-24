@@ -85,4 +85,23 @@ class LlmEngineDefaultsTest {
             ),
         )
     }
+
+    @Test
+    fun `capabilities default to text only`() {
+        assertThat(RecordingEngine().capabilities()).isEqualTo(LlmCapabilities())
+        assertThat(LlmCapabilities().vision).isFalse()
+        assertThat(LlmCapabilities().maxImages).isEqualTo(0)
+    }
+
+    @Test
+    fun `LlmRequest carries no images or budget by default and keeps image order`() {
+        assertThat(LlmRequest("p").images).isEmpty()
+        assertThat(LlmRequest("p").visualTokenBudget).isNull()
+
+        val first = LlmImage(byteArrayOf(1))
+        val second = LlmImage(byteArrayOf(2))
+        val request = LlmRequest("p", images = listOf(first, second), visualTokenBudget = 280)
+        assertThat(request.images).containsExactly(first, second).inOrder()
+        assertThat(request.visualTokenBudget).isEqualTo(280)
+    }
 }
