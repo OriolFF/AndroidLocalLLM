@@ -4,9 +4,9 @@ plugins {
 }
 
 // Input sources: the "From images" row, ImagePolicy.enabled and the image/* share target.
-// Stays false until the lead flips it at merge; the single value feeds BuildConfig.IMAGES_SOURCE
+// Images input source (gate: docs/research/screenshot-extraction-eval.md). The single value feeds BuildConfig.IMAGES_SOURCE
 // and the ${imagesShareTarget} placeholder (the enabled flag of the image share alias).
-val imagesSource = false
+val imagesSource = true
 
 android {
     namespace = "com.llmlocal.recipekeeper"

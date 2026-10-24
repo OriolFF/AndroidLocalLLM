@@ -217,6 +217,11 @@ fun RecipeKeeperNavHost() {
                 },
                 onCancelled = { navController.popBackStack() },
                 onNavigateToModelManagement = { navController.navigateToModelManagement() },
+                onPickDifferent = if (candidateId == IMAGES_CANDIDATE_ID) {
+                    { navController.navigateToPickDifferentImages() }
+                } else {
+                    null
+                },
                 // Without the shared host "Clip cancelled" / "Saved to your
                 // recipes" were silently dropped (WS10 §Scenario 5).
                 snackbarHostState = snackbarHostState,
@@ -364,9 +369,8 @@ private fun NavHostController.navigateToImagesClip() {
 
 /**
  * "Pick different pictures" on the extraction screen: back to the prepare/review screen, which reads the
- * prepared images from the session. Wire it to the extraction route's `onPickDifferent` when I2 adds it.
+ * prepared images from the session.
  */
-@Suppress("unused")
 private fun NavHostController.navigateToPickDifferentImages() {
     navigate(Route.ClipImages.pattern) {
         launchSingleTop = true
