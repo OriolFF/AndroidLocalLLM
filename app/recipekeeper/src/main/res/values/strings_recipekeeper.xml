@@ -172,7 +172,7 @@
     <string name="recipekeeper_images_needs_model">Choose a model first</string>
     <string name="recipekeeper_images_model_cant_read">Your current model can\'t read images</string>
     <string name="recipekeeper_images_unavailable_title">This model can\'t read images</string>
-    <string name="recipekeeper_images_unavailable_message">%1$s only reads text. Pick a model marked \"reads images\" in Models to clip from screenshots and photos.</string>
+    <string name="recipekeeper_images_unavailable_message">%1$s only reads text. Pick a model marked \"Reads images\" in Models to clip from screenshots and photos.</string>
     <string name="recipekeeper_from_your_photos">From your photos</string>
     <string name="recipekeeper_from_your_photos_check_amounts">From your photos · Check the amounts</string>
     <string name="recipekeeper_tile_description_images">%1$s, from your photos</string>

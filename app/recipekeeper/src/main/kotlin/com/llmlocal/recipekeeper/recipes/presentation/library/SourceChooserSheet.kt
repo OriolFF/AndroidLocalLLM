@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.EditNote
@@ -75,7 +77,8 @@ fun SourceChooserContent(
     onIntent: (LibraryIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.padding(bottom = 16.dp)) {
+    // Scrollable: in a 300 dp-tall window (phone landscape) only two rows fit (I4 QA P2-3).
+    Column(modifier = modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
         Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)) {
             Text(
                 text = labels.sourceChooserTitle,

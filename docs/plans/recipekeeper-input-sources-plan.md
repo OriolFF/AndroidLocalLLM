@@ -27,6 +27,10 @@ Rules every stream honours (CLAUDE.md Architecture rules): **0** no user-visible
 
 Everything else in the plan stands. The eval outputs (`tools/eval/screenshots/outputs/*.txt`) are the goldens for `EvalImagesParserTest` (I2 copies them).
 
+## Post-QA status (lead, 2026-10-24)
+
+I0–I4 are merged on `recipekeeper/dev` (`IMAGES_SOURCE = true`). `docs/plans/briefs/i4-qa-report.md`: no P1; the three P2s are fixed and re-verified on `emulator-5556` by the lead (share receiver no longer dies on an ungranted URI — the share is dropped with a log line; the extraction screen now hosts the shared snackbar; the source chooser scrolls in a 300 dp-tall window). Also fixed: single-`Uri` `SEND_MULTIPLE` shares (P3-7) and the dialog's "Reads images" wording (P3-5). **Decided**: the detail/hero line keeps "From your photos · Check the amounts" (P3-4 — the gate decision, quantities are the weak spot); the tile keeps the short form. **Open P3 backlog**: failure screen still shows "Saving pictures" done + the keep strip (P3-2); empty review visible behind the Photo Picker (P3-3); time-hint row partly under the bottom bar before scrolling and left-aligned grid on wide windows (P3-1); own "Share recipe" lists the app as a target (P3-6); picker oddity at 1280x800 @ 240 dpi (P3-8); low-text picture warning (P3-9, Phase 2). Not verified on device: empty-library "More ways to add…", screen-reader custom actions, Chrome URL share, web "Reading flips at first token" on a model-path page.
+
 ---
 
 ## 0. What we are building

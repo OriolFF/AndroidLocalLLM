@@ -57,21 +57,27 @@ object ShareIntentParser {
     fun firstLink(text: String): String? =
         link.find(text)?.value?.trimEnd { it in TRAILING_PUNCTUATION }?.takeIf { it.length > "https://".length }
 
+    /**
+     * `EXTRA_STREAM` as URIs. `SEND_MULTIPLE` normally carries an `ArrayList`,
+     * but some senders put a single `Uri` under it (I4 QA P3-7): the list read
+     * then returns null, so fall back to the single-value read instead of
+     * dropping the share.
+     */
     @Suppress("DEPRECATION")
-    private fun streamUris(intent: Intent): List<Uri> =
+    internal fun streamUris(intent: Intent): List<Uri> {
         if (intent.action == Intent.ACTION_SEND_MULTIPLE) {
             val list = if (Build.VERSION.SDK_INT >= 33) {
                 intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
                 intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
             }
-            list.orEmpty()
-        } else {
-            val uri = if (Build.VERSION.SDK_INT >= 33) {
-                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-            } else {
-                intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-            }
-            listOfNotNull(uri)
+            if (list != null) return list
         }
+        val uri = if (Build.VERSION.SDK_INT >= 33) {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        }
+        return listOfNotNull(uri)
+    }
 }

@@ -43,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -114,6 +116,7 @@ fun WebClipperExtractionScreen(
     onViewSaved: () -> Unit,
     modifier: Modifier = Modifier,
     onPickDifferent: (() -> Unit)? = null,
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     val activePhase = state.phases.entries.firstOrNull { it.value == PhaseStatus.Active }?.key
     val announcement = when {
@@ -133,6 +136,9 @@ fun WebClipperExtractionScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets.safeDrawing,
+            // The shared host must render here too, or "Finish the current clip
+            // first" (a share during an extraction) is never seen (I4 QA P2-2).
+            snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
             topBar = {
                 TopAppBar(
                     title = { Text(labels.extractionTitle) },

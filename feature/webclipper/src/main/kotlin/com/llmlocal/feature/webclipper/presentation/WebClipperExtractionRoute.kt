@@ -102,5 +102,6 @@ fun <T : Any> WebClipperExtractionRoute(
         onViewSaved = { state.savedId?.let(onSaved) },
         modifier = modifier,
         onPickDifferent = onPickDifferent,
+        snackbarHostState = snackbarHostState,
     )
 }

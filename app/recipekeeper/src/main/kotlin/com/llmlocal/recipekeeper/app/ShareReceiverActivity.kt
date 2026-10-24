@@ -4,8 +4,8 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
+import android.util.Log
 
 /**
  * Target of the system share sheet (pictures and links). Has no UI: it checks
@@ -18,17 +18,26 @@ class ShareReceiverActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val parsed = ShareIntentParser.parse(intent)
-        if (parsed != null) startActivity(forwardIntent(intent, this))
-        finish()
+        try {
+            if (parsed != null) startActivity(forwardIntent(intent, this))
+        } catch (e: SecurityException) {
+            // The sender attached a URI it never granted us (I4 QA P2-1): forwarding it
+            // with a read grant throws. Dropping the share beats taking the process down
+            // (an in-flight extraction would die with it).
+            Log.w(TAG, "Share dropped: sender did not grant its URIs", e)
+        } finally {
+            finish()
+        }
     }
 
     private companion object {
+        const val TAG = "ShareReceiver"
+
         /**
          * A copy of [source] aimed at [MainActivity]. Some senders put the
          * pictures only in `EXTRA_STREAM`; grants travel with `ClipData`, so the
          * stream URIs are re-attached to it.
          */
-        @Suppress("DEPRECATION")
         fun forwardIntent(source: Intent, activity: Activity): Intent {
             val forward = Intent(source).setClass(activity, MainActivity::class.java)
             forward.addFlags(
@@ -36,21 +45,7 @@ class ShareReceiverActivity : Activity() {
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
             if (source.clipData == null) {
-                val uris: List<Uri> = if (source.action == Intent.ACTION_SEND_MULTIPLE) {
-                    (if (Build.VERSION.SDK_INT >= 33) {
-                        source.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                    } else {
-                        source.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
-                    }).orEmpty()
-                } else {
-                    listOfNotNull(
-                        if (Build.VERSION.SDK_INT >= 33) {
-                            source.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                        } else {
-                            source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-                        },
-                    )
-                }
+                val uris: List<Uri> = ShareIntentParser.streamUris(source)
                 if (uris.isNotEmpty()) {
                     forward.clipData = ClipData.newRawUri(null, uris.first()).also { clip ->
                         uris.drop(1).forEach { clip.addItem(ClipData.Item(it)) }
