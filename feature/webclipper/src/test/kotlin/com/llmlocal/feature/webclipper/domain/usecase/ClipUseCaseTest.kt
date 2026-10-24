@@ -9,6 +9,9 @@ import com.llmlocal.feature.webclipper.data.CacheDirTempPictureStore
 import com.llmlocal.feature.webclipper.data.EngineLlmGenerationSource
 import com.llmlocal.feature.webclipper.data.InMemoryClipSession
 import com.llmlocal.feature.webclipper.domain.CandidateSource
+import com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.fakes.preparedImage
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
 import com.llmlocal.feature.webclipper.domain.ClipProgress
 import com.llmlocal.feature.webclipper.domain.ClipRequest
@@ -303,7 +306,8 @@ class ClipUseCaseTest {
         }
 
         advanceTimeBy(200)
-        assertThat(seen.phase(Phase.Extracting)).isEqualTo(PhaseStatus.Active)
+        // Prefill is still running: Reading stays Active until the first delta (V11).
+        assertThat(seen.phase(Phase.Reading)).isEqualTo(PhaseStatus.Active)
         assertThat(seen.phase(Phase.Pictures)).isEqualTo(PhaseStatus.Warning)
         assertThat(seen.filterIsInstance<ClipProgress.Saved>()).isEmpty()
 
@@ -394,5 +398,218 @@ class ClipUseCaseTest {
         val engine = FakeLlmEngine { listOf(LlmToken.Partial("Title: x")) } // no Done
         val events = run(candidate("a"), engine).events()
         assertThat(events.last()).isEqualTo(ClipProgress.Failed(ExtractionError.ParseFailed("Title: x")))
+    }
+
+    @Test
+    fun `web - Reading stays Active until the first streamed delta, then Extracting takes over`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        val events = run(candidate("a"), FakeLlmEngine.streaming(goodOutput, chunkSize = 5)).events()
+
+        val firstDelta = events.indexOfFirst { it is ClipProgress.Streamed }
+        val readingActive = events.indexOf(ClipProgress.PhaseChanged(Phase.Reading, PhaseStatus.Active))
+        val readingDone = events.indexOf(ClipProgress.PhaseChanged(Phase.Reading, PhaseStatus.Done))
+        val extractingActive = events.indexOf(ClipProgress.PhaseChanged(Phase.Extracting, PhaseStatus.Active))
+        assertThat(readingActive).isAtLeast(0)
+        assertThat(readingDone).isGreaterThan(readingActive)
+        assertThat(readingDone).isLessThan(firstDelta)
+        assertThat(extractingActive).isGreaterThan(readingDone)
+        assertThat(extractingActive).isLessThan(firstDelta)
+    }
+
+    @Test
+    fun `a model run that streams nothing still settles Reading and fails in Extracting`() = runTest {
+        session.set(snapshot(), listOf(candidate("a")))
+        val events = run(candidate("a"), FakeLlmEngine { listOf(LlmToken.Done) }).events()
+
+        assertThat(events.last()).isEqualTo(ClipProgress.Failed(ExtractionError.ParseFailed("")))
+        assertThat(events.phase(Phase.Reading)).isEqualTo(PhaseStatus.Done)
+        assertThat(events.phase(Phase.Extracting)).isEqualTo(PhaseStatus.Active)
+    }
+
+    // -- images ----------------------------------------------------------------
+
+    private fun TestScope.runImages(
+        images: List<com.llmlocal.feature.webclipper.domain.input.ClipImage>,
+        engine: FakeLlmEngine,
+        config: FakeWebClipConfig = this@ClipUseCaseTest.config,
+        downloader: FakePictureDownloader = FakePictureDownloader(),
+        isPictureKept: (String) -> Boolean = { true },
+    ): kotlinx.coroutines.flow.Flow<ClipProgress> {
+        val input = ClipInput.Images(images)
+        val candidate = config.candidatesFor(input, "Clip from images").single()
+        session.set(input, listOf(candidate))
+        @Suppress("UNCHECKED_CAST")
+        return clipUseCase(engine, downloader)(
+            config as WebClipConfig<Any>,
+            sink as ClipSink<Any>,
+            ClipRequest(candidate, input, null, isPictureKept),
+        )
+    }
+
+    private fun images(n: Int) = List(n) { preparedImage(tempDir, it) }
+
+    @Test
+    fun `images - the model gets the pictures in order before the prompt, at the policy budget`() = runTest {
+        val pictures = images(3)
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val downloader = FakePictureDownloader()
+
+        val events = runImages(pictures, engine, downloader = downloader).events()
+
+        val request = engine.requests.single()
+        assertThat(request.images.map { it.bytes.first().toInt() }).containsExactly(0, 1, 2).inOrder()
+        assertThat(request.images.first().mimeType).isEqualTo("image/jpeg")
+        assertThat(request.images.first().width).isEqualTo(100)
+        assertThat(request.visualTokenBudget).isEqualTo(280)
+        assertThat(request.prompt).isEqualTo(com.llmlocal.feature.webclipper.domain.DEFAULT_IMAGES_PROMPT)
+        assertThat(downloader.requests).isEmpty()
+        assertThat(events.last()).isEqualTo(ClipProgress.Saved("saved-1"))
+        Phase.entries.forEach { assertThat(events.phase(it)).isEqualTo(PhaseStatus.Done) }
+    }
+
+    @Test
+    fun `images - Reading stays Active until the first token and the pictures are proposed as local Done files`() = runTest {
+        val pictures = images(2)
+        val events = runImages(pictures, FakeLlmEngine.streaming(goodOutput, chunkSize = 5)).events()
+
+        val firstDelta = events.indexOfFirst { it is ClipProgress.Streamed }
+        assertThat(events.indexOf(ClipProgress.PhaseChanged(Phase.Reading, PhaseStatus.Done))).isLessThan(firstDelta)
+        assertThat(events.indexOf(ClipProgress.PhaseChanged(Phase.Reading, PhaseStatus.Active))).isLessThan(
+            events.indexOf(ClipProgress.PhaseChanged(Phase.Reading, PhaseStatus.Done)),
+        )
+
+        val proposed = events.filterIsInstance<ClipProgress.PicturesProposed>().single()
+        assertThat(proposed.pictures.map { it.keep }).containsExactly(true, true)
+        val done = events.filterIsInstance<ClipProgress.PictureChanged>()
+        assertThat(done.map { it.status }).containsExactly(PictureStatus.Done, PictureStatus.Done)
+        assertThat(done.map { it.localFile }).containsExactlyElementsIn(pictures.map { it.file }).inOrder()
+        assertThat(proposed.pictures.map { it.url }).containsExactlyElementsIn(done.map { it.url }).inOrder()
+    }
+
+    @Test
+    fun `images - save receives the Images input and every kept file, and clears the session`() = runTest {
+        val pictures = images(2)
+        val events = runImages(pictures, FakeLlmEngine.streaming(goodOutput)).events()
+
+        assertThat(events.last()).isEqualTo(ClipProgress.Saved("saved-1"))
+        assertThat(sink.savedInputs.single()).isEqualTo(ClipInput.Images(pictures))
+        assertThat(sink.saved.single().pictures).containsExactlyElementsIn(pictures.map { it.file }).inOrder()
+        assertThat(sink.saved.single().options.pictureCandidates).hasSize(2)
+        assertThat(session.current.value).isNull()
+        assertThat(session.activeExtraction.value).isNull()
+        pictures.forEach { assertThat(it.file.exists()).isTrue() } // moved by the sink, not deleted
+    }
+
+    @Test
+    fun `images - an unticked picture is not saved and its file is removed`() = runTest {
+        val pictures = images(2)
+        val dropped = pictures[1].file.toURI().toString()
+
+        runImages(pictures, FakeLlmEngine.streaming(goodOutput), isPictureKept = { it != dropped }).events()
+
+        assertThat(sink.saved.single().pictures).containsExactly(pictures[0].file)
+        assertThat(pictures[1].file.exists()).isFalse()
+    }
+
+    @Test
+    fun `images - an unparseable answer is ParseFailed with no fallback and the pictures stay on disk`() = runTest {
+        config.fallbackResult = Parsed("must not be used")
+        val pictures = images(1)
+
+        val events = runImages(pictures, FakeLlmEngine.streaming("NO RECIPE")).events()
+
+        assertThat(events.last()).isEqualTo(ClipProgress.Failed(ExtractionError.ParseFailed("NO RECIPE")))
+        assertThat(config.fallbackCalls).isEmpty()
+        assertThat(sink.saved).isEmpty()
+        assertThat(pictures.single().file.exists()).isTrue()
+        assertThat(session.activeExtraction.value).isNull()
+    }
+
+    @Test
+    fun `images - a result the config rejects is ParseFailed`() = runTest {
+        config.rejected = setOf(Parsed(goodOutput))
+        val events = runImages(images(1), FakeLlmEngine.streaming(goodOutput)).events()
+        assertThat(events.last()).isEqualTo(ClipProgress.Failed(ExtractionError.ParseFailed(goodOutput)))
+    }
+
+    @Test
+    fun `images - an engine without vision fails with ImagesUnsupported during Reading`() = runTest {
+        val engine = FakeLlmEngine { FakeLlmEngine.failing(com.llmlocal.core.llm.engine.UnsupportedImagesException("text only")) }
+        val pictures = images(2)
+
+        val events = runImages(pictures, engine).events()
+
+        assertThat(events.last()).isEqualTo(ClipProgress.Failed(ExtractionError.ImagesUnsupported))
+        assertThat(events.phase(Phase.Reading)).isEqualTo(PhaseStatus.Active)
+        assertThat(engine.requests).hasSize(1) // no retry for an engine error
+        pictures.forEach { assertThat(it.file.exists()).isTrue() }
+    }
+
+    @Test
+    fun `images - cancelling the collector deletes the pictures and releases the marker`() = runTest {
+        val pictures = images(2)
+        val slow = FakeLlmEngine(tokenDelayMs = 1_000) { FakeLlmEngine.chunks(goodOutput, 5) }
+        val job = launch { runImages(pictures, slow).collect { } }
+
+        advanceTimeBy(500)
+        assertThat(session.activeExtraction.value).isEqualTo(IMAGES_CANDIDATE_ID)
+        job.cancel()
+        advanceUntilIdle()
+
+        pictures.forEach { assertThat(it.file.exists()).isFalse() }
+        assertThat(session.activeExtraction.value).isNull()
+        assertThat(sink.saved).isEmpty()
+    }
+
+    @Test
+    fun `images guardrail - NO RECIPE over three pictures retries once with the first two`() = runTest {
+        val pictures = images(3)
+        val engine = FakeLlmEngine { request ->
+            if (request.images.size == 3) FakeLlmEngine.chunks("NO RECIPE") else FakeLlmEngine.chunks(goodOutput)
+        }
+
+        val events = runImages(pictures, engine).events()
+
+        assertThat(engine.requests.map { it.images.size }).containsExactly(3, 2).inOrder()
+        assertThat(engine.requests[1].images.map { it.bytes.first().toInt() }).containsExactly(0, 1).inOrder()
+        assertThat(events).contains(ClipProgress.Retrying(2))
+        assertThat(events.last()).isEqualTo(ClipProgress.Saved("saved-1"))
+        // the retry restarts at Reading and flips again on its first delta
+        assertThat(events.filter { it == ClipProgress.PhaseChanged(Phase.Reading, PhaseStatus.Active) }).hasSize(2)
+        // all three pictures are still the item's pictures
+        assertThat(sink.saved.single().pictures).hasSize(3)
+    }
+
+    @Test
+    fun `images guardrail - two pictures retry with one, an empty template counts as a refusal`() = runTest {
+        config.rejected = setOf(Parsed("Title: \n"))
+        val engine = FakeLlmEngine { request ->
+            if (request.images.size == 2) FakeLlmEngine.chunks("Title: \n") else FakeLlmEngine.chunks(goodOutput)
+        }
+
+        val events = runImages(images(2), engine).events()
+
+        assertThat(engine.requests.map { it.images.size }).containsExactly(2, 1).inOrder()
+        assertThat(events.last()).isEqualTo(ClipProgress.Saved("saved-1"))
+    }
+
+    @Test
+    fun `images guardrail - retries only once and then reports the second answer`() = runTest {
+        val engine = FakeLlmEngine.streaming("NO RECIPE")
+
+        val events = runImages(images(3), engine).events()
+
+        assertThat(engine.requests.map { it.images.size }).containsExactly(3, 2).inOrder()
+        assertThat(events.last()).isEqualTo(ClipProgress.Failed(ExtractionError.ParseFailed("NO RECIPE")))
+        assertThat(events.filterIsInstance<ClipProgress.Retrying>()).hasSize(1)
+    }
+
+    @Test
+    fun `images guardrail - a single picture is never retried`() = runTest {
+        val engine = FakeLlmEngine.streaming("NO RECIPE")
+
+        runImages(images(1), engine).events()
+
+        assertThat(engine.requests).hasSize(1)
     }
 }

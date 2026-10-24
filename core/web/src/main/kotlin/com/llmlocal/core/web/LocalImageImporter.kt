@@ -14,13 +14,15 @@ interface LocalImageImporter {
     suspend fun import(uri: String, into: File, maxLongEdgePx: Int): Outcome<ImportedImage>
 
     /**
-     * Splits a tall [source] into overlapping tiles of aspect ≈ 1:1.6 written
-     * under [intoDir]; `listOf(source)` when the picture is not taller than
-     * [tallAspect] × its width.
+     * Splits a tall [source] into overlapping tiles of aspect ≈ 1:2.2 (a
+     * phone viewport); `listOf(source)` when the picture is not taller than
+     * [tallAspect] × its width. [newFile] hands out the destination of tile
+     * `index`, so the caller decides where (and under whose bookkeeping)
+     * the tiles live; [source] itself is left alone.
      */
     suspend fun tile(
         source: ImportedImage,
-        intoDir: File,
+        newFile: (index: Int) -> File,
         tallAspect: Double,
         overlap: Double = 0.10,
     ): Outcome<List<ImportedImage>>

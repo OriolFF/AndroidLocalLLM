@@ -114,6 +114,7 @@ val webClipperModule: Module = module {
             clip = get(),
             checkDuplicate = get(),
             cancelClip = get(),
+            discardImages = get(),
             dispatchers = get(),
         )
     }
