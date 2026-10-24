@@ -1,10 +1,31 @@
 # Recipe Keeper — input sources (web / images / voice) and screenshot extraction: implementation plan
 
-Status: PLAN (nothing implemented yet). Written 2026-10-24 from the repo state at `ab2eadb` (branch `recipekeeper/dev`). Companion: `recipekeeper-input-sources-ux-spec.md` (screens, states, labels, decisions S1–S11). Style and conventions follow `recipekeeper-app-plan.md` / `recipekeeper-features-plan.md`: contracts first, parallel streams with disjoint file ownership, a report per stream, QA last.
+Status: PLAN, gate decided (see below). Nothing implemented yet. Written 2026-10-24 from the repo state at `ab2eadb` (branch `recipekeeper/dev`). Companion: `recipekeeper-input-sources-ux-spec.md` (screens, states, labels, decisions S1–S11). Style and conventions follow `recipekeeper-app-plan.md` / `recipekeeper-features-plan.md`: contracts first, parallel streams with disjoint file ownership, a report per stream, QA last.
 
 Rules every stream honours (CLAUDE.md Architecture rules): **0** no user-visible string literal in Kotlin (resources + label classes without defaults); **1** ViewModels take use cases only (plus `DispatcherProvider`, `SavedStateHandle`, labels/config, route params); **2** `presentation / domain / data / di` packages, `presentation → domain ← data`, `domain` pure Kotlin; **3** MVI, brand values in the app module.
 
 > **The gate.** `docs/research/screenshot-extraction-eval.md` (being written by the eval agent) decides whether I1's vision wiring and I2's images path are built. **I0 and I3 ship regardless**: the source chooser, the voice placeholder, the `origin = IMAGES` plumbing and the URL share target. If the eval says "not feasible", `WebClipConfig.imagePolicy.enabled = false` hides the images row, the `image/*` share filters are not declared, and I1/I2 shrink to the parts listed under "without vision" in §5. Numbers marked **[eval]** (visual token budget, max images, tiling, time copy) are defaults to be replaced by the eval's recommendation.
+
+## Gate decision (lead, 2026-10-24, from `docs/research/screenshot-extraction-eval.md`)
+
+**Vision: YES, with limits.** The eval's verdict is "feasible with limits": build the full I1/I2 step lists for the image-only / shared-screenshot flow; **never use vision in the web-clipper path** (DOM/structured capture stays the only path for pages). Numbers that replace the **[eval]** placeholders:
+
+| Setting | Value | Reason (eval §) |
+|---|---|---|
+| `IMAGES_SOURCE` build flag / `ImagePolicy.enabled` | `true` | §7 |
+| `visualTokenBudget` | **280, fixed** — the shipped `.litertlm` caps vision at 280 tokens per image; 560/1120 are rejected by the engine | §2 |
+| `maxImages` | **3** (the use case caps at the policy value; copy says "up to 3 pictures") | §7 "1–3 images" |
+| `maxLongEdgePx` | **2400** — keep phone screenshots at native size (the eval measured 1079×2397); the engine downsamples to the budget itself | §1, §8 |
+| `tileImages` / `tallAspect` | `true` / `2.5` — never send a tall strip; split it into overlapping viewport-shaped tiles (tiles count toward the cap) | §4 "Tall strips" |
+| Content order | images first, then the user text (as measured) | §1 |
+| Android budget API | `ExperimentalFlags.visualTokenBudget` per message (I1 verifies with `javap`); values above the bundle cap are an `INVALID_ARGUMENT`, so the engine clamps to 280 and logs | §2 |
+| Prompt | `RecipeKeeperPromptBuilder` gains `SYSTEM_IMAGES` = `SYSTEM` + one line: *"The pictures are consecutive screenshots or photos of one recipe; read only text that is visible; do not guess amounts you cannot read; omit unknown fields."*; the user turn is `Extract the recipe from these pictures.` (model-facing literals, accepted) | §8 |
+| Time copy | keep "usually under a minute per picture" (flagship CPU estimate: 15–20 s for one, 25–40 s for three) | §5 |
+| Guardrail (I2, should) | when the model answers `NO RECIPE` / an empty template for ≥ 2 images, retry **once** automatically with the first ⌈n/2⌉ images before showing "No recipe found in these pictures" | §4 "Refusals", §7 |
+| Guardrail (I3) | detail source row and hero for `origin = IMAGES` read "From your photos · Check the amounts" (label `fromYourPhotosCheckAmounts`), because quantities are the weak spot | §7 |
+| Vision backend | CPU only in this bundle (`ModelInfo.vision backends = ['cpu']`); `LLM_VISION_BACKEND` is `"CPU"` for both build types until a bundle with a GPU vision tower exists | §5 |
+
+Everything else in the plan stands. The eval outputs (`tools/eval/screenshots/outputs/*.txt`) are the goldens for `EvalImagesParserTest` (I2 copies them).
 
 ---
 
