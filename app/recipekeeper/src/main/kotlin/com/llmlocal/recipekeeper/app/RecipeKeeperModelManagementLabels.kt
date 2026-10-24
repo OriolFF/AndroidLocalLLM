@@ -47,6 +47,7 @@ fun rememberRecipeKeeperModelManagementLabels(): ModelManagementLabels {
         detailMinRamUnit = stringResource(R.string.recipekeeper_modelmanagement_detail_min_ram_unit),
         detailFileLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_file),
         detailUrlLabel = stringResource(R.string.recipekeeper_modelmanagement_detail_url),
+        capabilityVision = resources.getString(R.string.recipekeeper_modelmanagement_capability_vision),
         secondsLeftTemplate = { resources.getString(R.string.recipekeeper_modelmanagement_seconds_left, it) },
         minutesLeftTemplate = { resources.getString(R.string.recipekeeper_modelmanagement_minutes_left, it) },
         modelSelectedSnackbar = { resources.getString(R.string.recipekeeper_modelmanagement_selected, it) },

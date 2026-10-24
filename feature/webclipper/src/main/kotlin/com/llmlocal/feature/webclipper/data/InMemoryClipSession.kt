@@ -1,8 +1,8 @@
 package com.llmlocal.feature.webclipper.data
 
-import com.llmlocal.core.web.PageSnapshot
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
 import com.llmlocal.feature.webclipper.domain.ClipSession
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -18,8 +18,8 @@ class InMemoryClipSession : ClipSession {
     private val _reopenCandidates = MutableStateFlow(false)
     override val reopenCandidates: StateFlow<Boolean> = _reopenCandidates
 
-    override fun set(snapshot: PageSnapshot, candidates: List<ClipCandidate>) {
-        _current.value = ClipSession.Current(snapshot, candidates)
+    override fun set(input: ClipInput, candidates: List<ClipCandidate>) {
+        _current.value = ClipSession.Current(input, candidates)
     }
 
     override fun candidate(id: String): ClipCandidate? =

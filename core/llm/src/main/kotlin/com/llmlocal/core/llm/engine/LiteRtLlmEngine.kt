@@ -147,6 +147,12 @@ class LiteRtLlmEngine(
             return@flow
         }
 
+        if (request.images.isNotEmpty()) {
+            // I1 replaces this with the real vision path.
+            emit(LlmToken.Error(UnsupportedImagesException("This engine does not read images yet")))
+            return@flow
+        }
+
         mutex.withLock {
             val conversationConfig = ConversationConfig(
                 systemInstruction = request.systemInstruction?.let { Contents.of(it) },

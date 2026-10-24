@@ -242,7 +242,7 @@ object EvalFixtures {
         null -> ExpectedTier.NONE
         is CandidatePayload.Structured -> ExpectedTier.STRUCTURED
         is CandidatePayload.Text -> ExpectedTier.TEXT
-        CandidatePayload.WholePage -> ExpectedTier.WHOLE_PAGE
+        CandidatePayload.WholePage, is CandidatePayload.Images, CandidatePayload.Transcript -> ExpectedTier.WHOLE_PAGE
     }
 
     fun candidates(snapshot: PageSnapshot): List<ClipCandidate> = clipConfig.detect(snapshot)

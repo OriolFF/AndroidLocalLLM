@@ -31,7 +31,7 @@ class ShareRecipeUseCase(
     suspend operator fun invoke(id: String): String? {
         val recipe = repository.observe(id).first() ?: return null
         return when (recipe.origin) {
-            RecipeOrigin.CLIPPED -> templates.clipped(recipe.title, recipe.sourceUrl)
+            RecipeOrigin.CLIPPED, RecipeOrigin.IMAGES, RecipeOrigin.VOICE -> templates.clipped(recipe.title, recipe.sourceUrl)
             RecipeOrigin.CREATED -> templates.created(
                 recipe.title,
                 templates.ingredientsHeader,

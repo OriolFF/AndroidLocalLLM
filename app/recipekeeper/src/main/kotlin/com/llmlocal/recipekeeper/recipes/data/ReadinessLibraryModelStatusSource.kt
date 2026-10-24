@@ -2,6 +2,7 @@ package com.llmlocal.recipekeeper.recipes.data
 
 import com.llmlocal.core.llm.readiness.ModelReadiness
 import com.llmlocal.core.llm.readiness.ModelReadinessObserver
+import com.llmlocal.core.model.ModelCapability
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatusSource
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +31,9 @@ class ReadinessLibraryModelStatusSource(
         .map { readiness ->
             when (readiness) {
                 is ModelReadiness.Downloading -> LibraryModelStatus.Downloading(readiness.progress)
-                is ModelReadiness.Ready, ModelReadiness.Initializing -> LibraryModelStatus.Ready
+                is ModelReadiness.Ready ->
+                    LibraryModelStatus.Ready(supportsImages = ModelCapability.VISION in readiness.descriptor.capabilities)
+                ModelReadiness.Initializing -> LibraryModelStatus.Ready()
                 ModelReadiness.NoModel, ModelReadiness.Checking, is ModelReadiness.Failed -> LibraryModelStatus.NoModel
             }
         }

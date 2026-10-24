@@ -93,6 +93,8 @@ private fun <T> buildRequest(
             maxOutputTokens = options.maxOutputTokens,
             jsonSchema = options.jsonSchema,
             temperature = options.temperature,
+            images = options.images,
+            visualTokenBudget = options.visualTokenBudget,
         )
     } else {
         LlmRequest(
@@ -104,6 +106,8 @@ private fun <T> buildRequest(
             maxOutputTokens = options.maxOutputTokens,
             jsonSchema = options.jsonSchema,
             temperature = options.temperature,
+            images = options.images,
+            visualTokenBudget = options.visualTokenBudget,
         )
     }
 }

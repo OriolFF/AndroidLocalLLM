@@ -1,6 +1,7 @@
 package com.llmlocal.recipekeeper.recipes.presentation.library
 
 import androidx.compose.runtime.Immutable
+import com.llmlocal.feature.webclipper.domain.input.ImagesAvailability
 import com.llmlocal.recipekeeper.recipes.domain.LibraryFilter
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
 import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
@@ -18,6 +19,9 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeSummary
  * @property modelStatus drives the no-model hero / download card
  * @property learnedHintCount detection hints learned so far (overflow menu; reset is disabled at 0)
  * @property resetDetectionDialogOpen the "Reset learned detection?" confirmation is showing
+ * @property sourceChooserOpen the "Add a recipe" source sheet is showing
+ * @property imagesAvailability whether the "From images" source can run
+ * @property imagesUnavailableDialog the "This model can't read images" dialog is showing
  */
 @Immutable
 data class LibraryState(
@@ -29,6 +33,9 @@ data class LibraryState(
     val filter: LibraryFilter = LibraryFilter(),
     val learnedHintCount: Int = 0,
     val resetDetectionDialogOpen: Boolean = false,
+    val sourceChooserOpen: Boolean = false,
+    val imagesAvailability: ImagesAvailability = ImagesAvailability.Disabled,
+    val imagesUnavailableDialog: Boolean = false,
 ) {
     /** Unfiltered library with nothing in it: show the onboarding empty state. */
     val isEmptyLibrary: Boolean

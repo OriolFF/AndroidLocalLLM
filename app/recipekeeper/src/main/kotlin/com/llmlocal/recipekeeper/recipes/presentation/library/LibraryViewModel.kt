@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveImagesAvailabilityUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
@@ -54,6 +55,7 @@ class LibraryViewModel(
     private val toggleFavourite: ToggleFavouriteUseCase,
     observeLearnedHints: ObserveLearnedHintCountUseCase,
     private val resetDetection: ResetDetectionHintsUseCase,
+    observeImagesAvailability: ObserveImagesAvailabilityUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -72,6 +74,9 @@ class LibraryViewModel(
             .launchIn(viewModelScope)
         observeLearnedHints()
             .onEach { count -> _state.update { it.copy(learnedHintCount = count) } }
+            .launchIn(viewModelScope)
+        observeImagesAvailability()
+            .onEach { availability -> _state.update { it.copy(imagesAvailability = availability) } }
             .launchIn(viewModelScope)
     }
 
@@ -112,6 +117,12 @@ class LibraryViewModel(
                 viewModelScope.launch { toggleFavourite(intent.id, intent.favourite) }
             is LibraryIntent.EditRecipe -> emit(LibraryEffect.NavigateToEditor(intent.id))
             LibraryIntent.CreateRecipe -> emit(LibraryEffect.NavigateToEditor(null))
+
+            // Stubs: the sheet is not rendered until stream I3 and ChooseSource is not reachable yet.
+            LibraryIntent.OpenSourceChooser -> _state.update { it.copy(sourceChooserOpen = true) }
+            LibraryIntent.DismissSourceChooser -> _state.update { it.copy(sourceChooserOpen = false) }
+            is LibraryIntent.ChooseSource -> _state.update { it.copy(sourceChooserOpen = false) }
+            LibraryIntent.DismissImagesUnavailable -> _state.update { it.copy(imagesUnavailableDialog = false) }
 
             LibraryIntent.RequestResetDetection -> _state.update { it.copy(resetDetectionDialogOpen = true) }
             LibraryIntent.DismissResetDetection -> _state.update { it.copy(resetDetectionDialogOpen = false) }

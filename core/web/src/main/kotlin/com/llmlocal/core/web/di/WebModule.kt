@@ -1,6 +1,8 @@
 package com.llmlocal.core.web.di
 
+import com.llmlocal.core.web.ContentResolverLocalImageImporter
 import com.llmlocal.core.web.ImageDownloader
+import com.llmlocal.core.web.LocalImageImporter
 import com.llmlocal.core.web.PageCapture
 import com.llmlocal.core.web.WebViewPageCapture
 import okhttp3.OkHttpClient
@@ -26,6 +28,12 @@ val webModule: Module = module {
     single {
         ImageDownloader(
             client = get<OkHttpClient>(),
+            dispatchers = get(),
+        )
+    }
+    single<LocalImageImporter> {
+        ContentResolverLocalImageImporter(
+            context = androidContext(),
             dispatchers = get(),
         )
     }

@@ -1,5 +1,7 @@
 package com.llmlocal.recipekeeper.recipes.presentation.library
 
+import com.llmlocal.recipekeeper.recipes.domain.RecipeSource
+
 /** User actions on the library screen. */
 sealed interface LibraryIntent {
     data object OpenSearch : LibraryIntent
@@ -49,4 +51,16 @@ sealed interface LibraryIntent {
 
     /** Top-bar "New recipe" / empty-state "Write a recipe". */
     data object CreateRecipe : LibraryIntent
+
+    /** Top-bar "+" / empty-state "More ways to add…": show the source chooser. */
+    data object OpenSourceChooser : LibraryIntent
+
+    /** Source chooser dismissed without a choice. */
+    data object DismissSourceChooser : LibraryIntent
+
+    /** A row of the source chooser was tapped. */
+    data class ChooseSource(val source: RecipeSource) : LibraryIntent
+
+    /** "This model can't read images" dialog dismissed. */
+    data object DismissImagesUnavailable : LibraryIntent
 }

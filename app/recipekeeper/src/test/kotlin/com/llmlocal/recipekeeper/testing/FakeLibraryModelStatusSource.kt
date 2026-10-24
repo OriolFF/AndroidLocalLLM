@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 /** In-memory [LibraryModelStatusSource] for ViewModel tests. */
 class FakeLibraryModelStatusSource(
-    initial: LibraryModelStatus = LibraryModelStatus.Ready,
+    initial: LibraryModelStatus = LibraryModelStatus.Ready(),
 ) : LibraryModelStatusSource {
     override val status: MutableStateFlow<LibraryModelStatus> = MutableStateFlow(initial)
 }

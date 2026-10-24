@@ -54,6 +54,7 @@ fun LibraryRoute(
     onOpenModelManagement: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenEditor: (id: String?) -> Unit = {},
+    onOpenImagesClip: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = koinViewModel(),
 ) {
@@ -69,6 +70,7 @@ fun LibraryRoute(
                 LibraryEffect.NavigateToModelManagement -> onOpenModelManagement()
                 LibraryEffect.NavigateToSettings -> onOpenSettings()
                 is LibraryEffect.NavigateToEditor -> onOpenEditor(effect.id)
+                LibraryEffect.NavigateToImagesClip -> onOpenImagesClip()
                 is LibraryEffect.ShareRecipe -> context.shareText(
                     text = effect.text,
                     chooserTitle = labels.shareRecipe,

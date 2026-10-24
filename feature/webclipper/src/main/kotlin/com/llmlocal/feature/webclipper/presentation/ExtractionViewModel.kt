@@ -17,6 +17,9 @@ import com.llmlocal.feature.webclipper.domain.WHOLE_PAGE_CANDIDATE_ID
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.domain.hostOf
 import com.llmlocal.feature.webclipper.domain.usecase.CancelClipUseCase
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.domain.input.ClipInputKind
+import com.llmlocal.feature.webclipper.domain.input.kind
 import com.llmlocal.feature.webclipper.domain.usecase.CheckDuplicateUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ClipUseCase
 import com.llmlocal.feature.webclipper.domain.wholePageCandidate
@@ -90,6 +93,8 @@ class ExtractionViewModel(
                 isRunning = false,
                 sourceHost = hostOf(page?.snapshot?.url),
                 pageTitle = page?.snapshot?.title,
+                inputKind = page?.input?.kind ?: ClipInputKind.WEB,
+                imageCount = (page?.input as? ClipInput.Images)?.images?.size ?: 0,
             ),
         )
         state = _state.asStateFlow()

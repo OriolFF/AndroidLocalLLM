@@ -72,4 +72,38 @@
     <string name="webclipper_candidates_meta_separator"> · </string>
     <string name="webclipper_candidates_thumbnail_description">Picture of %1$s</string>
     <string name="webclipper_extraction_elapsed">%1$ds</string>
+    <string name="webclipper_images_title">Clip from images</string>
+    <string name="webclipper_images_preparing">Getting your pictures ready…</string>
+    <string name="webclipper_images_order_title">Put the pictures in reading order</string>
+    <string name="webclipper_images_order_hint">Ingredients first, then the steps.</string>
+    <string name="webclipper_images_count">%1$d of %2$d pictures</string>
+    <string name="webclipper_images_tile_description">Picture %1$d of %2$d</string>
+    <string name="webclipper_images_tile_selected">Selected</string>
+    <string name="webclipper_images_move_left">Move left</string>
+    <string name="webclipper_images_move_right">Move right</string>
+    <string name="webclipper_images_remove">Remove picture %1$d of %2$d</string>
+    <string name="webclipper_images_add_more">Add more</string>
+    <string name="webclipper_images_privacy_hint">Everything happens on your phone — the pictures never leave it.</string>
+    <string name="webclipper_images_time_hint">Reading pictures takes longer than reading a page — usually under a minute per picture.</string>
+    <string name="webclipper_images_extract">Extract recipe</string>
+    <string name="webclipper_images_capped">Only the first %1$d pictures are used</string>
+    <plurals name="webclipper_images_skipped">
+        <item quantity="one">1 picture couldn\'t be read</item>
+        <item quantity="other">%1$d pictures couldn\'t be read</item>
+    </plurals>
+    <string name="webclipper_images_none_readable_title">These pictures couldn\'t be read</string>
+    <string name="webclipper_images_none_readable_message">Try screenshots or photos saved on this phone.</string>
+    <string name="webclipper_images_pick_different">Pick different pictures</string>
+    <plurals name="webclipper_images_source_strip">
+        <item quantity="one">From your photos · 1 picture</item>
+        <item quantity="other">From your photos · %1$d pictures</item>
+    </plurals>
+    <string name="webclipper_extraction_phase_reading_images">Reading images</string>
+    <string name="webclipper_images_extracting_hint">Reading your pictures on your phone — this takes longer than a page</string>
+    <string name="webclipper_images_no_recipe_title">No recipe found in these pictures</string>
+    <string name="webclipper_images_no_recipe_message">The model read the pictures but found no ingredients or steps. Try clearer or closer shots.</string>
+    <string name="webclipper_images_unsupported_title">This model can\'t read images</string>
+    <string name="webclipper_images_unsupported_message">Pick a model that reads images in Models.</string>
+    <string name="webclipper_extraction_back_to_library">Back to library</string>
+    <string name="webclipper_clip_already_running">Finish the current clip first</string>
 </resources>

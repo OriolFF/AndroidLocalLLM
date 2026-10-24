@@ -9,8 +9,10 @@ import com.llmlocal.core.web.TextSection
 import com.llmlocal.feature.webclipper.domain.CandidatePayload
 import com.llmlocal.feature.webclipper.domain.CandidateSource
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
+import com.llmlocal.feature.webclipper.domain.ImagePolicy
 import com.llmlocal.feature.webclipper.domain.PicturePick
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
+import com.llmlocal.recipekeeper.BuildConfig
 import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHints
 import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHintsSource
 import com.llmlocal.recipekeeper.clip.domain.detection.QuantityShape
@@ -265,7 +267,8 @@ class RecipeKeeperClipConfig(
         val body = when (val payload = candidate.payload) {
             is CandidatePayload.Structured -> renderStructured(payload.node.raw)
             is CandidatePayload.Text -> renderSection(payload.section, snapshot, available)
-            CandidatePayload.WholePage -> renderWholePage(snapshot)
+            // Images and transcripts never reach the snapshot renderer (stream I3 owns those inputs).
+            CandidatePayload.WholePage, is CandidatePayload.Images, CandidatePayload.Transcript -> renderWholePage(snapshot)
         }
         val trimmed = truncateAtParagraph(body, available)
         // [accept] has no snapshot: remember what the model was shown for a TEXT candidate.
@@ -443,6 +446,9 @@ class RecipeKeeperClipConfig(
      */
     override val skipModelWhenStructuredComplete: Boolean = true
 
+    /** The "From images" source; off until the lead flips `IMAGES_SOURCE` at merge. */
+    override val imagePolicy: ImagePolicy = ImagePolicy(enabled = BuildConfig.IMAGES_SOURCE)
+
     /**
      * The eval's quality bar: enough ingredients, more than one step, steps
      * with substance (mean length ≥ [MIN_MEAN_STEP_CHARS] or ≥
@@ -568,7 +574,7 @@ class RecipeKeeperClipConfig(
         val own: List<String> = when (payload) {
             is CandidatePayload.Structured -> mapper.imageUrls(payload.node.raw)
             is CandidatePayload.Text -> payload.section.imageSrcs
-            CandidatePayload.WholePage -> emptyList()
+            CandidatePayload.WholePage, is CandidatePayload.Images, CandidatePayload.Transcript -> emptyList()
         }
         val og = listOfNotNull(
             snapshot.openGraph["og:image:secure_url"],

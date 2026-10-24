@@ -179,7 +179,7 @@ private fun LibraryGrid(
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
             }
-            LibraryModelStatus.Ready -> Unit
+            is LibraryModelStatus.Ready -> Unit
         }
 
         when {
