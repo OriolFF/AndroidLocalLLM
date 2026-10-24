@@ -14,6 +14,13 @@ enum class ModelFamily { GENERAL, CHAT, INSTRUCT, CODE, MULTIMODAL }
 enum class ModelAccelerator { CPU, GPU, NPU }
 
 /**
+ * What a model can take as input. Unlike [ModelFamily] (a filter-chip
+ * grouping) this is a capability the engine and the UI branch on, e.g. the
+ * "From images" source needs [VISION].
+ */
+enum class ModelCapability { TEXT, VISION, AUDIO }
+
+/**
  * Describes a downloadable on-device LLM model.
  *
  * Descriptors come from two places: the curated built-in list
@@ -47,6 +54,8 @@ enum class ModelAccelerator { CPU, GPU, NPU }
  * @property updatedAt ISO-8601 timestamp of the source's last change, when known.
  * @property contextTokens Context window (prompt + output tokens) the bundle
  *   was built with, when the source states it.
+ * @property capabilities Input kinds the bundle can read; text only unless
+ *   the bundle is known to ship the matching encoder.
  */
 data class LlmModelDescriptor(
     val id: String,
@@ -66,4 +75,5 @@ data class LlmModelDescriptor(
     val baseModel: String? = null,
     val updatedAt: String? = null,
     val contextTokens: Int? = null,
+    val capabilities: Set<ModelCapability> = setOf(ModelCapability.TEXT),
 )

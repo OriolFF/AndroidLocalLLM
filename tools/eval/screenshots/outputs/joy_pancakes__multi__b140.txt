@@ -1,0 +1,25 @@
+Title: Pancake Recipe
+Description: A recipe for pancakes.
+Servings: 2-3
+PrepMinutes:
+CookMinutes:
+TotalMinutes:
+Ingredients:
+- 1 cup (130 grams) all-purpose flour
+- 1 1/2 teaspoons baking powder
+- 1/4 teaspoon salt
+- 2 tablespoons (28 grams) granulated white sugar
+- 1 large egg, lightly beaten
+- 1 cup (240 ml) milk
+- 2 tablespoons (28 grams) unsalted butter, melted
+Steps:
+1. Heat a frying pan or grill on medium heat until a few sprinkles of water dropped on the pan or grilled spatula.
+2. Adjust the temperature as needed.
+3. Can also use an electric griddle with the temperature set at 350 degrees F (180 degrees C).
+4. Using a small ladle or scoop, pour about 1/4 cup (60 ml) of pancake batter onto the hot pan, spacing the pancakes a few inches apart.
+5. When the bottoms of the pancakes are brown and bubbles start to appear on the top surfaces of the pancakes (2-3 minutes), turn over.
+6. Cook until lightly browned (about 1-2 minutes).
+Notes:
+- Pancakes can be made in any size and shape, ranging from the size of a silver dollar to a round as large as your pan.
+- You will know it is time to turn your pancake when the top surface begins to form small craters.
+- Pancakes are also made with buttermilk, which will never do.

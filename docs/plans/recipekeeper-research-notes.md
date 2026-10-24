@@ -34,6 +34,14 @@ object ResponseFormat { fun json(schema: String | Map<String, Any?>); fun regex(
 - Other: `Engine.initialize()` up to ~10 s off main thread; set `cacheDir`; one Conversation at a time; `Backend.CPU(threadCount)`; GPU needs `libOpenCL.so`/`libvndksupport.so` `uses-native-library` (already in manifests).
 - Docs: https://developers.google.com/edge/litert-lm/android , https://developers.google.com/edge/litert-lm/api_overview , https://github.com/google-ai-edge/LiteRT-LM , https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm
 
+### I1 addendum — vision API in 0.18.0 (`javap -p` of `classes.jar`, 2026-10-24)
+
+- `EngineConfig(modelPath: String, backend: Backend, visionBackend: Backend?, audioBackend: Backend?, maxNumTokens: Int?, maxNumImages: Int?, cacheDir: String?, activationDataType: ActivationDataType?)` — all named args used by the engine.
+- `Content.ImageBytes(bytes: ByteArray)`, `Contents.of(List<Content>)`; images go **before** `Content.Text`.
+- **Visual token budget: no per-message parameter.** `ExperimentalFlags.visualTokenBudget: Int?` is a process-global static (get/set, not annotated `@ExperimentalApi` itself but needs the opt-in at use). The bytecode reads it in `Conversation.sendMessage`/`sendMessageAsync` (passed to JNI each send) and in `Engine.initialize`. So it behaves per message if set under the engine mutex before each send; `ConversationConfig.extraContext` / `sendMessageAsync(extraContext)` are generic maps, not the budget. `LiteRtLlmEngine` sets `request.visualTokenBudget ?: defaultVisualTokenBudget (280)` clamped to `[1, 280]` (logs a warning when clamped) before each image message, and the default at engine creation.
+- `ModelInfo.from(path)`: `inputModalities()`, `maxVisionTokenBudget()`, `maxContextTokens()`, `supportedBackends(Modality)` — the way to inspect a bundle before adding `ModelCapability.VISION`.
+- `Backend.CPU(threadCount: Int? = null)`, `Backend.GPU()` unchanged.
+
 ### WS1 spike addendum (2026-10-18)
 
 **On-device JSON-schema spike: NOT RUN.** No `.litertlm` file exists on this machine (`find ~ -name "*.litertlm" -size +100M` is empty), the only attached device `emulator-5554` is `sdk_gphone64_arm64` (arm64-v8a, API 36 — not the x86_64 image the plan assumed) with **225 MB free** on `/data`, so the 2.58 GB Gemma 4 E2B bundle could neither be pushed nor downloaded. Per the WS1 brief the 2.6 GB download was not attempted. The questions below stay open until a model is on a device; everything else in this addendum was verified statically with `javap` against `litertlm-android-0.18.0.aar` (`~/.gradle/caches/.../litertlm-android/0.18.0/.../classes.jar`) and by compiling `LiteRtLlmEngine` against it.

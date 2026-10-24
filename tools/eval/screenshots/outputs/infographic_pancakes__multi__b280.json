@@ -1,0 +1,16 @@
+{
+ "id": "infographic_pancakes__multi__b280",
+ "images": 2,
+ "budget": 280,
+ "ttftMs": 3433,
+ "totalMs": 12847,
+ "outputChars": 870,
+ "bench": {
+  "ttftS": 1.752158688,
+  "prefillTokens": 904,
+  "prefillTokPerS": 525.9275672948394,
+  "decodeTokens": 285,
+  "decodeTokPerS": 30.038317035306644
+ },
+ "error": null
+}

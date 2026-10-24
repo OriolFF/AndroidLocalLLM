@@ -1,0 +1,34 @@
+Title: Chicken Curry
+Description: A simple and flavorful chicken curry.
+Servings: 4
+PrepMinutes: 15
+CookMinutes: 30
+TotalMinutes: 45
+Ingredients:
+- 1 lb chicken breast
+- 1 onion, chopped
+- 2 cloves garlic, minced
+- 1 inch ginger, grated
+- 1 can (14 oz) diced tomatoes
+- 1 can (14 oz) coconut milk
+- 1 tsp curry powder
+- 1 tsp turmeric powder
+- 1 tsp garam masala
+- 1/2 tsp chili powder
+- 1/2 tsp salt
+- 1/2 tsp sugar
+- 1/4 cup water
+- 1 tbsp oil
+- 1/2 cup chopped cilantro
+Steps:
+1. Heat the oil in a pan over medium heat.
+2. Add the onion and cook until soft.
+3. Add the garlic and ginger and cook for 1 minute until fragrant.
+4. Add the chicken and cook until browned.
+5. Add the diced tomatoes, coconut milk, curry powder, turmeric powder, garam masala, chili powder, salt, sugar, and water.
+6. Simmer for 15 minutes.
+7. Stir in the chopped cilantro and serve hot.
+Notes:
+- Use fresh ginger for the best flavor.
+- Adjust the spice levels to your preference.
+- This recipe is easily adaptable for different spice tolerances.

@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
  *                    sends the user to model management.
  *  - [Downloading] — a download for the selected model is RUNNING: show the
  *                    compact progress card instead of the hero.
- *  - [Ready]       — the file is installed: no banner.
+ *  - [Ready]       — the file is installed: no banner; carries whether the
+ *                    model can read images (for the source chooser).
  */
 sealed interface LibraryModelStatus {
     data object NoModel : LibraryModelStatus
@@ -24,7 +25,11 @@ sealed interface LibraryModelStatus {
                 ?: 0
     }
 
-    data object Ready : LibraryModelStatus
+    /**
+     * @property supportsImages the selected model can read pictures (`ModelCapability.VISION`)
+     * @property modelName display name of the selected model, for the "can't read images" dialog
+     */
+    data class Ready(val supportsImages: Boolean = false, val modelName: String = "") : LibraryModelStatus
 }
 
 /** Hot source of [LibraryModelStatus]; implemented in `data/` over the shared model-readiness observer. */

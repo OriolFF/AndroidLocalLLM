@@ -2,6 +2,7 @@ package com.llmlocal.core.llm.model.catalog
 
 import com.google.common.truth.Truth.assertThat
 import com.llmlocal.core.llm.model.LlmModelCatalog
+import com.llmlocal.core.model.ModelCapability
 import org.junit.Test
 
 class DescriptorJsonTest {
@@ -20,5 +21,6 @@ class DescriptorJsonTest {
         )
         assertThat(decoded).hasSize(1)
         assertThat(decoded.single().displayName).isEqualTo("x")
+        assertThat(decoded.single().capabilities).containsExactly(ModelCapability.TEXT)
     }
 }

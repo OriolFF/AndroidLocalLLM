@@ -48,6 +48,7 @@ import com.llmlocal.core.model.ModelFamily
 import com.llmlocal.feature.modelmanagement.domain.DownloadProgress
 import com.llmlocal.feature.modelmanagement.domain.DownloadStatus
 import com.llmlocal.feature.modelmanagement.presentation.mvi.ModelManagementIntent
+import com.llmlocal.core.model.ModelCapability
 import com.llmlocal.feature.modelmanagement.presentation.mvi.modelManagementLabels
 
 /**
@@ -188,12 +189,14 @@ fun ModelCard(
                 )
 
                 // Tag chips
-                if (descriptor.tags.isNotEmpty()) {
+                val readsImages = ModelCapability.VISION in descriptor.capabilities
+                if (descriptor.tags.isNotEmpty() || readsImages) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        if (readsImages) TagPill(label = labels.capabilityVision)
                         descriptor.tags.take(6).forEach { tag ->
                             TagPill(label = tag)
                         }

@@ -6,6 +6,7 @@ import com.llmlocal.feature.webclipper.data.CacheDirTempPictureStore
 import com.llmlocal.feature.webclipper.data.DataStoreStartPageRepository
 import com.llmlocal.feature.webclipper.data.EngineLlmGenerationSource
 import com.llmlocal.feature.webclipper.data.ImageDownloaderPictureDownloader
+import com.llmlocal.feature.webclipper.data.InMemoryClipInputInbox
 import com.llmlocal.feature.webclipper.data.InMemoryClipSession
 import com.llmlocal.feature.webclipper.data.ModelReadinessSource
 import com.llmlocal.feature.webclipper.data.WebViewHolder
@@ -22,13 +23,18 @@ import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.domain.usecase.CancelClipUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.CheckDuplicateUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ClipUseCase
+import com.llmlocal.feature.webclipper.domain.input.ClipInputInbox
+import com.llmlocal.feature.webclipper.domain.usecase.DiscardPreparedImagesUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.ObserveInputCapabilitiesUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveReadinessUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.PrepareImagesUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveStartPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ScanPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.SetStartPageUseCase
 import com.llmlocal.feature.webclipper.presentation.BrowserViewModel
 import com.llmlocal.feature.webclipper.presentation.ExtractionViewModel
 import com.llmlocal.feature.webclipper.presentation.WebClipperLabels
+import com.llmlocal.feature.webclipper.presentation.images.ImagesClipViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -52,6 +58,7 @@ const val WEBCLIPPER_TEMP_DIR_QUALIFIER = "webclipper-temp-dir"
 val webClipperModule: Module = module {
     // data -> domain interfaces
     single<ClipSession> { InMemoryClipSession() }
+    single<ClipInputInbox> { InMemoryClipInputInbox() }
     single { WebViewHolder(androidContext()) }
     single<PageScanner> { WebViewPageScanner(pageCapture = get(), holder = get()) }
     single<PictureDownloader> { ImageDownloaderPictureDownloader(delegate = get()) }
@@ -70,6 +77,9 @@ val webClipperModule: Module = module {
     factory { SetStartPageUseCase(repository = get()) }
     factory { CheckDuplicateUseCase(dispatchers = get()) }
     factory { CancelClipUseCase(llm = get(), session = get()) }
+    factory { PrepareImagesUseCase(importer = get(), tempPictures = get(), dispatchers = get()) }
+    factory { DiscardPreparedImagesUseCase(tempPictures = get()) }
+    factory { ObserveInputCapabilitiesUseCase(readiness = get(), config = get<WebClipConfig<*>>()) }
     factory {
         ClipUseCase<Any>(
             llm = get(),
@@ -104,6 +114,21 @@ val webClipperModule: Module = module {
             clip = get(),
             checkDuplicate = get(),
             cancelClip = get(),
+            discardImages = get(),
+            dispatchers = get(),
+        )
+    }
+
+    viewModel { params ->
+        ImagesClipViewModel(
+            pendingUris = params.getOrNull<List<String>>(),
+            savedStateHandle = get(),
+            config = params.get<WebClipConfig<*>>(),
+            labels = params.get<WebClipperLabels>(),
+            session = get(),
+            prepareImages = get(),
+            discardImages = get(),
+            observeCapabilities = get(),
             dispatchers = get(),
         )
     }

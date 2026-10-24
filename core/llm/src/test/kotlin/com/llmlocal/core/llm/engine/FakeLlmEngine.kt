@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flow
 class FakeLlmEngine(
     var initializeOutcome: Outcome<Unit> = Outcome.Success(Unit),
     var tokenDelayMs: Long = 0,
+    private val vision: Boolean = false,
     private val script: (LlmRequest) -> List<LlmToken> = { listOf(LlmToken.Done) },
 ) : LlmEngine {
 
@@ -47,8 +48,15 @@ class FakeLlmEngine(
         return initializeOutcome
     }
 
+    override fun capabilities(): LlmCapabilities =
+        LlmCapabilities(vision = vision, maxImages = if (vision) 3 else 0)
+
     override fun generateStream(request: LlmRequest): Flow<LlmToken> = flow {
         requests += request
+        if (request.images.isNotEmpty() && !vision) {
+            emit(LlmToken.Error(UnsupportedImagesException("The loaded model or build cannot read images")))
+            return@flow
+        }
         for (token in script(request)) {
             if (tokenDelayMs > 0) delay(tokenDelayMs)
             emit(token)

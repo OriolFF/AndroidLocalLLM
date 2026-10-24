@@ -1,0 +1,16 @@
+{
+ "id": "gr_afrato__multi__b280",
+ "images": 5,
+ "budget": 280,
+ "ttftMs": 31282,
+ "totalMs": 107493,
+ "outputChars": 2269,
+ "bench": {
+  "ttftS": 14.384098050999999,
+  "prefillTokens": 1705,
+  "prefillTokPerS": 127.05007734685758,
+  "decodeTokens": 1024,
+  "decodeTokPerS": 1.0371369696246031
+ },
+ "error": null
+}

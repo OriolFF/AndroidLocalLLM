@@ -13,7 +13,13 @@ import com.llmlocal.feature.webclipper.domain.CandidateSource
 import com.llmlocal.feature.webclipper.domain.ClipCandidate
 import com.llmlocal.feature.webclipper.domain.ClipSaveOptions
 import com.llmlocal.feature.webclipper.domain.ClipSink
+import com.llmlocal.feature.webclipper.domain.ImagePolicy
 import com.llmlocal.feature.webclipper.domain.PicturePick
+import com.llmlocal.feature.webclipper.domain.input.ClipImage
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.domain.input.snapshotOrNull
+import com.llmlocal.core.web.ImportedImage
+import com.llmlocal.core.web.LocalImageImporter
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.domain.PageScanner
 import com.llmlocal.feature.webclipper.domain.PictureDownloader
@@ -64,6 +70,7 @@ class FakeWebClipConfig(
     override val skipModelWhenStructuredComplete: Boolean = false,
     /** Fallback results that count as complete (direct path); default: every one. */
     var complete: (Parsed) -> Boolean = { true },
+    override val imagePolicy: ImagePolicy = ImagePolicy(enabled = true),
 ) : WebClipConfig<Parsed> {
 
     val fallbackCalls = mutableListOf<ClipCandidate>()
@@ -132,6 +139,9 @@ class FakeClipSink : ClipSink<Parsed> {
     )
 
     val saved = mutableListOf<Saved>()
+
+    /** The input of every save that came through the input-aware overload, in order. */
+    val savedInputs = mutableListOf<ClipInput>()
     var failWith: Throwable? = null
 
     /** What [existingId] answers; `null` = the page was never clipped. */
@@ -152,6 +162,28 @@ class FakeClipSink : ClipSink<Parsed> {
         pictures: List<File>,
         truncated: Boolean,
     ): String = save(item, snapshot, candidate, pictures, truncated, ClipSaveOptions())
+
+    override suspend fun save(
+        item: Parsed,
+        input: ClipInput,
+        candidate: ClipCandidate,
+        pictures: List<File>,
+        truncated: Boolean,
+        options: ClipSaveOptions,
+    ): String {
+        savedInputs += input
+        return when (input) {
+            is ClipInput.WebPage -> save(item, input.snapshot, candidate, pictures, truncated, options)
+            else -> {
+                failWith?.let { throw it }
+                saved += Saved(item, candidate, pictures, truncated, options)
+                "saved-${saved.size}"
+            }
+        }
+    }
+
+    override suspend fun existingId(input: ClipInput): String? =
+        input.snapshotOrNull?.let { existingId(it) }
 
     override suspend fun save(
         item: Parsed,
@@ -236,3 +268,48 @@ fun candidate(
     totalMinutes = null,
     payload = CandidatePayload.Text(TextSection(title, 2, "text", emptyList(), 0)),
 )
+
+/** A prepared picture with distinct bytes (so order is observable), written under [dir]. */
+fun preparedImage(dir: File, index: Int, name: String = "p$index.jpg"): ClipImage {
+    val file = File(dir, name).also { it.parentFile?.mkdirs(); it.writeBytes(byteArrayOf(index.toByte(), 9, 9)) }
+    return ClipImage(file = file, width = 100, height = 200, sha256 = "sha$index")
+}
+
+/**
+ * [LocalImageImporter] that writes 3 distinct bytes per URI; URIs in [failing]
+ * fail; [sizes] maps a URI to its pixel size (default 100 × 200); a URI whose
+ * height exceeds 2.5 × width tiles into [tilesPerTall] pieces.
+ */
+class FakeLocalImageImporter(
+    private val failing: Set<String> = emptySet(),
+    private val sizes: Map<String, Pair<Int, Int>> = emptyMap(),
+    private val tilesPerTall: Int = 3,
+) : LocalImageImporter {
+    val imported = mutableListOf<String>()
+
+    override suspend fun import(uri: String, into: File, maxLongEdgePx: Int): Outcome<ImportedImage> {
+        imported += uri
+        if (uri in failing) return Outcome.Failure(IllegalStateException("cannot read $uri"))
+        into.parentFile?.mkdirs()
+        into.writeBytes(uri.toByteArray())
+        val (w, h) = sizes[uri] ?: (100 to 200)
+        return Outcome.Success(ImportedImage(into, w, h, "sha-$uri"))
+    }
+
+    override suspend fun tile(
+        source: ImportedImage,
+        newFile: (index: Int) -> File,
+        tallAspect: Double,
+        overlap: Double,
+    ): Outcome<List<ImportedImage>> {
+        if (source.height <= tallAspect * source.width) return Outcome.Success(listOf(source))
+        return Outcome.Success(
+            List(tilesPerTall) { i ->
+                val file = newFile(i)
+                file.parentFile?.mkdirs()
+                file.writeText("tile$i of ${source.sha256}")
+                ImportedImage(file, source.width, source.width * 2, "tile-$i-${source.sha256}")
+            },
+        )
+    }
+}

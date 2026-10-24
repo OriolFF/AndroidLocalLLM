@@ -3,6 +3,7 @@ package com.llmlocal.core.domain.repository
 import com.llmlocal.core.domain.model.LlmTaskEvent
 import com.llmlocal.core.domain.task.LlmTaskConfig
 import com.llmlocal.core.llm.engine.LlmEngine
+import com.llmlocal.core.llm.engine.LlmImage
 import com.llmlocal.core.llm.engine.LlmRequest
 import kotlinx.coroutines.flow.Flow
 
@@ -70,12 +71,17 @@ interface LlmTaskRepository {
  *   engine default.
  * @property jsonSchema JSON Schema string for constrained decoding; `null`
  *   keeps free text.
+ * @property images pictures sent with the request, in reading order.
+ * @property visualTokenBudget tokens per image for the vision encoder;
+ *   `null` keeps the runtime default.
  */
 data class LlmRequestOptions(
     val systemInstruction: Boolean,
     val maxOutputTokens: Int? = null,
     val temperature: Double? = null,
     val jsonSchema: String? = null,
+    val images: List<LlmImage> = emptyList(),
+    val visualTokenBudget: Int? = null,
 ) {
     companion object {
         /**

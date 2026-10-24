@@ -1,0 +1,26 @@
+Title: Λίγο
+Description: A simple recipe for a dish involving flour, sugar, and milk.
+Servings: 1
+PrepMinutes: 0
+CookMinutes: 0
+TotalMinutes: 0
+Ingredients:
+- 100 gr νερό
+- 1 φωνέλλι (7 gr.) ζύμη
+- 1 κ.σ. ζάχαρη
+- 60 gr βούtero σε θερμοκρασία δωματίου
+- αλεύρι για ψωμί
+- 3 κ.σ. μαλακές σταφίδες
+- 1 κ.γ. αλάτι
+- Λίγο
+Steps:
+1. Αλατί
+2. Στέλνετε από τη συνέχεια το μίξερ στη χαμηλή ταχύτητα, ενισχυνοντας σε τρεις δόσεις το αλεύρι και το αλάτι.
+3. Διαvermίψου το μίξερ, κατά από το αλάτι.
+4. Απρίστε τη φόρμα με μίξερ βούtero και το αλάτι για 10 λεπτά.
+5. Απρίστε τη φόρμα με μίξερ βούtero και το αλάτι για 10 λεπτά.
+6. Απρίστε τη φόρμα με μίξερ βούtero και το αλάτι για 10 λεπτά.
+Notes:
+- The page seems to have repeated steps, which might indicate a transcription error or a poorly formatted recipe.
+- The total time is not explicitly stated.
+- The ingredients list is quite long.

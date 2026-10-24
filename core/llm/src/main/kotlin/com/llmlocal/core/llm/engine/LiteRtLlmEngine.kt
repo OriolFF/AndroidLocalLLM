@@ -9,9 +9,13 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.ExperimentalApi
+import com.google.ai.edge.litertlm.ExperimentalFlags
 import com.google.ai.edge.litertlm.ResponseFormat
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.llmlocal.core.common.result.Outcome
+import com.llmlocal.core.model.LlmModelDescriptor
+import com.llmlocal.core.model.ModelCapability
 import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
@@ -42,6 +46,16 @@ import kotlinx.coroutines.withContext
  *  3. The conversation is closed in the `finally` block after streaming
  *     completes, fails, or is cancelled.
  *
+ * Vision: when the selected model's descriptor lists [ModelCapability.VISION]
+ * and a [visionBackend] is configured, the engine is built with that vision
+ * backend and `maxNumImages`; [LlmRequest.images] are then sent as
+ * `Content.ImageBytes` **before** the prompt text (the order the eval
+ * measured). Otherwise images are rejected with [UnsupportedImagesException].
+ * The per-image token budget is the process-global
+ * `ExperimentalFlags.visualTokenBudget`, which the runtime reads on every
+ * send; it is set under [mutex] before each message and clamped to
+ * [MAX_VISUAL_TOKEN_BUDGET] (the bundle rejects larger values).
+ *
  * Cancellation: LiteRT-LM's `Flow<Message>` is a `callbackFlow` whose
  * `awaitClose {}` body is empty, so cancelling the collector alone does
  * **not** stop native inference — the model keeps burning CPU/GPU until it
@@ -56,6 +70,7 @@ import kotlinx.coroutines.withContext
  * [generateStream] (LiteRT-LM does not support concurrent conversations on
  * the same engine instance).
  */
+@OptIn(ExperimentalApi::class)
 class LiteRtLlmEngine(
     @Suppress("unused") private val context: Context,
     private val modelPathProvider: () -> File,
@@ -66,6 +81,10 @@ class LiteRtLlmEngine(
     private val temperature: Double = DEFAULT_TEMPERATURE,
     private val seed: Int = DEFAULT_SEED,
     private val backend: Backend = Backend.GPU(),
+    private val visionBackend: Backend? = null,
+    private val maxNumImages: Int = 0,
+    private val defaultVisualTokenBudget: Int = MAX_VISUAL_TOKEN_BUDGET,
+    private val descriptorProvider: () -> LlmModelDescriptor? = { null },
 ) : LlmEngine {
 
     private val tag = "LiteRtLlmEngine"
@@ -79,6 +98,11 @@ class LiteRtLlmEngine(
     // The Conversation currently streaming, if any. Set under [mutex] for the
     // duration of one generateStream() call so cancel() can reach it.
     private val activeConversation = AtomicReference<Conversation?>(null)
+    // True once an Engine was built with a vision backend.
+    @Volatile private var visionEnabled = false
+
+    override fun capabilities(): LlmCapabilities =
+        LlmCapabilities(vision = visionEnabled, maxImages = if (visionEnabled) maxNumImages else 0)
 
     override suspend fun initialize(): Outcome<Unit> = withContext(Dispatchers.IO) {
         // Idempotent: once the engine is built we keep using it. The
@@ -116,19 +140,30 @@ class LiteRtLlmEngine(
             // when it does; leaving it null makes the runtime pick
             // max(4096, prompt rounded up to a 4096 multiple), which is
             // unpredictable for memory budgeting, so we always set it.
+            val withVision = visionBackend != null && maxNumImages > 0 &&
+                descriptorProvider()?.capabilities?.contains(ModelCapability.VISION) == true
             val config = EngineConfig(
                 modelPath = modelFile.absolutePath,
                 backend = backend,
+                visionBackend = if (withVision) visionBackend else null,
                 maxNumTokens = maxNumTokens,
+                maxNumImages = if (withVision) maxNumImages else null,
                 cacheDir = cacheDirProvider().absolutePath,
             )
+            if (withVision) {
+                // The runtime also reads the flag while building the engine.
+                ExperimentalFlags.visualTokenBudget = clampBudget(defaultVisualTokenBudget)
+            }
             val engine = Engine(config)
             engine.initialize()
+            visionEnabled = withVision
             engineRef.set(engine)
             Log.i(
                 tag,
                 "Engine ready (model=${modelFile.length() / 1024 / 1024} MB, " +
-                    "backend=${backend::class.simpleName}, maxNumTokens=$maxNumTokens)",
+                    "backend=${backend::class.simpleName}, maxNumTokens=$maxNumTokens, " +
+                    "vision=${if (withVision) visionBackend!!::class.simpleName else "off"} " +
+                    "maxImages=${if (withVision) maxNumImages else 0})",
             )
             Outcome.Success(Unit)
         } catch (t: Throwable) {
@@ -145,6 +180,27 @@ class LiteRtLlmEngine(
                 )
             )
             return@flow
+        }
+
+        if (request.images.isNotEmpty()) {
+            if (!visionEnabled) {
+                emit(
+                    LlmToken.Error(
+                        UnsupportedImagesException("The loaded model or build cannot read images"),
+                    ),
+                )
+                return@flow
+            }
+            if (request.images.size > maxNumImages) {
+                emit(
+                    LlmToken.Error(
+                        IllegalArgumentException(
+                            "Got ${request.images.size} images, the engine accepts $maxNumImages",
+                        ),
+                    ),
+                )
+                return@flow
+            }
         }
 
         mutex.withLock {
@@ -170,6 +226,16 @@ class LiteRtLlmEngine(
                 return@withLock
             }
             activeConversation.set(conversation)
+            val contents = if (request.images.isEmpty()) {
+                Contents.of(request.prompt)
+            } else {
+                ExperimentalFlags.visualTokenBudget =
+                    clampBudget(request.visualTokenBudget ?: defaultVisualTokenBudget)
+                // Images first, then the user text.
+                Contents.of(
+                    request.images.map { Content.ImageBytes(it.bytes) } + Content.Text(request.prompt),
+                )
+            }
 
             try {
                 // Flow<Message> — one Message per streamed chunk. The
@@ -177,7 +243,7 @@ class LiteRtLlmEngine(
                 // sequence of partial Messages; we unwrap the text
                 // payloads and surface them as Partial tokens.
                 conversation
-                    .sendMessageAsync(Contents.of(request.prompt), responseFormat = responseFormat)
+                    .sendMessageAsync(contents, responseFormat = responseFormat)
                     .collect { message ->
                         val text = message.contents.contents
                             .filterIsInstance<Content.Text>()
@@ -225,7 +291,16 @@ class LiteRtLlmEngine(
             .onFailure { Log.w(tag, "cancelProcess() failed: ${it.message}") }
     }
 
+    private fun clampBudget(requested: Int): Int {
+        if (requested > MAX_VISUAL_TOKEN_BUDGET) {
+            Log.w(tag, "visualTokenBudget=$requested exceeds the bundle cap, clamped to $MAX_VISUAL_TOKEN_BUDGET")
+        }
+        return requested.coerceIn(1, MAX_VISUAL_TOKEN_BUDGET)
+    }
+
     companion object {
+        /** Vision token cap of the shipped `.litertlm` bundles (`ModelInfo.maxVisionTokenBudget()`). */
+        const val MAX_VISUAL_TOKEN_BUDGET = 280
         /** Total context window (prompt + output) requested from the engine. */
         const val DEFAULT_MAX_NUM_TOKENS = 4096
         const val DEFAULT_TOP_K = 40

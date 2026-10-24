@@ -1,0 +1,16 @@
+{
+ "id": "bbc_pancakes__tall__b280",
+ "images": 1,
+ "budget": 280,
+ "ttftMs": 1901,
+ "totalMs": 11142,
+ "outputChars": 1065,
+ "bench": {
+  "ttftS": 0.98099916775,
+  "prefillTokens": 633,
+  "prefillTokPerS": 668.3393034985254,
+  "decodeTokens": 275,
+  "decodeTokPerS": 29.51989539760965
+ },
+ "error": null
+}

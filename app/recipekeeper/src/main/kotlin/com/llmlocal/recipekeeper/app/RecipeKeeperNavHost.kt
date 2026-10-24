@@ -10,7 +10,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,10 +27,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.llmlocal.core.designsystem.component.AppScaffold
 import com.llmlocal.feature.modelmanagement.presentation.ModelManagementRoute
+import com.llmlocal.feature.webclipper.domain.ClipSession
 import com.llmlocal.feature.webclipper.domain.ClipSink
+import com.llmlocal.feature.webclipper.domain.input.ClipInputInbox
+import com.llmlocal.feature.webclipper.domain.input.PendingClipInput
+import com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.presentation.WebClipperBrowserRoute
 import com.llmlocal.feature.webclipper.presentation.WebClipperExtractionRoute
+import com.llmlocal.feature.webclipper.presentation.images.WebClipperImagesRoute
 import com.llmlocal.recipekeeper.clip.domain.RecipeKeeperDraftParser
 import com.llmlocal.recipekeeper.clip.presentation.ClipDraftCard
 import com.llmlocal.recipekeeper.clip.presentation.rememberRecipeKeeperClipperLabels
@@ -53,6 +63,7 @@ private val draftParser = RecipeKeeperDraftParser()
  * |------------------|--------------------------|----------------------------|
  * | Library (start)  | `library`                | `AppScaffold` (in route)   |
  * | Browser          | `browser?url={url}`      | own scaffold (feature)     |
+ * | Images clip      | `clip/images`            | own scaffold (feature)     |
  * | Extraction       | `extract/{candidateId}`  | own scaffold (feature)     |
  * | Recipe detail    | `recipe/{recipeId}`      | own scaffold (collapsing)  |
  * | Editor (create)  | `recipe/new`             | own scaffold (editor)      |
@@ -91,6 +102,32 @@ fun RecipeKeeperNavHost() {
         }
     }
 
+    // Share arrivals (pictures, links) land in the inbox; this host is the only consumer.
+    val inbox = koinInject<ClipInputInbox>()
+    val clipSession = koinInject<ClipSession>()
+    val clipperLabels = rememberRecipeKeeperClipperLabels()
+    val pending by inbox.pending.collectAsStateWithLifecycle()
+    var sharedImageUris by remember { mutableStateOf<List<String>?>(null) }
+    LaunchedEffect(pending) {
+        if (pending == null) return@LaunchedEffect
+        val input = inbox.consume() ?: return@LaunchedEffect
+        if (clipSession.activeExtraction.value != null) {
+            snackbarHostState.showSnackbar(clipperLabels.clipAlreadyRunning)
+            return@LaunchedEffect
+        }
+        when (input) {
+            is PendingClipInput.Images -> {
+                sharedImageUris = input.uris
+                navController.navigate(Route.ClipImages.pattern) {
+                    launchSingleTop = true
+                    // A second share while the screen is open starts it afresh with the new pictures.
+                    popUpTo(Route.ClipImages.pattern) { inclusive = true }
+                }
+            }
+            is PendingClipInput.Url -> navController.navigateToBrowser(input.url)
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Route.Library.pattern,
@@ -104,6 +141,29 @@ fun RecipeKeeperNavHost() {
                 onOpenModelManagement = { navController.navigateToModelManagement() },
                 onOpenSettings = { navController.navigateToSettings() },
                 onOpenEditor = { id -> navController.navigateToEditor(id) },
+                onOpenImagesClip = { navController.navigateToImagesClip() },
+            )
+        }
+
+        // Prepare/review screen of the images source; unreachable while IMAGES_SOURCE is off.
+        composable(Route.ClipImages.pattern) {
+            WebClipperImagesRoute(
+                config = koinInject<WebClipConfig<ClippedRecipe>>(),
+                labels = rememberRecipeKeeperClipperLabels(),
+                pendingUris = sharedImageUris,
+                onNavigateToExtraction = { candidateId ->
+                    sharedImageUris = null
+                    navController.navigate(Route.Extract.build(candidateId)) {
+                        popUpTo(Route.ClipImages.pattern) { inclusive = true }
+                    }
+                },
+                onClosed = {
+                    sharedImageUris = null
+                    navController.popBackStack()
+                },
+                onNavigateToModelManagement = { navController.navigateToModelManagement() },
+                snackbarHostState = snackbarHostState,
+                onShowSnackbar = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
             )
         }
 
@@ -151,11 +211,17 @@ fun RecipeKeeperNavHost() {
                 },
                 onSaved = { id ->
                     navController.navigate(Route.Recipe.build(id)) {
-                        popUpTo(Route.Browser.pattern)
+                        // An images clip has no browser behind it: back from the saved recipe lands on the library.
+                        popUpTo(if (candidateId == IMAGES_CANDIDATE_ID) Route.Library.pattern else Route.Browser.pattern)
                     }
                 },
                 onCancelled = { navController.popBackStack() },
                 onNavigateToModelManagement = { navController.navigateToModelManagement() },
+                onPickDifferent = if (candidateId == IMAGES_CANDIDATE_ID) {
+                    { navController.navigateToPickDifferentImages() }
+                } else {
+                    null
+                },
                 // Without the shared host "Clip cancelled" / "Saved to your
                 // recipes" were silently dropped (WS10 §Scenario 5).
                 snackbarHostState = snackbarHostState,
@@ -266,6 +332,8 @@ private sealed class Route(val pattern: String) {
         fun build(recipeId: String): String = "recipe/${Uri.encode(recipeId)}"
     }
 
+    data object ClipImages : Route("clip/images")
+
     data object NewRecipe : Route("recipe/new")
 
     data object EditRecipe : Route("recipe/{recipeId}/edit") {
@@ -289,6 +357,24 @@ private fun NavHostController.navigateToBrowser(url: String?) {
 private fun NavHostController.navigateToEditor(id: String?) {
     navigate(if (id == null) Route.NewRecipe.pattern else Route.EditRecipe.build(id)) {
         launchSingleTop = true
+    }
+}
+
+/** Images source entry; `launchSingleTop` so a double tap never stacks two. */
+private fun NavHostController.navigateToImagesClip() {
+    navigate(Route.ClipImages.pattern) {
+        launchSingleTop = true
+    }
+}
+
+/**
+ * "Pick different pictures" on the extraction screen: back to the prepare/review screen, which reads the
+ * prepared images from the session.
+ */
+private fun NavHostController.navigateToPickDifferentImages() {
+    navigate(Route.ClipImages.pattern) {
+        launchSingleTop = true
+        popUpTo(Route.Extract.pattern) { inclusive = true }
     }
 }
 

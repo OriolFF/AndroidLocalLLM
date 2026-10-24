@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelFamily
+import com.llmlocal.core.model.ModelCapability
 import com.llmlocal.feature.modelmanagement.presentation.mvi.modelManagementLabels
 
 /**
@@ -87,12 +88,13 @@ fun ModelDetailSheet(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            if (descriptor.tags.isNotEmpty()) {
+            val readsImages = ModelCapability.VISION in descriptor.capabilities
+            if (descriptor.tags.isNotEmpty() || readsImages) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    descriptor.tags.forEach { tag ->
+                    (listOfNotNull(labels.capabilityVision.takeIf { readsImages }) + descriptor.tags).forEach { tag ->
                         Box(
                             modifier = Modifier
                                 .background(

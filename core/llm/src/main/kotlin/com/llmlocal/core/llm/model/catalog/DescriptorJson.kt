@@ -2,6 +2,7 @@ package com.llmlocal.core.llm.model.catalog
 
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelAccelerator
+import com.llmlocal.core.model.ModelCapability
 import com.llmlocal.core.model.ModelFamily
 import org.json.JSONArray
 import org.json.JSONObject
@@ -30,7 +31,8 @@ object DescriptorJson {
                     .putOpt("sourceRepo", d.sourceRepo)
                     .putOpt("baseModel", d.baseModel)
                     .putOpt("updatedAt", d.updatedAt)
-                    .putOpt("contextTokens", d.contextTokens),
+                    .putOpt("contextTokens", d.contextTokens)
+                    .put("capabilities", JSONArray(d.capabilities.map { it.name })),
             )
         }
         return array.toString()
@@ -45,6 +47,11 @@ object DescriptorJson {
             val url = o.optString("url").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val filename = o.optString("filename").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val tags = o.optJSONArray("tags")?.let { t -> (0 until t.length()).map { t.optString(it) } }.orEmpty()
+            val capabilities = o.optJSONArray("capabilities")
+                ?.let { c -> (0 until c.length()).mapNotNull { i -> enumOrNull<ModelCapability>(c.optString(i)) } }
+                ?.toSet()
+                ?.takeIf { it.isNotEmpty() }
+                ?: setOf(ModelCapability.TEXT)
             LlmModelDescriptor(
                 id = id,
                 displayName = o.optString("displayName", id),
@@ -63,10 +70,14 @@ object DescriptorJson {
                 baseModel = o.optString("baseModel").takeIf { it.isNotBlank() },
                 updatedAt = o.optString("updatedAt").takeIf { it.isNotBlank() },
                 contextTokens = o.optInt("contextTokens").takeIf { it > 0 },
+                capabilities = capabilities,
             )
         }
     }
 
     private inline fun <reified E : Enum<E>> enumOrDefault(name: String, default: E): E =
-        enumValues<E>().firstOrNull { it.name == name } ?: default
+        enumOrNull<E>(name) ?: default
+
+    private inline fun <reified E : Enum<E>> enumOrNull(name: String): E? =
+        enumValues<E>().firstOrNull { it.name == name }
 }

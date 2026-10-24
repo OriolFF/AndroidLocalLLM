@@ -6,6 +6,7 @@ import com.llmlocal.feature.webclipper.domain.ExtractionError
 import com.llmlocal.feature.webclipper.domain.Phase
 import com.llmlocal.feature.webclipper.domain.PhaseStatus
 import com.llmlocal.feature.webclipper.domain.PictureStatus
+import com.llmlocal.feature.webclipper.domain.input.ClipInputKind
 import java.io.File
 
 /**
@@ -27,6 +28,8 @@ import java.io.File
  * @property duplicateOf id of an item already saved from this page; while
  *   non-null the duplicate warning dialog is up and nothing runs
  * @property replaceId the user chose "Replace": the save reuses this id
+ * @property inputKind what the clip reads from, so the screen branches without touching the session
+ * @property imageCount number of pictures of an images clip, else 0
  */
 @Immutable
 data class ExtractionState(
@@ -45,6 +48,8 @@ data class ExtractionState(
     val pageTitle: String? = null,
     val duplicateOf: String? = null,
     val replaceId: String? = null,
+    val inputKind: ClipInputKind = ClipInputKind.WEB,
+    val imageCount: Int = 0,
 )
 
 /**

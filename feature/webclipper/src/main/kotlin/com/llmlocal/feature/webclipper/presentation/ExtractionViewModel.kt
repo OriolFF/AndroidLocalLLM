@@ -17,7 +17,11 @@ import com.llmlocal.feature.webclipper.domain.WHOLE_PAGE_CANDIDATE_ID
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.domain.hostOf
 import com.llmlocal.feature.webclipper.domain.usecase.CancelClipUseCase
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
+import com.llmlocal.feature.webclipper.domain.input.ClipInputKind
+import com.llmlocal.feature.webclipper.domain.input.kind
 import com.llmlocal.feature.webclipper.domain.usecase.CheckDuplicateUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.DiscardPreparedImagesUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ClipUseCase
 import com.llmlocal.feature.webclipper.domain.wholePageCandidate
 import com.llmlocal.feature.webclipper.presentation.mvi.ExtractionEffect
@@ -67,6 +71,7 @@ class ExtractionViewModel(
     private val clip: ClipUseCase<Any>,
     private val checkDuplicate: CheckDuplicateUseCase,
     private val cancelClip: CancelClipUseCase,
+    private val discardImages: DiscardPreparedImagesUseCase,
     @Suppress("unused") private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -90,6 +95,8 @@ class ExtractionViewModel(
                 isRunning = false,
                 sourceHost = hostOf(page?.snapshot?.url),
                 pageTitle = page?.snapshot?.title,
+                inputKind = page?.input?.kind ?: ClipInputKind.WEB,
+                imageCount = (page?.input as? ClipInput.Images)?.images?.size ?: 0,
             ),
         )
         state = _state.asStateFlow()
@@ -124,12 +131,13 @@ class ExtractionViewModel(
 
     /** Shows the duplicate dialog if the page was clipped before, otherwise starts right away. */
     private fun checkDuplicateThenStart() {
-        val snapshot = session.current.value?.snapshot ?: run {
+        val input = session.current.value?.input ?: run {
             popWithoutPage()
             return
         }
         viewModelScope.launch {
-            val existing = checkDuplicate(sink, snapshot)
+            // Sinks answer null for inputs without a page (pictures): no dialog.
+            val existing = checkDuplicate(sink, input)
             if (existing != null) {
                 _state.update { it.copy(duplicateOf = existing) }
             } else {
@@ -146,8 +154,8 @@ class ExtractionViewModel(
 
     private fun start() {
         if (job?.isActive == true || _state.value.savedId != null) return
-        val snapshot = session.current.value?.snapshot
-        if (snapshot == null) {
+        val input = session.current.value?.input
+        if (input == null) {
             popWithoutPage()
             return
         }
@@ -166,7 +174,7 @@ class ExtractionViewModel(
         }
         val request = ClipRequest(
             candidate = candidate,
-            snapshot = snapshot,
+            input = input,
             replaceId = _state.value.replaceId,
             isPictureKept = { url -> _state.value.pictures.firstOrNull { it.url == url }?.keep == true },
         )
@@ -192,6 +200,10 @@ class ExtractionViewModel(
             is ClipProgress.PictureChanged -> updatePicture(event.url) {
                 it.copy(status = event.status, localFile = event.localFile ?: it.localFile)
             }
+            is ClipProgress.Retrying -> _state.update {
+                // The first attempt's text is void; the new pass starts at Reading again.
+                it.copy(streamedText = "", imageCount = event.imageCount)
+            }
             is ClipProgress.Truncated -> _state.update { it.copy(truncated = event.truncated) }
             is ClipProgress.Failed -> fail(event.error)
             is ClipProgress.Saved -> {
@@ -208,8 +220,17 @@ class ExtractionViewModel(
     private fun cancel() {
         val wasRunning = job?.isActive == true
         stopRun(reopenCandidates = false)
+        discardInputImages()
         if (wasRunning) send(ExtractionEffect.ShowSnackbar(labels.clipCancelled))
         send(ExtractionEffect.PopToBrowser)
+    }
+
+    /** Pictures that will not be clipped: delete them and drop the session (nothing to come back to). */
+    private fun discardInputImages() {
+        val input = session.current.value?.input as? ClipInput.Images ?: return
+        if (_state.value.savedId != null) return
+        discardImages(input.images)
+        session.clear()
     }
 
     private fun retryWholePage() {

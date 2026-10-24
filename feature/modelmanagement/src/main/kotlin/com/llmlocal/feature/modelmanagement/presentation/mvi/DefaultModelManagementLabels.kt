@@ -61,6 +61,7 @@ fun defaultModelManagementLabels(): ModelManagementLabels {
         discoveryFoundSnackbar = { n -> resources.getQuantityString(R.plurals.modelmanagement_default_discovery_found, n, n) },
         discoveryNothingNewSnackbar = stringResource(R.string.modelmanagement_default_discovery_nothing_new),
         discoveryFailedSnackbar = stringResource(R.string.modelmanagement_default_discovery_failed),
+        capabilityVision = resources.getString(R.string.modelmanagement_capability_vision),
         secondsLeftTemplate = { resources.getString(R.string.modelmanagement_progress_seconds_left, it) },
         minutesLeftTemplate = { resources.getString(R.string.modelmanagement_progress_minutes_left, it) },
         modelSelectedSnackbar = { resources.getString(R.string.modelmanagement_default_selected, it) },

@@ -3,6 +3,8 @@ package com.llmlocal.feature.webclipper.domain
 import com.llmlocal.core.common.result.Outcome
 import com.llmlocal.core.domain.model.LlmTaskEvent
 import com.llmlocal.core.domain.task.LlmTaskConfig
+import com.llmlocal.core.llm.engine.LlmCapabilities
+import com.llmlocal.core.llm.engine.LlmImage
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -18,8 +20,19 @@ interface LlmGenerationSource {
     /**
      * Runs [config] over the single rendered [input], emitting raw deltas
      * and one terminal `Complete` / `Failed`, capped at [maxOutputTokens].
+     * [images] travel on the request before the text, at [visualTokenBudget]
+     * tokens each (`null` = runtime default).
      */
-    fun <T : Any> generate(config: LlmTaskConfig<T>, input: String, maxOutputTokens: Int): Flow<LlmTaskEvent<T>>
+    fun <T : Any> generate(
+        config: LlmTaskConfig<T>,
+        input: String,
+        maxOutputTokens: Int,
+        images: List<LlmImage> = emptyList(),
+        visualTokenBudget: Int? = null,
+    ): Flow<LlmTaskEvent<T>>
+
+    /** What the loaded engine can take; text only by default. */
+    fun capabilities(): LlmCapabilities = LlmCapabilities()
 
     /** Stops native compute for the generation in flight, if any. */
     fun cancel()

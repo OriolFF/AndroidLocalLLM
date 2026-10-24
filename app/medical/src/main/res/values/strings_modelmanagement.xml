@@ -55,4 +55,5 @@
     </plurals>
     <string name="medical_modelmanagement_discovery_nothing_new">No new models</string>
     <string name="medical_modelmanagement_discovery_failed">Couldn\'t check for new models. Check your connection and try again.</string>
+    <string name="medical_modelmanagement_capability_vision">Reads images</string>
 </resources>

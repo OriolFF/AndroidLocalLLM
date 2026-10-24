@@ -1,0 +1,16 @@
+{
+ "id": "guardian_roundup__multi__b280",
+ "images": 5,
+ "budget": 280,
+ "ttftMs": 8519,
+ "totalMs": 77331,
+ "outputChars": 1914,
+ "bench": {
+  "ttftS": 3.4876308075,
+  "prefillTokens": 1705,
+  "prefillTokPerS": 508.9775834937403,
+  "decodeTokens": 500,
+  "decodeTokPerS": 7.258054144170649
+ },
+ "error": null
+}

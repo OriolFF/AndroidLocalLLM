@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.first
 /**
  * Builds the text to share for a recipe. The wording comes from the app's
  * labels through [templates], injected by the DI module: clipped recipes
- * share title + link, created recipes share their full text.
+ * share title + link, every origin without a source page (created, images, voice) shares its full text.
  */
 class ShareRecipeUseCase(
     private val repository: RecipeRepository,
@@ -32,7 +32,8 @@ class ShareRecipeUseCase(
         val recipe = repository.observe(id).first() ?: return null
         return when (recipe.origin) {
             RecipeOrigin.CLIPPED -> templates.clipped(recipe.title, recipe.sourceUrl)
-            RecipeOrigin.CREATED -> templates.created(
+            // No page to link to: share the full text, whatever made the recipe.
+            RecipeOrigin.CREATED, RecipeOrigin.IMAGES, RecipeOrigin.VOICE -> templates.created(
                 recipe.title,
                 templates.ingredientsHeader,
                 recipe.ingredients.joinToString("\n") { templates.bullet(it) },

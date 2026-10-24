@@ -4,8 +4,11 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
+import com.llmlocal.feature.webclipper.domain.input.ImagesAvailability
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
+import com.llmlocal.recipekeeper.recipes.domain.RecipeSource
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveImagesAvailabilityUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
@@ -42,6 +45,8 @@ class LibraryViewModelTest {
     private val hintsStore = FakeDetectionHintsStore()
     private val dispatchers = TestDispatchers(mainDispatcherRule.dispatcher)
 
+    private var imagesEnabled = true
+
     private fun viewModel(
         repository: FakeRecipeRepository = this.repository,
         deleteWithUndo: DeleteRecipeWithUndoUseCase = DeleteRecipeWithUndoUseCase(repository, dispatchers),
@@ -54,6 +59,7 @@ class LibraryViewModelTest {
         toggleFavourite = ToggleFavouriteUseCase(repository),
         observeLearnedHints = ObserveLearnedHintCountUseCase(hintsStore),
         resetDetection = ResetDetectionHintsUseCase(hintsStore),
+        observeImagesAvailability = ObserveImagesAvailabilityUseCase(modelStatus, enabled = imagesEnabled),
         dispatchers = dispatchers,
     )
 
@@ -182,9 +188,9 @@ class LibraryViewModelTest {
         advanceUntilIdle()
         assertThat(vm.state.value.modelStatus).isEqualTo(LibraryModelStatus.NoModel)
 
-        modelStatus.status.value = LibraryModelStatus.Ready
+        modelStatus.status.value = LibraryModelStatus.Ready()
         advanceUntilIdle()
-        assertThat(vm.state.value.modelStatus).isEqualTo(LibraryModelStatus.Ready)
+        assertThat(vm.state.value.modelStatus).isEqualTo(LibraryModelStatus.Ready())
     }
 
     @Test
@@ -339,5 +345,98 @@ class LibraryViewModelTest {
         assertThat(hintsStore.clearCalls).isEqualTo(1)
         assertThat(vm.state.value.resetDetectionDialogOpen).isFalse()
         assertThat(vm.state.value.learnedHintCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `open and dismiss toggle the source chooser`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onIntent(LibraryIntent.OpenSourceChooser)
+        assertThat(vm.state.value.sourceChooserOpen).isTrue()
+        vm.onIntent(LibraryIntent.DismissSourceChooser)
+        assertThat(vm.state.value.sourceChooserOpen).isFalse()
+    }
+
+    @Test
+    fun `web and editor rows close the sheet and navigate, voice does nothing`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(LibraryIntent.OpenSourceChooser)
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.WEB))
+            runCurrent()
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.NavigateToBrowser(null))
+            assertThat(vm.state.value.sourceChooserOpen).isFalse()
+
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.EDITOR))
+            runCurrent()
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.NavigateToEditor(null))
+
+            vm.onIntent(LibraryIntent.OpenSourceChooser)
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.VOICE))
+            runCurrent()
+            expectNoEvents()
+            assertThat(vm.state.value.sourceChooserOpen).isFalse()
+        }
+    }
+
+    @Test
+    fun `images row routes by availability`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            // No model yet → model management.
+            assertThat(vm.state.value.imagesAvailability).isEqualTo(ImagesAvailability.NoModel)
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.IMAGES))
+            runCurrent()
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.NavigateToModelManagement)
+
+            // Text-only model → the dialog, no navigation.
+            modelStatus.status.value = LibraryModelStatus.Ready(supportsImages = false, modelName = "Phi")
+            advanceUntilIdle()
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.IMAGES))
+            runCurrent()
+            assertThat(vm.state.value.imagesAvailability).isEqualTo(ImagesAvailability.ModelLacksVision)
+            assertThat(vm.state.value.imagesUnavailableDialog).isTrue()
+            vm.onIntent(LibraryIntent.DismissImagesUnavailable)
+            assertThat(vm.state.value.imagesUnavailableDialog).isFalse()
+
+            // Vision model → the images clip.
+            modelStatus.status.value = LibraryModelStatus.Ready(supportsImages = true)
+            advanceUntilIdle()
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.IMAGES))
+            runCurrent()
+            assertThat(awaitItem()).isEqualTo(LibraryEffect.NavigateToImagesClip)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `images availability is Disabled when the build flag is off, whatever the model`() = runTest {
+        imagesEnabled = false
+        modelStatus.status.value = LibraryModelStatus.Ready(supportsImages = true)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.imagesAvailability).isEqualTo(ImagesAvailability.Disabled)
+        vm.effects.test {
+            vm.onIntent(LibraryIntent.ChooseSource(RecipeSource.IMAGES))
+            runCurrent()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `a downloading model counts as no model for images`() = runTest {
+        val vm = viewModel()
+        modelStatus.status.value = LibraryModelStatus.Ready(supportsImages = true)
+        advanceUntilIdle()
+        assertThat(vm.state.value.imagesAvailability).isEqualTo(ImagesAvailability.Available)
+        modelStatus.status.value = LibraryModelStatus.NoModel
+        advanceUntilIdle()
+        assertThat(vm.state.value.imagesAvailability).isEqualTo(ImagesAvailability.NoModel)
     }
 }

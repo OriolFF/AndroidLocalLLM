@@ -1,0 +1,16 @@
+{
+ "id": "gr_afrato__tall__b70",
+ "images": 1,
+ "budget": 70,
+ "ttftMs": 1071,
+ "totalMs": 1140,
+ "outputChars": 9,
+ "bench": {
+  "ttftS": 0.7657494997500001,
+  "prefillTokens": 425,
+  "prefillTokPerS": 581.337427429751,
+  "decodeTokens": 4,
+  "decodeTokPerS": 28.837835170532934
+ },
+ "error": null
+}

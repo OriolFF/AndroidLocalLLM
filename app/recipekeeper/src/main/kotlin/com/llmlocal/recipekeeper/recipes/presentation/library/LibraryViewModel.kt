@@ -3,7 +3,10 @@ package com.llmlocal.recipekeeper.recipes.presentation.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llmlocal.core.common.coroutines.DispatcherProvider
+import com.llmlocal.feature.webclipper.domain.input.ImagesAvailability
+import com.llmlocal.recipekeeper.recipes.domain.RecipeSource
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveImagesAvailabilityUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
@@ -54,6 +57,7 @@ class LibraryViewModel(
     private val toggleFavourite: ToggleFavouriteUseCase,
     observeLearnedHints: ObserveLearnedHintCountUseCase,
     private val resetDetection: ResetDetectionHintsUseCase,
+    observeImagesAvailability: ObserveImagesAvailabilityUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -72,6 +76,9 @@ class LibraryViewModel(
             .launchIn(viewModelScope)
         observeLearnedHints()
             .onEach { count -> _state.update { it.copy(learnedHintCount = count) } }
+            .launchIn(viewModelScope)
+        observeImagesAvailability()
+            .onEach { availability -> _state.update { it.copy(imagesAvailability = availability) } }
             .launchIn(viewModelScope)
     }
 
@@ -113,6 +120,11 @@ class LibraryViewModel(
             is LibraryIntent.EditRecipe -> emit(LibraryEffect.NavigateToEditor(intent.id))
             LibraryIntent.CreateRecipe -> emit(LibraryEffect.NavigateToEditor(null))
 
+            LibraryIntent.OpenSourceChooser -> _state.update { it.copy(sourceChooserOpen = true) }
+            LibraryIntent.DismissSourceChooser -> _state.update { it.copy(sourceChooserOpen = false) }
+            is LibraryIntent.ChooseSource -> chooseSource(intent.source)
+            LibraryIntent.DismissImagesUnavailable -> _state.update { it.copy(imagesUnavailableDialog = false) }
+
             LibraryIntent.RequestResetDetection -> _state.update { it.copy(resetDetectionDialogOpen = true) }
             LibraryIntent.DismissResetDetection -> _state.update { it.copy(resetDetectionDialogOpen = false) }
             LibraryIntent.ConfirmResetDetection -> {
@@ -121,6 +133,23 @@ class LibraryViewModel(
                     withContext(dispatchers.io) { resetDetection() }
                     emit(LibraryEffect.DetectionReset)
                 }
+            }
+        }
+    }
+
+    /** Closes the sheet, then routes the row: web and editor always, images by availability, voice not at all. */
+    private fun chooseSource(source: RecipeSource) {
+        _state.update { it.copy(sourceChooserOpen = false) }
+        when (source) {
+            RecipeSource.WEB -> emit(LibraryEffect.NavigateToBrowser(url = null))
+            RecipeSource.EDITOR -> emit(LibraryEffect.NavigateToEditor(null))
+            RecipeSource.VOICE -> Unit
+            RecipeSource.IMAGES -> when (_state.value.imagesAvailability) {
+                ImagesAvailability.Available -> emit(LibraryEffect.NavigateToImagesClip)
+                ImagesAvailability.NoModel -> emit(LibraryEffect.NavigateToModelManagement)
+                ImagesAvailability.ModelLacksVision -> _state.update { it.copy(imagesUnavailableDialog = true) }
+                // The row is hidden in this state, so this is unreachable from the UI.
+                ImagesAvailability.Disabled -> Unit
             }
         }
     }

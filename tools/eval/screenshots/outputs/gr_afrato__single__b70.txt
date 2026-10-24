@@ -1,0 +1,22 @@
+Title: Υλικά
+Description: A list of ingredients for a recipe.
+Servings:
+PrepMinutes:
+CookMinutes:
+TotalMinutes:
+Ingredients:
+- 100 gr νερό
+- 1 φασκόνι (7 gr.) ζύρτι
+- 1 κ.σ.ζ. ζάχαρη
+- 60 gr βούτυρο σε θερμοκρασία δωματίου
+- 420-450 gr αλεύρι για ψωμί
+- 3 κ.σ. μαλακές σταφίδες
+- 1 κ.γ. αλάτι
+- Λίγο
+- Λάδι τη φόρμα
+Steps:
+1.
+Notes:
+-
+-
+-

@@ -26,9 +26,13 @@ android {
         // Override to "GPU" / "NPU" on hardware that supports it.
         debug {
             buildConfigField("String", "LLM_BACKEND", "\"CPU\"")
+            buildConfigField("String", "LLM_VISION_BACKEND", "\"CPU\"")
         }
         release {
             buildConfigField("String", "LLM_BACKEND", "\"GPU\"")
+            // The shipped bundle's vision tower is CPU-only (ModelInfo.supportedBackends(VISION) = [cpu]).
+            // "NONE" disables image input.
+            buildConfigField("String", "LLM_VISION_BACKEND", "\"CPU\"")
         }
     }
 }

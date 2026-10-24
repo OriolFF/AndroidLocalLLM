@@ -14,7 +14,7 @@ You are a senior Android UX engineer working on **AndroidLocalLLM**, a white-lab
 
 ## Skills you must use
 
-The skills below are installed globally under `~/.claude/skills`. Invoke them with the `Skill` tool before working in their area; do not work from memory when a skill covers the topic.
+The skills below are installed globally (`~/.claude/skills`, linked into `~/.claude-work/skills` so the claude-work profile finds them without an outside-directory read prompt). Invoke them with the `Skill` tool before working in their area; do not work from memory when a skill covers the topic.
 
 | Situation | Skill |
 |---|---|

@@ -1,0 +1,22 @@
+# Brief — evaluation: can the multimodal model extract a recipe from screenshots?
+You are an **evaluation agent** (Sonnet). Research + experiment, **no production code changes**; you may add files under `tools/eval/screenshots/` and `docs/research/`. Work in this worktree (`recipekeeper/dev`).
+
+Question from the user: *if we use the multimodal model, can we obtain the recipe from one or several screenshots of a page?* Answer with measurements, not assumptions.
+
+## What you have
+- `docs/research/recipekeeper-research-notes.md` §A: LiteRT-LM 0.18 image input (`EngineConfig(visionBackend=…)`, `Content.ImageBytes`/`ImageFile`, `ExperimentalFlags.visualTokenBudget` 70…1120), Gemma 4 E2B `.litertlm` includes the vision encoder; CPU vision speed on Android is UNVERIFIED.
+- `tools/eval/README.md` + `tools/eval/run_local_model.py`: the Python `litert-lm` wheel in `~/.cache/llmlocal-eval/venv` drives the same model file (`~/.cache/llmlocal-eval/gemma-4-E2B-it.litertlm`) on the Mac. Check whether the wheel's `Conversation`/`Contents` accept images (look at the installed package: `python -c "import litertlm, inspect; …"`, read its API) and how to set a vision backend / visual token budget there.
+- Ground truth: the recipe-site sweep (`docs/plans/briefs/qa-sites-report.md`) and the eval fixtures in `app/recipekeeper/src/test/resources/eval/pages/*.json` (captured `PageSnapshot`s with JSON-LD ingredients/steps) — reuse their URLs so you can score against known-correct ingredients and steps.
+- Screenshots: `emulator-5556` is running Recipe Keeper with the model; open pages in its browser and `adb exec-out screencap -p`, scrolling to take 2–5 shots per page; also headless Chrome on the Mac (`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless --screenshot --window-size=1080,2400 <url>`) for full-page or tall captures. Resize/crop as needed (Pillow in the venv).
+
+## Experiment (8–10 pages: 5 from the fixtures/sweep with JSON-LD truth incl. one Spanish and one Greek, 2 plain-text blogs, 1 round-up, 1 page where the recipe is an image/infographic)
+For each page, run the model with the same system prompt the app uses (`RecipeKeeperPromptBuilder.SYSTEM`, read it from `app/recipekeeper/.../clip/domain/`) and a user turn built from images:
+1. **single screenshot** (the first viewport containing the ingredients), 2. **all screenshots of the page** (2–5), 3. **one tall full-page capture** downscaled to the visual token budget. Try visual token budgets 280 and 560 (and 1120 on one page) and note prefill time, total time, output tokens.
+Parse each output with the production parser logic (reimplement the minimal line format in Python or call the JVM parser via a tiny Gradle test that reads `build/eval/screenshots/outputs/*.txt` — the latter keeps scoring identical to the app) and score: ingredient recall/precision vs. truth (token Jaccard like the eval), step count and order, numbers/fractions/units correctness (OCR-sensitive!), hallucinated lines, servings/times. Compare with the **DOM-based** result for the same page (the app's current path) and with the model's **text-only** run on the rendered text.
+
+## Also assess (desk research, cite sources)
+- On-device feasibility: image prefill cost on a phone CPU/GPU for Gemma 4 E2B (LiteRT-LM issues/benchmarks), memory impact of loading the vision tower, `visualTokenBudget` trade-offs; whether the emulator (CPU, no SME) can run vision at all — try one image through an instrumented `EvalRunnerTest`-style run on `emulator-5556` **only by manual test-APK install** (never `connectedDebugAndroidTest`), or explain why you skipped it.
+- Product fit: where screenshots beat DOM capture (recipes shown as images/infographics, Instagram/TikTok/WhatsApp screenshots shared to the app, paywalled or canvas-rendered pages, PDFs, printed books via camera) and where they lose (speed, OCR errors on quantities, long pages needing many shots, cost).
+
+## Deliverable
+`docs/research/screenshot-extraction-eval.md` (≤ 250 lines): method, results table (page × mode × budget → score, time), error analysis with examples (misread fractions, missed lines), on-device feasibility, recommendation (e.g. "ship as a 'Share a screenshot' entry point for image-only recipes with budget X; keep DOM capture as the primary path") and what a prototype would need (`LlmRequest` images field, `visionBackend` wiring, a share-target activity). Commit `tools/eval/screenshots/` scripts + the doc on this branch; reply `eval-screenshots done — see docs/research/screenshot-extraction-eval.md`.

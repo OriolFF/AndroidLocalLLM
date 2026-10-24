@@ -1,0 +1,16 @@
+{
+ "id": "joy_pancakes__single__b140",
+ "images": 1,
+ "budget": 140,
+ "ttftMs": 1162,
+ "totalMs": 16170,
+ "outputChars": 1591,
+ "bench": {
+  "ttftS": 0.77134996875,
+  "prefillTokens": 492,
+  "prefillTokPerS": 667.8571355851793,
+  "decodeTokens": 435,
+  "decodeTokPerS": 28.847150568768345
+ },
+ "error": null
+}

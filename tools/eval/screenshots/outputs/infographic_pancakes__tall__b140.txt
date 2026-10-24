@@ -1,0 +1,26 @@
+Title: FLUFFY BUTTERMILK PANCAKES
+Description: A recipe for fluffy buttermilk pancakes.
+Servings: 4
+PrepMinutes: 10
+CookMinutes: 15
+TotalMinutes: 25
+Ingredients:
+- 1½ cups (190 g) all-purpose flour
+- 2 tbsp sugar
+- 1 tsp baking powder
+- ½ tsp baking soda
+- ¼ tsp salt
+- 1¼ cups (300 ml) buttermilk
+- 2 large eggs
+- 3 tbsp (45 g) melted butter
+- 1 tsp vanilla extract
+Steps:
+1. Whisk the flour, sugar, baking powder, baking soda and salt in a large bowl.
+2. In a jug, whisk the buttermilk, eggs, melted butter and vanilla.
+3. Pour the wet mix into the dry and stir until just combined.
+4. Rest the batter for 5 minutes while a non-stick pan heats over medium heat.
+5. Pour ¼ cup (60 ml) batter per pancake and cook 2 to 3 minutes until bubbles form.
+6. Flip and cook 1 to 2 minutes more until golden. Serve warm with maple syrup.
+Notes:
+- don't over-mix
+- keep finished pancakes warm in a 200°F (95°C) oven.

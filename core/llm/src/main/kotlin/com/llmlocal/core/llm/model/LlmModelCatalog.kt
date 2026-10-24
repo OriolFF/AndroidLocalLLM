@@ -2,6 +2,7 @@ package com.llmlocal.core.llm.model
 
 import com.llmlocal.core.model.LlmModelDescriptor
 import com.llmlocal.core.model.ModelAccelerator
+import com.llmlocal.core.model.ModelCapability
 import com.llmlocal.core.model.ModelFamily
 
 /**
@@ -26,6 +27,13 @@ object LlmModelCatalog {
     /**
      * Default model — **Gemma 4 E2B IT**, the cross-platform CPU bundle.
      * Runs on every device the app supports (including the emulator).
+     *
+     * Reads images (`VISION`): the bundle ships a vision encoder capped at 280
+     * tokens per image, CPU only. To check another bundle, open it with
+     * `ModelInfo.from(path)` (`inputModalities()`, `maxVisionTokenBudget()`,
+     * `supportedBackends(Modality.VISION)`) or `litert_lm.ModelInfo` in the
+     * Python wheel; the `.litertlm` manifest lists the `input_modalities`.
+     * Add `ModelCapability.VISION` to a descriptor only after that check.
      */
     val DEFAULT_MODEL: LlmModelDescriptor = LlmModelDescriptor(
         id = "gemma-4-E2B-it",
@@ -45,6 +53,7 @@ object LlmModelCatalog {
         accelerator = ModelAccelerator.CPU,
         sourceRepo = GEMMA_4_E2B_REPO,
         baseModel = "google/gemma-4-E2B-it",
+        capabilities = setOf(ModelCapability.TEXT, ModelCapability.VISION),
     )
 
     /** Gemma 4 E2B IT compiled for the GPU backend (release builds). */

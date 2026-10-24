@@ -12,6 +12,7 @@ val TestModelManagementLabels = ModelManagementLabels(
     useModelLabel = "", removeLabel = "", downloadLabel = "", failureFooterFallback = "",
     detailByTemplate = { _, _ -> "" }, detailSizeLabel = "", detailFamilyLabel = "",
     detailMinRamLabel = "", detailMinRamUnit = "", detailFileLabel = "", detailUrlLabel = "",
+    capabilityVision = "Reads images",
     secondsLeftTemplate = { "" }, minutesLeftTemplate = { "" },
     modelSelectedSnackbar = { "selected $it" },
     modelRemovedSnackbar = { "removed $it" },

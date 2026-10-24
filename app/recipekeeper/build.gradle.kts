@@ -3,12 +3,19 @@ plugins {
     id("llmlocal.android.room")
 }
 
+// Input sources: the "From images" row, ImagePolicy.enabled and the image/* share target.
+// Images input source (gate: docs/research/screenshot-extraction-eval.md). The single value feeds BuildConfig.IMAGES_SOURCE
+// and the ${imagesShareTarget} placeholder (the enabled flag of the image share alias).
+val imagesSource = true
+
 android {
     namespace = "com.llmlocal.recipekeeper"
     defaultConfig {
         applicationId = "com.llmlocal.recipekeeper"
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("boolean", "IMAGES_SOURCE", imagesSource.toString())
+        manifestPlaceholders["imagesShareTarget"] = imagesSource.toString()
         // WS7: the on-device eval runner (src/androidTest/.../EvalRunnerTest)
         // is driven by tools/eval/run_local_model.sh --device.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

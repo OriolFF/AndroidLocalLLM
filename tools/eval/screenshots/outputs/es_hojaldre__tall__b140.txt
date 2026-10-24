@@ -1,0 +1,17 @@
+Title: Tarta de manzana
+Description: A simple apple tart recipe.
+Servings: 4
+PrepMinutes: 15
+CookMinutes: 15
+TotalMinutes: 30
+Ingredients:
+- 1 ud.
+- 3 manzanas
+- 2 cucharadas
+- 1/2 taza
+- 25 g
+Steps:
+1. Prepara los manzanas en cartones y en gratinas.
+2. Después, pásalos a la preparación de la tarta de manzana.
+Notes:
+- No notes were found.

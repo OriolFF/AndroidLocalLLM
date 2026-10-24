@@ -1,0 +1,16 @@
+{
+ "id": "rte_tikka__single__b70",
+ "images": 1,
+ "budget": 70,
+ "ttftMs": 978,
+ "totalMs": 3934,
+ "outputChars": 253,
+ "bench": {
+  "ttftS": 0.7440466825000001,
+  "prefillTokens": 433,
+  "prefillTokPerS": 609.8294150091624,
+  "decodeTokens": 89,
+  "decodeTokPerS": 29.401337967347587
+ },
+ "error": null
+}

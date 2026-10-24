@@ -1,0 +1,16 @@
+{
+ "id": "joy_pancakes__tall__b140",
+ "images": 1,
+ "budget": 140,
+ "ttftMs": 5616,
+ "totalMs": 34760,
+ "outputChars": 680,
+ "bench": {
+  "ttftS": 3.66280768575,
+  "prefillTokens": 508,
+  "prefillTokPerS": 144.50220147183884,
+  "decodeTokens": 200,
+  "decodeTokPerS": 6.789312849778941
+ },
+ "error": null
+}

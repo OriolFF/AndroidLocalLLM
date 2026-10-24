@@ -69,6 +69,12 @@ private fun DetailCreatedDarkPreview() = DetailPreviewSurface(
     darkTheme = true,
 )
 
+@Preview(name = "Detail · from images", showBackground = true)
+@Composable
+private fun DetailImagesPreview() = DetailPreviewSurface(
+    loaded.copy(recipe = SampleData.imagesRecipe, currentStep = null),
+)
+
 @Preview(name = "Detail · truncated", showBackground = true)
 @Composable
 private fun DetailTruncatedPreview() = DetailPreviewSurface(

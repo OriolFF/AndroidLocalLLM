@@ -34,6 +34,9 @@ coil = "3.6.3"
 # WebView helpers (:core:web page capture, :feature:webclipper browser)
 androidx-webkit = "1.17.1"
 
+# EXIF rotation of picked pictures (:core:web LocalImageImporter)
+androidx-exifinterface = "1.4.2"
+
 # DI
 koin = "4.2.2"
 
@@ -104,6 +107,7 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 
 # WebView helpers
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "androidx-webkit" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "androidx-exifinterface" }
 
 # DI (Koin)
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }

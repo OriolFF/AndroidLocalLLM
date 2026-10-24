@@ -1,0 +1,90 @@
+{
+ "joy_pancakes": {
+  "title": "Pancakes Recipe",
+  "ingredients": [
+   "1 cup (130 grams) all-purpose flour",
+   "1 1/2 teaspoons baking powder",
+   "1/4 teaspoon salt",
+   "2 tablespoons (28 grams) granulated white sugar",
+   "1 large egg, lightly beaten",
+   "1 cup (240 ml) milk",
+   "2 tablespoons (28 grams) unsalted butter, melted",
+   "extra melted butter for greasing the pan"
+  ],
+  "steps": [
+   "In a large bowl whisk together the flour, baking powder, salt and sugar.",
+   "In a separate bowl whisk together the egg, milk, and melted butter.",
+   "Make a well in the center of the dry ingredients and then pour in the egg mixture, all at once, and stir (with a rubber spatula or wooden spoon) just until combined.",
+   "Heat a frying pan or griddle over medium high heat until a few sprinkles of water dropped on the pan or griddle splatter.",
+   "Adjust the temperature as needed.",
+   "Using a piece of paper towel or a pastry brush, lightly brush the pan with melted butter or oil (or spray with a non stick vegetable spray.)",
+   "Using a small ladle or scoop, pour about 1/4 cup (60 ml) of pancake batter onto the hot pan, spacing the pancakes a few inches apart.",
+   "When the bottoms of the pancakes are brown and bubbles start to appear on the top surfaces of the pancakes (2-3 minutes), turn over.",
+   "Cook until lightly browned (about 1-2 minutes).",
+   "Repeat with remaining batter, brushing the pan with melted butter or oil between batches.",
+   "Serve immediately with butter and maple syrup."
+  ],
+  "servings": "3-4 people",
+  "prep": "15",
+  "cook": "2",
+  "total": "17",
+  "source": "DOM-pipeline golden, spot-checked against page text"
+ },
+ "cfe_banana": {
+  "title": "Banana Nut Bread",
+  "ingredients": [
+   "2 large (250 g) ripe bananas",
+   "6 Tbs. (90 mL) butter",
+   "1 tsp. (5 mL) vanilla extract",
+   "2 large eggs",
+   "1-1/3 cups (167 g) all-purpose flour",
+   "2/3 cup (130 g) sugar",
+   "1/2 tsp. (2.3 g) baking soda",
+   "1/4 tsp. (1.2 g) baking powder",
+   "1/2 tsp. (3 g) salt",
+   "1/2 cup (70 g) chopped walnuts"
+  ],
+  "steps": [
+   "Butter and flour a loaf pan",
+   "Preheat oven to 350°F (170°C)",
+   "Mash the bananas, butter and vanilla until smooth",
+   "Lightly beat the eggs",
+   "Whisk the flour, baking soda, baking powder, salt and sugar",
+   "Fold in the walnuts",
+   "Bake 350°F (170°C) 55 min.",
+   "Cool 10 min. in pan",
+   "Cool on wire rack"
+  ],
+  "servings": "about 10 servings",
+  "prep": "15",
+  "cook": "55",
+  "total": "70",
+  "source": "read from the screenshot (the page is one table; the DOM-pipeline golden dropped the metric amounts)"
+ },
+ "infographic_pancakes": {
+  "title": "Fluffy Buttermilk Pancakes",
+  "servings": "4",
+  "prep": 10,
+  "cook": 15,
+  "source": "synthetic card (infographic/card.html)",
+  "ingredients": [
+   "1½ cups (190 g) all-purpose flour",
+   "2 tbsp sugar",
+   "1 tsp baking powder",
+   "½ tsp baking soda",
+   "¾ tsp salt",
+   "1¼ cups (300 ml) buttermilk",
+   "2 large eggs",
+   "3 tbsp (45 g) melted butter",
+   "1 tsp vanilla extract"
+  ],
+  "steps": [
+   "Whisk the flour, sugar, baking powder, baking soda and salt in a large bowl.",
+   "In a jug, whisk the buttermilk, eggs, melted butter and vanilla.",
+   "Pour the wet mix into the dry and stir until just combined. A few lumps are fine.",
+   "Rest the batter for 5 minutes while a non-stick pan heats over medium heat.",
+   "Pour ¼ cup (60 ml) batter per pancake and cook 2 to 3 minutes until bubbles form.",
+   "Flip and cook 1 to 2 minutes more until golden. Serve warm with maple syrup."
+  ]
+ }
+}

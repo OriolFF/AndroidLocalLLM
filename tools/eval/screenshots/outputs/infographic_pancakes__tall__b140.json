@@ -1,0 +1,16 @@
+{
+ "id": "infographic_pancakes__tall__b140",
+ "images": 1,
+ "budget": 140,
+ "ttftMs": 1368,
+ "totalMs": 11200,
+ "outputChars": 906,
+ "bench": {
+  "ttftS": 0.8077351855,
+  "prefillTokens": 492,
+  "prefillTokPerS": 635.8272849153605,
+  "decodeTokens": 292,
+  "decodeTokPerS": 29.463633967422858
+ },
+ "error": null
+}

@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.ImageSearch
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -41,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -74,6 +78,7 @@ import com.llmlocal.core.designsystem.component.PhaseStatus as DsPhaseStatus
 import com.llmlocal.core.designsystem.component.SkeletonLine
 import com.llmlocal.core.designsystem.component.StreamingCursor
 import com.llmlocal.feature.webclipper.domain.PhaseStatus
+import com.llmlocal.feature.webclipper.domain.input.ClipInputKind
 import com.llmlocal.feature.webclipper.presentation.mvi.PictureDraft
 import com.llmlocal.feature.webclipper.domain.PictureStatus
 
@@ -96,6 +101,8 @@ import com.llmlocal.feature.webclipper.domain.PictureStatus
  * @param elapsedSeconds seconds since the extraction started (route-owned ticker)
  * @param renderDraft the app's skeleton-that-fills-in over the raw stream
  * @param onViewSaved "View recipe" after completion
+ * @param onPickDifferent images only: "Pick different pictures" on the
+ *   no-recipe failure; `null` hides the action
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,12 +115,14 @@ fun WebClipperExtractionScreen(
     onNavigateToModelManagement: () -> Unit,
     onViewSaved: () -> Unit,
     modifier: Modifier = Modifier,
+    onPickDifferent: (() -> Unit)? = null,
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     val activePhase = state.phases.entries.firstOrNull { it.value == PhaseStatus.Active }?.key
     val announcement = when {
-        state.error != null -> errorTitle(state.error, labels)
+        state.error != null -> errorTitle(state.error, labels, state.inputKind)
         state.savedId != null -> labels.recipeSaved
-        activePhase != null -> phaseLabel(activePhase, labels)
+        activePhase != null -> phaseLabel(activePhase, labels, state.inputKind)
         else -> ""
     }
 
@@ -127,6 +136,9 @@ fun WebClipperExtractionScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets.safeDrawing,
+            // The shared host must render here too, or "Finish the current clip
+            // first" (a share during an extraction) is never seen (I4 QA P2-2).
+            snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
             topBar = {
                 TopAppBar(
                     title = { Text(labels.extractionTitle) },
@@ -177,7 +189,7 @@ fun WebClipperExtractionScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        bodyItems(state, labels, renderDraft, onIntent, onNavigateToModelManagement)
+                        bodyItems(state, labels, renderDraft, onIntent, onNavigateToModelManagement, onPickDifferent)
                     }
                 }
             } else {
@@ -188,7 +200,7 @@ fun WebClipperExtractionScreen(
                 ) {
                     item("source") { SourceStrip(state, labels, onIntent) }
                     item("phases") { PhaseList(state, labels, elapsedSeconds) }
-                    bodyItems(state, labels, renderDraft, onIntent, onNavigateToModelManagement)
+                    bodyItems(state, labels, renderDraft, onIntent, onNavigateToModelManagement, onPickDifferent)
                 }
             }
             }
@@ -252,13 +264,14 @@ private fun androidx.compose.foundation.lazy.LazyListScope.bodyItems(
     renderDraft: @Composable (String, Boolean) -> Unit,
     onIntent: (ExtractionIntent) -> Unit,
     onNavigateToModelManagement: () -> Unit,
+    onPickDifferent: (() -> Unit)?,
 ) {
     if (state.truncated) {
         item("truncated") { TruncatedBanner(labels) }
     }
     val error = state.error
     if (error != null) {
-        item("error") { ErrorBlock(state, error, labels, onIntent, onNavigateToModelManagement) }
+        item("error") { ErrorBlock(state, error, labels, onIntent, onNavigateToModelManagement, onPickDifferent) }
     } else {
         item("draft") {
             Box(modifier = Modifier.animateContentSize()) {
@@ -280,14 +293,27 @@ private fun SourceStrip(
     labels: WebClipperLabels,
     onIntent: (ExtractionIntent) -> Unit,
 ) {
-    val source = listOfNotNull(
-        state.sourceHost?.takeIf { it.isNotBlank() },
-        (state.pageTitle ?: state.candidate.title).takeIf { it.isNotBlank() },
-    ).joinToString(" · ")
+    val images = state.inputKind == ClipInputKind.IMAGES
+    val source = if (images) {
+        labels.imagesSourceStrip(state.imageCount)
+    } else {
+        listOfNotNull(
+            state.sourceHost?.takeIf { it.isNotBlank() },
+            (state.pageTitle ?: state.candidate.title).takeIf { it.isNotBlank() },
+        ).joinToString(" · ")
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
     ) {
+        if (images) {
+            Icon(
+                Icons.Outlined.PhotoLibrary,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+        }
         Text(
             text = source,
             style = MaterialTheme.typography.bodyMedium,
@@ -308,15 +334,23 @@ private fun SourceStrip(
 private fun PhaseList(state: ExtractionState, labels: WebClipperLabels, elapsedSeconds: Int) {
     val items = Phase.entries.map { phase ->
         val status = state.phases[phase] ?: PhaseStatus.Pending
+        val images = state.inputKind == ClipInputKind.IMAGES
         val detail = when {
-            phase == Phase.Extracting && status == PhaseStatus.Active ->
+            // Reading stays active through the prefill (V11); the hint belongs to whichever phase is waiting.
+            (phase == Phase.Reading || phase == Phase.Extracting) && status == PhaseStatus.Active && images ->
+                buildString {
+                    append("${labels.imagesExtractingHint} · ${labels.elapsedTemplate(elapsedSeconds)}")
+                    if (state.imageCount == 1) append("\n${labels.imagesPrivacyHint}")
+                    append("\n${labels.keepAppOpenHint}")
+                }
+            (phase == Phase.Reading || phase == Phase.Extracting) && status == PhaseStatus.Active ->
                 "${labels.extractingHint} · ${labels.elapsedTemplate(elapsedSeconds)}\n${labels.keepAppOpenHint}"
             phase == Phase.Extracting && status == PhaseStatus.Warning -> labels.truncatedWarning
             phase == Phase.Extracting && status == PhaseStatus.Done && state.extractedWithoutModel -> labels.extractedWithoutModel
             phase == Phase.Pictures && status == PhaseStatus.Warning -> labels.picturesUnavailable
             else -> null
         }
-        PhaseItem(label = phaseLabel(phase, labels), status = status.toDesign(), detail = detail)
+        PhaseItem(label = phaseLabel(phase, labels, state.inputKind), status = status.toDesign(), detail = detail)
     }
     PhaseProgress(items = items)
 }
@@ -381,7 +415,9 @@ private fun ErrorBlock(
     labels: WebClipperLabels,
     onIntent: (ExtractionIntent) -> Unit,
     onNavigateToModelManagement: () -> Unit,
+    onPickDifferent: (() -> Unit)?,
 ) {
+    val back = if (state.inputKind == ClipInputKind.IMAGES) labels.backToLibrary else labels.backToPage
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         when (error) {
             is ExtractionError.ModelFailed -> {
@@ -393,11 +429,23 @@ private fun ErrorBlock(
                     onAction = { onIntent(ExtractionIntent.Retry) },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(labels.backToPage) }
+                    TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(back) }
                     TextButton(onClick = onNavigateToModelManagement) { Text(labels.openModels) }
                 }
             }
-            is ExtractionError.ParseFailed -> {
+            is ExtractionError.ParseFailed -> if (state.inputKind == ClipInputKind.IMAGES) {
+                EmptyState(
+                    icon = Icons.Outlined.ImageSearch,
+                    title = labels.imagesNoRecipeTitle,
+                    message = labels.imagesNoRecipeMessage,
+                    actionLabel = onPickDifferent?.let { labels.pickDifferentImages },
+                    onAction = onPickDifferent,
+                )
+                TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(back) }
+                if (error.rawOutput.isNotBlank()) {
+                    RawOutput(state = state.copy(streamedText = error.rawOutput, isRunning = false), labels, onIntent)
+                }
+            } else {
                 EmptyState(
                     icon = Icons.Outlined.ErrorOutline,
                     title = labels.parseFailedTitle,
@@ -406,7 +454,7 @@ private fun ErrorBlock(
                     onAction = { onIntent(ExtractionIntent.Retry) },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(labels.backToPage) }
+                    TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(back) }
                     if (state.candidate.payload !is CandidatePayload.WholePage) {
                         TextButton(onClick = { onIntent(ExtractionIntent.RetryWholePage) }) { Text(labels.tryWholePage) }
                     }
@@ -414,6 +462,16 @@ private fun ErrorBlock(
                 if (error.rawOutput.isNotBlank()) {
                     RawOutput(state = state.copy(streamedText = error.rawOutput, isRunning = false), labels, onIntent)
                 }
+            }
+            ExtractionError.ImagesUnsupported -> {
+                EmptyState(
+                    icon = Icons.Outlined.ErrorOutline,
+                    title = labels.imagesUnsupportedTitle,
+                    message = labels.imagesUnsupportedMessage,
+                    actionLabel = labels.openModels,
+                    onAction = onNavigateToModelManagement,
+                )
+                TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(back) }
             }
             ExtractionError.ModelMissing -> {
                 EmptyState(
@@ -423,7 +481,7 @@ private fun ErrorBlock(
                     actionLabel = labels.openModels,
                     onAction = onNavigateToModelManagement,
                 )
-                TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(labels.backToPage) }
+                TextButton(onClick = { onIntent(ExtractionIntent.Cancel) }) { Text(back) }
             }
         }
     }
@@ -521,16 +579,18 @@ private fun ActionButton(
 }
 
 /** Visible label for [phase]. */
-fun phaseLabel(phase: Phase, labels: WebClipperLabels): String = when (phase) {
-    Phase.Reading -> labels.phaseReading
+fun phaseLabel(phase: Phase, labels: WebClipperLabels, kind: ClipInputKind = ClipInputKind.WEB): String = when (phase) {
+    Phase.Reading -> if (kind == ClipInputKind.IMAGES) labels.phaseReadingImages else labels.phaseReading
     Phase.Extracting -> labels.phaseExtracting
     Phase.Pictures -> labels.phasePictures
     Phase.Saving -> labels.phaseSaving
 }
 
-private fun errorTitle(error: ExtractionError, labels: WebClipperLabels): String = when (error) {
+private fun errorTitle(error: ExtractionError, labels: WebClipperLabels, kind: ClipInputKind): String = when (error) {
     is ExtractionError.ModelFailed, ExtractionError.ModelMissing -> labels.modelFailedTitle
-    is ExtractionError.ParseFailed -> labels.parseFailedTitle
+    is ExtractionError.ParseFailed ->
+        if (kind == ClipInputKind.IMAGES) labels.imagesNoRecipeTitle else labels.parseFailedTitle
+    ExtractionError.ImagesUnsupported -> labels.imagesUnsupportedTitle
 }
 
 /** The feature's MVI phase status maps 1:1 onto the design-system marker set. */

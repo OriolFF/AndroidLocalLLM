@@ -43,6 +43,9 @@ import org.koin.dsl.module
  * `BuildConfig.LLM_BACKEND` — "CPU" for the x86_64 emulator (where the
  * GPU/NPU accelerators fail to load) and "GPU" for release builds on
  * real hardware. See `core/llm/build.gradle.kts`.
+ * `BuildConfig.LLM_VISION_BACKEND` ("CPU" in every build type: the bundle has
+ * no GPU vision tower, "NONE" disables vision) is used only for models whose
+ * descriptor lists `ModelCapability.VISION`.
  */
 val llmModule: Module = module {
     single {
@@ -101,6 +104,12 @@ val llmModule: Module = module {
             // predictable; LiteRT-LM clamps it to the bundle's static limit.
             maxNumTokens = LiteRtLlmEngine.DEFAULT_MAX_NUM_TOKENS,
             backend = buildBackend(BuildConfig.LLM_BACKEND),
+            visionBackend = buildVisionBackend(BuildConfig.LLM_VISION_BACKEND),
+            maxNumImages = MAX_NUM_IMAGES,
+            descriptorProvider = {
+                LlmModelCatalog.findById(get<LlmModelSelectionStore>().current())
+                    ?: LlmModelCatalog.DEFAULT_MODEL
+            },
         )
     } bind LlmEngine::class
 
@@ -136,5 +145,15 @@ private fun buildBackend(name: String): Backend = when (name.uppercase()) {
         Backend.CPU()
     }
 }
+
+/** `"NONE"` (or anything unknown) disables vision; the engine then rejects images. */
+private fun buildVisionBackend(name: String): Backend? = when (name.uppercase()) {
+    "CPU" -> Backend.CPU()
+    "GPU" -> Backend.GPU()
+    else -> null
+}
+
+/** Pictures per request the engine is built for (the clip policy caps lower). */
+private const val MAX_NUM_IMAGES = 3
 
 const val REAL_ENGINE_QUALIFIER = "real-llm-engine"
