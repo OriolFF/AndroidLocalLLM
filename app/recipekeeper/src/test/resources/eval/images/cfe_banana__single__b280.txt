@@ -1,0 +1,29 @@
+Title: Banana Nut Bread
+Description: A recipe for banana nut bread.
+Servings: about 10 servings
+PrepMinutes: 15
+CookMinutes: 30
+TotalMinutes: 45
+Ingredients:
+- 2 large (250 g) ripe bananas
+- 6 Tbs. (90 mL) butter
+- 1 tsp. (5 mL) vanilla extract
+- 2 large eggs
+- 1-1/3 cups (167 g) all-purpose flour
+- 2/3 cup (130 g) sugar
+- 1/2 tsp. (2.3 g) baking soda
+- 1/4 tsp. (1.2 g) baking powder
+- 1/2 tsp. (3 g) salt
+- 1/2 cup (70 g) chopped walnuts
+Steps:
+1. Preheat oven to 350°F (170°C)
+2. Mash
+3. Melt
+4. Whisk
+5. Fold
+6. Bake until smooth
+7. Cool on wire rack
+Notes:
+- The author used to make banana bread for work, on the theory that positive feedback association worked in the technology workplace.
+- Someone got competitive once, and called a banana bread bake-off.
+- FWIW, I like mine moist, to go with coffee.

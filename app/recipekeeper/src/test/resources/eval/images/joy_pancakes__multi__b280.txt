@@ -1,0 +1,6 @@
+Title: Pancake Recipe
+Description: My idea of the perfect weekend breakfast is a stack of Pancakes with butter and maple syrup dripping down its sides.
+Servings: 3-4 people
+PrepMinutes: 15
+CookMinutes: 1-2
+TotalMinutes: 15
