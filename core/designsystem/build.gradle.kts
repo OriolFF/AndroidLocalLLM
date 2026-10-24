@@ -16,6 +16,11 @@ dependencies {
     api(libs.androidx.compose.material.icons.extended)
 
     implementation(libs.androidx.core.ktx)
+    // Image accents (color/AccentColors): Celebi quantizer + Score + HCT tones.
+    implementation(libs.material.color.utilities)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

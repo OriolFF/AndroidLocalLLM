@@ -5,9 +5,13 @@ import com.google.common.truth.Truth.assertThat
 import com.llmlocal.feature.webclipper.domain.StartPage
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveStartPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.SetStartPageUseCase
+import com.llmlocal.recipekeeper.recipes.domain.DetailBackdrop
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveDetailBackdropUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.SetDetailBackdropUseCase
 import com.llmlocal.recipekeeper.settings.presentation.mvi.SettingsEffect
 import com.llmlocal.recipekeeper.settings.presentation.mvi.SettingsIntent
 import com.llmlocal.recipekeeper.settings.presentation.mvi.StartPageOption
+import com.llmlocal.recipekeeper.testing.FakeDetailBackdropRepository
 import com.llmlocal.recipekeeper.testing.FakeStartPageRepository
 import com.llmlocal.recipekeeper.testing.MainDispatcherRule
 import com.llmlocal.recipekeeper.testing.TestDispatchers
@@ -24,10 +28,13 @@ class SettingsViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeStartPageRepository()
+    private val backdrops = FakeDetailBackdropRepository()
 
     private fun viewModel() = SettingsViewModel(
         observeStartPage = ObserveStartPageUseCase(repository),
         setStartPage = SetStartPageUseCase(repository),
+        observeBackdrop = ObserveDetailBackdropUseCase(backdrops),
+        setBackdrop = SetDetailBackdropUseCase(backdrops),
         dispatchers = TestDispatchers(mainDispatcherRule.dispatcher),
     )
 
@@ -115,6 +122,29 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertThat(repository.current.value).isEqualTo(StartPage.Custom("https://www.cooking.example/"))
+    }
+
+    @Test
+    fun `shows the saved recipe background, soft tint by default`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.state.value.backdrop).isEqualTo(DetailBackdrop.TINT)
+
+        backdrops.current.value = DetailBackdrop.PHOTO
+        advanceUntilIdle()
+        assertThat(vm.state.value.backdrop).isEqualTo(DetailBackdrop.PHOTO)
+    }
+
+    @Test
+    fun `picking a recipe background saves it immediately`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onIntent(SettingsIntent.SelectBackdrop(DetailBackdrop.NONE))
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.backdrop).isEqualTo(DetailBackdrop.NONE)
+        assertThat(backdrops.current.value).isEqualTo(DetailBackdrop.NONE)
     }
 
     @Test

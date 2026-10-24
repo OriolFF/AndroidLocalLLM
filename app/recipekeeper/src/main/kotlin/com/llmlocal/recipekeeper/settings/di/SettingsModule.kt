@@ -6,15 +6,18 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Bindings of the settings screen. Its use cases (`ObserveStartPageUseCase`,
- * `SetStartPageUseCase`) come from `webClipperModule`, which owns the
- * start-page preference.
+ * Bindings of the settings screen. Its use cases come from the modules that
+ * own each preference: `ObserveStartPageUseCase` / `SetStartPageUseCase` from
+ * `webClipperModule`, `ObserveDetailBackdropUseCase` /
+ * `SetDetailBackdropUseCase` from `recipesModule`.
  */
 val settingsModule: Module = module {
     viewModel {
         SettingsViewModel(
             observeStartPage = get(),
             setStartPage = get(),
+            observeBackdrop = get(),
+            setBackdrop = get(),
             dispatchers = get(),
         )
     }

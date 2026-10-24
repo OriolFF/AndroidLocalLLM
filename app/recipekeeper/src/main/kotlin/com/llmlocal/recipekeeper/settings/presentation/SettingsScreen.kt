@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llmlocal.core.designsystem.component.SectionHeader
+import com.llmlocal.recipekeeper.recipes.domain.DetailBackdrop
 import com.llmlocal.recipekeeper.settings.presentation.mvi.SettingsIntent
 import com.llmlocal.recipekeeper.settings.presentation.mvi.SettingsState
 import com.llmlocal.recipekeeper.settings.presentation.mvi.StartPageOption
@@ -48,7 +50,8 @@ import com.llmlocal.recipekeeper.settings.presentation.mvi.StartPageOption
 /**
  * Stateless settings screen: a "Browser" card with the start-page radio
  * group (Google / blank / custom address, the field unfolding under the
- * custom row) and a "Model" card whose single row opens model management.
+ * custom row), an "Appearance" card with the recipe-background radio group,
+ * and a "Model" card whose single row opens model management.
  * Rows are 56dp tall and selectable as a whole for touch and TalkBack.
  */
 @Composable
@@ -80,6 +83,23 @@ fun SettingsScreen(
                     if (!state.isLoading) {
                         StartPageOptions(state = state, labels = labels, onIntent = onIntent)
                     }
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionHeader(label = labels.appearanceSection, icon = Icons.Outlined.Palette)
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(labels.backdropTitle, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            labels.backdropSubtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    BackdropOptions(selected = state.backdrop, labels = labels, onIntent = onIntent)
                 }
             }
         }
@@ -128,19 +148,19 @@ private fun StartPageOptions(
         if (customSelected && state.customUrl.isBlank()) customFieldFocus.requestFocus()
     }
     Column(modifier = Modifier.selectableGroup()) {
-        StartPageRow(
+        SettingsRadioRow(
             title = labels.startPageGoogle,
             subtitle = labels.startPageGoogleSubtitle,
             selected = state.startPage == StartPageOption.GOOGLE,
             onSelect = { onIntent(SettingsIntent.SelectStartPage(StartPageOption.GOOGLE)) },
         )
-        StartPageRow(
+        SettingsRadioRow(
             title = labels.startPageBlank,
             subtitle = labels.startPageBlankSubtitle,
             selected = state.startPage == StartPageOption.BLANK,
             onSelect = { onIntent(SettingsIntent.SelectStartPage(StartPageOption.BLANK)) },
         )
-        StartPageRow(
+        SettingsRadioRow(
             title = labels.startPageCustom,
             subtitle = labels.startPageCustomSubtitle,
             selected = state.startPage == StartPageOption.CUSTOM,
@@ -177,7 +197,38 @@ private fun StartPageOptions(
 }
 
 @Composable
-private fun StartPageRow(
+private fun BackdropOptions(
+    selected: DetailBackdrop,
+    labels: SettingsLabels,
+    onIntent: (SettingsIntent) -> Unit,
+) {
+    Column(modifier = Modifier.selectableGroup()) {
+        DetailBackdrop.entries.forEach { backdrop ->
+            SettingsRadioRow(
+                title = labels.backdropTitle(backdrop),
+                subtitle = labels.backdropSubtitle(backdrop),
+                selected = selected == backdrop,
+                onSelect = { onIntent(SettingsIntent.SelectBackdrop(backdrop)) },
+            )
+        }
+    }
+}
+
+private fun SettingsLabels.backdropTitle(backdrop: DetailBackdrop): String = when (backdrop) {
+    DetailBackdrop.NONE -> backdropNone
+    DetailBackdrop.TINT -> backdropTint
+    DetailBackdrop.PHOTO -> backdropPhoto
+}
+
+private fun SettingsLabels.backdropSubtitle(backdrop: DetailBackdrop): String = when (backdrop) {
+    DetailBackdrop.NONE -> backdropNoneSubtitle
+    DetailBackdrop.TINT -> backdropTintSubtitle
+    DetailBackdrop.PHOTO -> backdropPhotoSubtitle
+}
+
+/** One 56dp radio row: title + subtitle, selectable as a whole. */
+@Composable
+private fun SettingsRadioRow(
     title: String,
     subtitle: String,
     selected: Boolean,

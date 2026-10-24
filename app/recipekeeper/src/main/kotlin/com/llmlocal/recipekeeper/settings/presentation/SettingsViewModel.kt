@@ -6,6 +6,9 @@ import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.feature.webclipper.domain.StartPage
 import com.llmlocal.feature.webclipper.domain.usecase.ObserveStartPageUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.SetStartPageUseCase
+import com.llmlocal.recipekeeper.recipes.domain.DetailBackdrop
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveDetailBackdropUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.SetDetailBackdropUseCase
 import com.llmlocal.recipekeeper.settings.domain.normalizeStartPageUrl
 import com.llmlocal.recipekeeper.settings.presentation.mvi.SettingsEffect
 import com.llmlocal.recipekeeper.settings.presentation.mvi.SettingsIntent
@@ -17,6 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -24,7 +30,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * MVI ViewModel for the settings screen: the browser start page (Google /
- * blank / custom address) and the entry to model management.
+ * blank / custom address), the "Recipe background" appearance choice and the
+ * entry to model management.
  *
  * Google and Blank are saved the moment they are picked. Custom is saved
  * when the field commits a valid address (or when the radio is picked while
@@ -34,6 +41,8 @@ import kotlinx.coroutines.withContext
 class SettingsViewModel(
     private val observeStartPage: ObserveStartPageUseCase,
     private val setStartPage: SetStartPageUseCase,
+    observeBackdrop: ObserveDetailBackdropUseCase,
+    private val setBackdrop: SetDetailBackdropUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -54,6 +63,10 @@ class SettingsViewModel(
                 )
             }
         }
+        observeBackdrop()
+            .flowOn(dispatchers.io)
+            .onEach { backdrop -> _state.update { it.copy(backdrop = backdrop) } }
+            .launchIn(viewModelScope)
     }
 
     /** Single dispatch point for every user action. */
@@ -63,6 +76,7 @@ class SettingsViewModel(
             is SettingsIntent.UpdateCustomUrl ->
                 _state.update { it.copy(customUrl = intent.value, customUrlError = false) }
             SettingsIntent.CommitCustomUrl -> commitCustomUrl()
+            is SettingsIntent.SelectBackdrop -> selectBackdrop(intent.backdrop)
             SettingsIntent.OpenModelManagement -> _effects.trySend(SettingsEffect.NavigateToModelManagement)
         }
     }
@@ -84,6 +98,11 @@ class SettingsViewModel(
         }
         _state.update { it.copy(startPage = StartPageOption.CUSTOM, customUrl = normalized, customUrlError = false) }
         persist(StartPage.Custom(normalized))
+    }
+
+    private fun selectBackdrop(backdrop: DetailBackdrop) {
+        _state.update { it.copy(backdrop = backdrop) }
+        viewModelScope.launch { withContext(dispatchers.io) { setBackdrop(backdrop) } }
     }
 
     private fun persist(page: StartPage) {

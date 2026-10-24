@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llmlocal.core.common.coroutines.DispatcherProvider
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveDetailBackdropUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
@@ -40,6 +41,10 @@ import kotlinx.coroutines.withContext
  *
  * "Retry pictures" (after an offline clip) is [RetryRecipePicturesUseCase];
  * the repository's next emission shows the hero.
+ *
+ * The "Recipe background" appearance setting ([ObserveDetailBackdropUseCase])
+ * is mirrored into [RecipeDetailState.backdrop] so a change made in Settings
+ * shows up the next time the screen is composed.
  */
 class RecipeDetailViewModel(
     private val recipeId: String,
@@ -50,6 +55,7 @@ class RecipeDetailViewModel(
     private val retryPictures: RetryRecipePicturesUseCase,
     private val shareRecipe: ShareRecipeUseCase,
     private val toggleFavourite: ToggleFavouriteUseCase,
+    observeBackdrop: ObserveDetailBackdropUseCase,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
@@ -69,6 +75,10 @@ class RecipeDetailViewModel(
                     it.copy(recipe = recipe, isLoading = false, currentStep = step)
                 }
             }
+            .launchIn(viewModelScope)
+        observeBackdrop()
+            .flowOn(dispatchers.io)
+            .onEach { backdrop -> _state.update { it.copy(backdrop = backdrop) } }
             .launchIn(viewModelScope)
     }
 

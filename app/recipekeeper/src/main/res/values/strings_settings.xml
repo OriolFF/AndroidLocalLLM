@@ -16,6 +16,15 @@
     <string name="recipekeeper_settings_custom_url_hint">example.com</string>
     <string name="recipekeeper_settings_custom_url_invalid">Enter a valid web address</string>
     <string name="recipekeeper_settings_custom_url_help">Saved when you press Done</string>
+    <string name="recipekeeper_settings_appearance_section">Appearance</string>
+    <string name="recipekeeper_settings_backdrop_title">Recipe background</string>
+    <string name="recipekeeper_settings_backdrop_subtitle">Colour the recipe screen from its photo</string>
+    <string name="recipekeeper_settings_backdrop_none">Plain</string>
+    <string name="recipekeeper_settings_backdrop_none_subtitle">Just the theme background</string>
+    <string name="recipekeeper_settings_backdrop_tint">Soft tint</string>
+    <string name="recipekeeper_settings_backdrop_tint_subtitle">A flat wash of the photo\'s main colour</string>
+    <string name="recipekeeper_settings_backdrop_photo">Blurred photo</string>
+    <string name="recipekeeper_settings_backdrop_photo_subtitle">The picture itself, blurred and dimmed</string>
     <string name="recipekeeper_settings_models_section">On-device model</string>
     <string name="recipekeeper_settings_manage_models">Manage models</string>
     <string name="recipekeeper_settings_manage_models_subtitle">Download, switch or remove the model that extracts recipes</string>

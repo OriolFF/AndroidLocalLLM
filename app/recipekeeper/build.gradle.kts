@@ -35,6 +35,8 @@ dependencies {
     // Only this app shows remote / local pictures.
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    // Appearance settings (recipes/data/DataStoreDetailBackdropRepository).
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

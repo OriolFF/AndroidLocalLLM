@@ -4,13 +4,16 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.llmlocal.recipekeeper.recipes.data.FileRecipePictureStore
 import com.llmlocal.recipekeeper.recipes.data.WebClipperPictureFetcher
+import com.llmlocal.recipekeeper.recipes.domain.DetailBackdrop
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveDetailBackdropUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleIngredientCheckedUseCase
+import com.llmlocal.recipekeeper.testing.FakeDetailBackdropRepository
 import com.llmlocal.recipekeeper.testing.FakePictureDownloader
 import com.llmlocal.recipekeeper.testing.FakeRecipeRepository
 import com.llmlocal.recipekeeper.testing.MainDispatcherRule
@@ -56,6 +59,7 @@ class RecipeDetailViewModelTest {
     private val dispatchers = TestDispatchers(mainDispatcherRule.dispatcher)
     private val pendingDeletes = DeleteRecipeWithUndoUseCase(repository, dispatchers)
     private val downloader = FakePictureDownloader()
+    private val backdrops = FakeDetailBackdropRepository()
     private val pictureStore by lazy { FileRecipePictureStore(File(temp.root, "recipes")) }
 
     private fun viewModel(id: String = "a", downloader: FakePictureDownloader = this.downloader) =
@@ -73,6 +77,7 @@ class RecipeDetailViewModelTest {
             ),
             shareRecipe = ShareRecipeUseCase(repository) { title, url -> "$title|$url" },
             toggleFavourite = ToggleFavouriteUseCase(repository),
+            observeBackdrop = ObserveDetailBackdropUseCase(backdrops),
             dispatchers = dispatchers,
         )
 
@@ -84,6 +89,17 @@ class RecipeDetailViewModelTest {
 
         assertThat(vm.state.value.recipe?.title).isEqualTo("Tomato soup")
         assertThat(vm.state.value.notFound).isFalse()
+    }
+
+    @Test
+    fun `mirrors the saved recipe background setting`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.state.value.backdrop).isEqualTo(DetailBackdrop.DEFAULT)
+
+        backdrops.set(DetailBackdrop.PHOTO)
+        advanceUntilIdle()
+        assertThat(vm.state.value.backdrop).isEqualTo(DetailBackdrop.PHOTO)
     }
 
     @Test

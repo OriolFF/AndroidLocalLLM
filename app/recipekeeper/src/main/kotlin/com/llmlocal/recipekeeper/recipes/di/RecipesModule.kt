@@ -9,6 +9,7 @@ import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHintsStore
 import com.llmlocal.recipekeeper.clip.domain.detection.NoOpDetectionHintsStore
 import com.llmlocal.recipekeeper.clip.domain.detection.ResetDetectionHintsUseCase
 import com.llmlocal.recipekeeper.recipes.data.ContentResolverPictureImporter
+import com.llmlocal.recipekeeper.recipes.data.DataStoreDetailBackdropRepository
 import com.llmlocal.recipekeeper.recipes.data.FileRecipePictureStore
 import com.llmlocal.recipekeeper.recipes.data.MIGRATION_1_2
 import com.llmlocal.recipekeeper.recipes.data.MIGRATION_2_3
@@ -18,6 +19,7 @@ import com.llmlocal.recipekeeper.recipes.data.RecipeDao
 import com.llmlocal.recipekeeper.recipes.data.RecipeKeeperDatabase
 import com.llmlocal.recipekeeper.recipes.data.RoomRecipeRepository
 import com.llmlocal.recipekeeper.recipes.data.WebClipperPictureFetcher
+import com.llmlocal.recipekeeper.recipes.domain.DetailBackdropRepository
 import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatusSource
 import com.llmlocal.recipekeeper.recipes.domain.PictureFetcher
 import com.llmlocal.recipekeeper.recipes.domain.PictureImporter
@@ -25,12 +27,14 @@ import com.llmlocal.recipekeeper.recipes.domain.RecipeShareTemplates
 import com.llmlocal.recipekeeper.recipes.domain.RecipePictureStore
 import com.llmlocal.recipekeeper.recipes.domain.RecipeRepository
 import com.llmlocal.recipekeeper.recipes.domain.usecase.DeleteRecipeWithUndoUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveDetailBackdropUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveImagesAvailabilityUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLearnedHintCountUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryModelStatusUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveLibraryUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ObserveRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ResetChecksUseCase
+import com.llmlocal.recipekeeper.recipes.domain.usecase.SetDetailBackdropUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.RetryRecipePicturesUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ShareRecipeUseCase
 import com.llmlocal.recipekeeper.recipes.domain.usecase.ToggleFavouriteUseCase
@@ -53,7 +57,8 @@ import java.io.File
  *
  *  - data: Room database + DAO, [RecipePictureStore], [RecipeRepository],
  *    [PictureFetcher] (the clipper's downloader), [LibraryModelStatusSource]
- *    (adapter over the shared `ModelReadinessObserver`)
+ *    (adapter over the shared `ModelReadinessObserver`), [DetailBackdropRepository]
+ *    (the "Recipe background" appearance setting, DataStore)
  *  - domain: the use cases; [DeleteRecipeWithUndoUseCase] is a `single`
  *    because the undo window is app-wide
  *  - presentation: [LibraryViewModel], and [RecipeDetailViewModel] with
@@ -85,6 +90,7 @@ val recipesModule: Module = module {
             scope = CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default),
         )
     }
+    single<DetailBackdropRepository> { DataStoreDetailBackdropRepository(androidContext()) }
 
     // ---- domain ----------------------------------------------------------
     single { DeleteRecipeWithUndoUseCase(repository = get(), dispatchers = get()) }
@@ -93,6 +99,8 @@ val recipesModule: Module = module {
     factory { ObserveLibraryModelStatusUseCase(source = get()) }
     factory { ObserveImagesAvailabilityUseCase(source = get(), enabled = BuildConfig.IMAGES_SOURCE) }
     factory { ToggleFavouriteUseCase(repository = get()) }
+    factory { ObserveDetailBackdropUseCase(repository = get()) }
+    factory { SetDetailBackdropUseCase(repository = get()) }
     // The learned-hints store belongs to the clip feature (`clipModule`); until it is bound, nothing is learned.
     factory { ObserveLearnedHintCountUseCase(store = getOrNull<DetectionHintsStore>() ?: NoOpDetectionHintsStore) }
     factory { ResetDetectionHintsUseCase(store = getOrNull<DetectionHintsStore>() ?: NoOpDetectionHintsStore) }
@@ -140,6 +148,7 @@ val recipesModule: Module = module {
             retryPictures = get(),
             shareRecipe = get(),
             toggleFavourite = get(),
+            observeBackdrop = get(),
             dispatchers = get(),
         )
     }

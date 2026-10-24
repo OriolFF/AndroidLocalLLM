@@ -91,6 +91,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -109,9 +110,15 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.llmlocal.core.designsystem.color.ImageAccent
+import com.llmlocal.core.designsystem.color.rememberImageAccent
+import com.llmlocal.core.designsystem.color.washed
 import com.llmlocal.core.designsystem.component.AppLoadingIndicator
 import com.llmlocal.core.designsystem.component.EmptyState
 import com.llmlocal.core.designsystem.component.GradientHero
+import com.llmlocal.core.designsystem.component.backdrop.AccentBackdrop
+import com.llmlocal.core.designsystem.component.backdrop.AccentBackdropStyle
+import com.llmlocal.recipekeeper.recipes.domain.DetailBackdrop
 import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
 import com.llmlocal.recipekeeper.recipes.domain.hasSource
 import com.llmlocal.recipekeeper.recipes.presentation.library.FavouriteToggle
@@ -149,6 +156,12 @@ private const val HERO_SCRIM_MAX_ALPHA = 0.82f
  * Everything the cook touches is ≥ 48dp: ingredient rows are
  * `toggleable(role = Checkbox)`, step rows are `selectable` and announce
  * "Step i of n", the pager pages are described as "Picture i of n".
+ *
+ * Background: the first picture's [ImageAccent] (computed once per file by
+ * `rememberImageAccent`) is painted behind both layouts by [AccentBackdrop]
+ * in the style of the "Recipe background" setting ([RecipeDetailState.backdrop]);
+ * the scaffolds are transparent and the top bar settles on the washed seed
+ * colour instead of plain `surface` so it blends with the backdrop.
  */
 @Composable
 fun RecipeDetailScreen(
@@ -172,6 +185,10 @@ fun RecipeDetailScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val recipe = state.recipe
         val wide = maxWidth >= TwoPaneMinWidth
+        val accent = rememberImageAccent(recipe?.pictures?.firstOrNull())
+        val style = state.backdrop.toBackdropStyle()
+        val barColor = rememberBarColor(accent = accent, style = style)
+        AccentBackdrop(accent = accent, style = style)
         when {
             recipe == null -> PlaceholderDetail(
                 state = state,
@@ -187,6 +204,7 @@ fun RecipeDetailScreen(
                 onIntent = onIntent,
                 onBack = onBack,
                 heroHeight = minOf(maxWidth / 2 * 9 / 21, 320.dp),
+                barColor = barColor,
             )
             else -> CompactDetail(
                 recipe = recipe,
@@ -196,8 +214,30 @@ fun RecipeDetailScreen(
                 onIntent = onIntent,
                 onBack = onBack,
                 heroHeight = if (maxWidth > maxHeight) minOf(maxWidth * 9 / 21, 320.dp) else maxWidth * 10 / 16,
+                barColor = barColor,
             )
         }
+    }
+}
+
+/** The design-system style for a saved [DetailBackdrop]. */
+private fun DetailBackdrop.toBackdropStyle(): AccentBackdropStyle = when (this) {
+    DetailBackdrop.NONE -> AccentBackdropStyle.NONE
+    DetailBackdrop.TINT -> AccentBackdropStyle.TINT
+    DetailBackdrop.PHOTO -> AccentBackdropStyle.PHOTO
+}
+
+/**
+ * Colour the top bar settles on once the hero has scrolled away: the washed
+ * accent seed while a backdrop is painted (so the bar melts into it), the
+ * theme surface otherwise. Follows the theme's light/dark surface.
+ */
+@Composable
+private fun rememberBarColor(accent: ImageAccent?, style: AccentBackdropStyle): Color {
+    val surface = MaterialTheme.colorScheme.surface
+    return remember(accent, style, surface) {
+        if (accent == null || style == AccentBackdropStyle.NONE) surface
+        else accent.seed.washed(dark = surface.luminance() < 0.5f)
     }
 }
 
@@ -247,6 +287,7 @@ private fun CompactDetail(
     onIntent: (RecipeDetailIntent) -> Unit,
     onBack: () -> Unit,
     heroHeight: Dp,
+    barColor: Color,
 ) {
     val listState = rememberLazyListState()
     val hasPicture = recipe.pictures.firstOrNull() != null
@@ -255,6 +296,7 @@ private fun CompactDetail(
     val barAlpha by rememberBarAlpha(listState = listState, hasPicture = hasPicture)
 
     Scaffold(
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -294,6 +336,7 @@ private fun CompactDetail(
                 created = !recipe.origin.hasSource,
                 isFavourite = recipe.isFavourite,
                 backgroundAlpha = barAlpha,
+                containerColor = barColor,
                 overImage = hasPicture && barAlpha < 0.5f,
                 keepScreenOn = state.keepScreenOn,
                 onBack = onBack,
@@ -313,8 +356,10 @@ private fun WideDetail(
     onIntent: (RecipeDetailIntent) -> Unit,
     onBack: () -> Unit,
     heroHeight: Dp,
+    barColor: Color,
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -323,6 +368,7 @@ private fun WideDetail(
                 created = !recipe.origin.hasSource,
                 isFavourite = recipe.isFavourite,
                 backgroundAlpha = 1f,
+                containerColor = barColor,
                 overImage = false,
                 keepScreenOn = state.keepScreenOn,
                 onBack = onBack,
@@ -410,12 +456,13 @@ private fun DetailTopBar(
     onBack: () -> Unit,
     onIntent: (RecipeDetailIntent) -> Unit,
     modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
 ) {
     val scheme = MaterialTheme.colorScheme
     val tint = if (overImage) Color.White else scheme.onSurface
     var menuOpen by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier.fillMaxWidth().background(scheme.surface.copy(alpha = backgroundAlpha))) {
+    Box(modifier = modifier.fillMaxWidth().background(containerColor.copy(alpha = backgroundAlpha))) {
         TopAppBar(
             title = {},
             navigationIcon = {
