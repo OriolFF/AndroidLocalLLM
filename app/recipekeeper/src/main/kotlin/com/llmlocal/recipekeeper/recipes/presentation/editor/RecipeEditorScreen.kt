@@ -66,7 +66,7 @@ import com.llmlocal.core.designsystem.component.SectionHeader
 import com.llmlocal.recipekeeper.recipes.domain.EditSection
 import com.llmlocal.recipekeeper.recipes.domain.EditorError
 import com.llmlocal.recipekeeper.recipes.domain.RecipeEdit
-import com.llmlocal.recipekeeper.recipes.domain.RecipeOrigin
+import com.llmlocal.recipekeeper.recipes.domain.hasSource
 import com.llmlocal.recipekeeper.recipes.presentation.editor.components.DiscardChangesDialog
 import com.llmlocal.recipekeeper.recipes.presentation.editor.components.LineEditorState
 import com.llmlocal.recipekeeper.recipes.presentation.editor.components.LineSectionCopy
@@ -363,7 +363,7 @@ private class EditorBody(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (edit.origin == RecipeOrigin.CLIPPED && edit.sourceUrl.isNotBlank()) {
+        if (edit.origin.hasSource && edit.sourceUrl.isNotBlank()) {
             item(key = "source") {
                 SourceReadOnlyRow(host = edit.sourceHost, url = edit.sourceUrl, labels = labels)
             }

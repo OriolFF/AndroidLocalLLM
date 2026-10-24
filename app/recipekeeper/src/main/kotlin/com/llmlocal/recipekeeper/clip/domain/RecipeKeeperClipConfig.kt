@@ -12,6 +12,7 @@ import com.llmlocal.feature.webclipper.domain.ClipCandidate
 import com.llmlocal.feature.webclipper.domain.ImagePolicy
 import com.llmlocal.feature.webclipper.domain.PicturePick
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
+import com.llmlocal.feature.webclipper.domain.input.ClipInput
 import com.llmlocal.recipekeeper.BuildConfig
 import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHints
 import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHintsSource
@@ -448,6 +449,9 @@ class RecipeKeeperClipConfig(
 
     /** The "From images" source; off until the lead flips `IMAGES_SOURCE` at merge. */
     override val imagePolicy: ImagePolicy = ImagePolicy(enabled = BuildConfig.IMAGES_SOURCE)
+
+    /** The user turn for pictures: [RecipeKeeperPromptBuilder] recognises it and adds no page wording. */
+    override fun renderImagesPrompt(input: ClipInput.Images): String = RecipeKeeperPromptBuilder.IMAGES_USER_TURN
 
     /**
      * The eval's quality bar: enough ingredients, more than one step, steps

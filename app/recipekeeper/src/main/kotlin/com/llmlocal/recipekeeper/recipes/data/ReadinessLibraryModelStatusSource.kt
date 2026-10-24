@@ -32,7 +32,10 @@ class ReadinessLibraryModelStatusSource(
             when (readiness) {
                 is ModelReadiness.Downloading -> LibraryModelStatus.Downloading(readiness.progress)
                 is ModelReadiness.Ready ->
-                    LibraryModelStatus.Ready(supportsImages = ModelCapability.VISION in readiness.descriptor.capabilities)
+                    LibraryModelStatus.Ready(
+                        supportsImages = ModelCapability.VISION in readiness.descriptor.capabilities,
+                        modelName = readiness.descriptor.displayName,
+                    )
                 ModelReadiness.Initializing -> LibraryModelStatus.Ready()
                 ModelReadiness.NoModel, ModelReadiness.Checking, is ModelReadiness.Failed -> LibraryModelStatus.NoModel
             }

@@ -3,17 +3,19 @@ plugins {
     id("llmlocal.android.room")
 }
 
+// Input sources: the "From images" row, ImagePolicy.enabled and the image/* share target.
+// Stays false until the lead flips it at merge; the single value feeds BuildConfig.IMAGES_SOURCE
+// and the ${imagesShareTarget} placeholder (the enabled flag of the image share alias).
+val imagesSource = false
+
 android {
     namespace = "com.llmlocal.recipekeeper"
     defaultConfig {
         applicationId = "com.llmlocal.recipekeeper"
         versionCode = 1
         versionName = "0.1.0"
-        // Input sources: the "From images" row and ImagePolicy.enabled. Stays false
-        // until the lead flips it at merge; the placeholder carries the same switch
-        // to the manifest (the image/* share filters, added by stream I3).
-        buildConfigField("boolean", "IMAGES_SOURCE", "false")
-        manifestPlaceholders["imagesShareTarget"] = "false"
+        buildConfigField("boolean", "IMAGES_SOURCE", imagesSource.toString())
+        manifestPlaceholders["imagesShareTarget"] = imagesSource.toString()
         // WS7: the on-device eval runner (src/androidTest/.../EvalRunnerTest)
         // is driven by tools/eval/run_local_model.sh --device.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

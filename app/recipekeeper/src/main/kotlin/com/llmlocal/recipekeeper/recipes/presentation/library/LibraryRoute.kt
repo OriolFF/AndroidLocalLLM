@@ -30,13 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.llmlocal.core.designsystem.component.AppScaffold
+import com.llmlocal.recipekeeper.recipes.domain.LibraryModelStatus
 import com.llmlocal.recipekeeper.recipes.presentation.RecipeKeeperLibraryLabels
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 /**
  * Stateful wrapper around [LibraryScreen]: creates [LibraryViewModel] via
- * Koin, renders the `AppScaffold` top bar (title, Search toggle, New recipe,
+ * Koin, renders the `AppScaffold` top bar (title, Search toggle, Add a recipe,
  * Settings) with the [LibraryFab] in the scaffold's FAB slot, and turns
  * [LibraryEffect]s into navigation callbacks, the share intent and the
  * undo-delete snackbar.
@@ -103,8 +104,8 @@ fun LibraryRoute(
                     Icon(Icons.Outlined.Search, contentDescription = labels.searchActionDescription)
                 }
             }
-            IconButton(onClick = { viewModel.onIntent(LibraryIntent.CreateRecipe) }) {
-                Icon(Icons.Outlined.Add, contentDescription = labels.newRecipe)
+            IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenSourceChooser) }) {
+                Icon(Icons.Outlined.Add, contentDescription = labels.addRecipe)
             }
             // Models moved under Settings: three actions is the top bar's limit.
             IconButton(onClick = { viewModel.onIntent(LibraryIntent.OpenSettings) }) {
@@ -142,6 +143,26 @@ fun LibraryRoute(
             labels = labels,
             onIntent = viewModel::onIntent,
             modifier = Modifier.padding(padding),
+        )
+    }
+
+    if (state.sourceChooserOpen) {
+        SourceChooserSheet(
+            imagesAvailability = state.imagesAvailability,
+            labels = labels,
+            onIntent = viewModel::onIntent,
+        )
+    }
+
+    if (state.imagesUnavailableDialog) {
+        ImagesUnavailableDialog(
+            modelName = (state.modelStatus as? LibraryModelStatus.Ready)?.modelName.orEmpty(),
+            labels = labels,
+            onOpenModels = {
+                viewModel.onIntent(LibraryIntent.DismissImagesUnavailable)
+                viewModel.onIntent(LibraryIntent.OpenModelManagement)
+            },
+            onDismiss = { viewModel.onIntent(LibraryIntent.DismissImagesUnavailable) },
         )
     }
 

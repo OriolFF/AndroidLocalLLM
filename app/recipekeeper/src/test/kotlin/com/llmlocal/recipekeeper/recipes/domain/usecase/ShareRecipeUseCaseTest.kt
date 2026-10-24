@@ -39,4 +39,15 @@ class ShareRecipeUseCaseTest {
     fun `unknown recipe returns null`() = runTest {
         assertThat(ShareRecipeUseCase(FakeRecipeRepository(), templates)("nope")).isNull()
     }
+
+    @Test
+    fun `images recipe has no link and shares the full text`() = runTest {
+        val images = FakeRecipeRepository.recipe("i", "Pie", 3L, ingredients = listOf("apples"))
+            .copy(origin = RecipeOrigin.IMAGES, sourceUrl = "", sourceHost = "")
+        val repository = FakeRecipeRepository(listOf(images))
+
+        assertThat(ShareRecipeUseCase(repository, templates)("i")).isEqualTo(
+            "Pie\n\nIngredients:\n- apples\n\nSteps:\n1. Mix.\n2. Bake.",
+        )
+    }
 }

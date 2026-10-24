@@ -81,6 +81,20 @@ internal object SampleData {
         editedAt = CLIPPED_AT + DAY_MS,
     )
 
+    val imagesRecipe = recipe.copy(
+        id = "r7",
+        title = "Aunt Maria's paella",
+        origin = RecipeOrigin.IMAGES,
+        sourceUrl = "",
+        sourceHost = "",
+        pictures = emptyList(),
+        truncated = false,
+    )
+
+    val imagesSummary = RecipeSummary(
+        "r7", imagesRecipe.title, "", 50, null, false, CLIPPED_AT - 2 * DAY_MS, origin = RecipeOrigin.IMAGES,
+    )
+
     val editedRecipe = recipe.copy(editedAt = CLIPPED_AT + DAY_MS, isFavourite = true)
 
     val createdSummary = RecipeSummary(

@@ -2,6 +2,7 @@ package com.llmlocal.recipekeeper.recipes.di
 
 import androidx.room.Room
 import com.llmlocal.core.common.coroutines.DispatcherProvider
+import com.llmlocal.recipekeeper.BuildConfig
 import com.llmlocal.recipekeeper.R
 import com.llmlocal.feature.webclipper.di.WEBCLIPPER_TEMP_DIR_QUALIFIER
 import com.llmlocal.recipekeeper.clip.domain.detection.DetectionHintsStore
@@ -89,7 +90,7 @@ val recipesModule: Module = module {
     factory { ObserveLibraryUseCase(repository = get(), deleteWithUndo = get()) }
     factory { ObserveRecipeUseCase(repository = get()) }
     factory { ObserveLibraryModelStatusUseCase(source = get()) }
-    factory { ObserveImagesAvailabilityUseCase() }
+    factory { ObserveImagesAvailabilityUseCase(source = get(), enabled = BuildConfig.IMAGES_SOURCE) }
     factory { ToggleFavouriteUseCase(repository = get()) }
     // The learned-hints store belongs to the clip feature (`clipModule`); until it is bound, nothing is learned.
     factory { ObserveLearnedHintCountUseCase(store = getOrNull<DetectionHintsStore>() ?: NoOpDetectionHintsStore) }
