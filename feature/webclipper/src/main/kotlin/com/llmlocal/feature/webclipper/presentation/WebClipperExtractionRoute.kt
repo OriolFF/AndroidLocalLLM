@@ -33,6 +33,10 @@ import org.koin.core.parameter.parametersOf
  *   raw streamed text (mirrors `LlmTaskRoute.renderOutput`)
  * @param onSaved called with the saved item id
  * @param onCancelled called when the user stops or goes back to the page
+ *   (to the library for an images clip)
+ * @param onPickDifferent images only: the no-recipe failure offers "Pick
+ *   different pictures"; the app navigates back to the images route, whose
+ *   ViewModel picks the pictures up from `ClipSession`. `null` hides the action
  * @param onShowSnackbar when set, snackbar messages go here instead of being shown
  *   from this route's own scope; the host launches them in a scope that outlives
  *   this destination (a snackbar launched here dies with the pop / navigation)
@@ -54,6 +58,7 @@ fun <T : Any> WebClipperExtractionRoute(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
     onShowSnackbar: ((String) -> Unit)? = null,
+    onPickDifferent: (() -> Unit)? = null,
 ) {
     val viewModel: ExtractionViewModel = koinViewModel(key = candidateId) {
         parametersOf(candidateId, config, sink, labels)
@@ -96,5 +101,6 @@ fun <T : Any> WebClipperExtractionRoute(
         onNavigateToModelManagement = onNavigateToModelManagement,
         onViewSaved = { state.savedId?.let(onSaved) },
         modifier = modifier,
+        onPickDifferent = onPickDifferent,
     )
 }

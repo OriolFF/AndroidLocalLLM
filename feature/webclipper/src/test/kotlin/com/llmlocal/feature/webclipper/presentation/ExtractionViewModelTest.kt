@@ -16,6 +16,7 @@ import com.llmlocal.feature.webclipper.domain.WHOLE_PAGE_CANDIDATE_ID
 import com.llmlocal.feature.webclipper.domain.WebClipConfig
 import com.llmlocal.feature.webclipper.domain.usecase.CancelClipUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.CheckDuplicateUseCase
+import com.llmlocal.feature.webclipper.domain.usecase.DiscardPreparedImagesUseCase
 import com.llmlocal.feature.webclipper.domain.usecase.ClipUseCase
 import com.llmlocal.feature.webclipper.fakes.FakeClipSink
 import com.llmlocal.feature.webclipper.fakes.FakeLlmEngine
@@ -79,6 +80,7 @@ class ExtractionViewModelTest {
             clip = ClipUseCase(llm, downloader, CacheDirTempPictureStore(File(temp.root, "webclipper")), session, dispatchers),
             checkDuplicate = CheckDuplicateUseCase(dispatchers),
             cancelClip = CancelClipUseCase(llm, session),
+            discardImages = DiscardPreparedImagesUseCase(CacheDirTempPictureStore(File(temp.root, "webclipper"))),
             dispatchers = dispatchers,
         )
     }
@@ -342,5 +344,94 @@ class ExtractionViewModelTest {
         assertThat(session.reopenCandidates.value).isTrue()
         assertThat(session.activeExtraction.value).isNull()
         assertThat(engine.cancelCalls).isEqualTo(1)
+    }
+
+    // -- images ------------------------------------------------------------------
+
+    private fun imagesSession(count: Int): List<com.llmlocal.feature.webclipper.domain.input.ClipImage> {
+        val pictures = List(count) { com.llmlocal.feature.webclipper.fakes.preparedImage(File(temp.root, "webclipper"), it) }
+        val input = com.llmlocal.feature.webclipper.domain.input.ClipInput.Images(pictures)
+        session.set(input, config.candidatesFor(input, "Clip from images"))
+        return pictures
+    }
+
+    @Test
+    fun `images session - inputKind is IMAGES, there is no duplicate dialog and the clip saves`() = runTest {
+        sink.existing = "old-id" // would trigger the dialog for a page
+        imagesSession(2)
+        val engine = FakeLlmEngine.streaming(goodOutput, chunkSize = 5)
+        val vm = viewModel(com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID, engine)
+
+        vm.effects.test {
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.ShowSnackbar(labels.recipeSaved))
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.NavigateToSaved("saved-1"))
+        }
+
+        val state = vm.state.value
+        assertThat(state.inputKind).isEqualTo(com.llmlocal.feature.webclipper.domain.input.ClipInputKind.IMAGES)
+        assertThat(state.imageCount).isEqualTo(2)
+        assertThat(state.otherCandidates).isEqualTo(0)
+        assertThat(state.sourceHost).isNull()
+        assertThat(state.duplicateOf).isNull()
+        assertThat(sink.existingIdCalls).isEmpty()
+        assertThat(engine.requests.single().images).hasSize(2)
+        assertThat(state.pictures).hasSize(2)
+        assertThat(sink.savedInputs.single()).isInstanceOf(com.llmlocal.feature.webclipper.domain.input.ClipInput.Images::class.java)
+    }
+
+    @Test
+    fun `images session - a no-recipe answer keeps the pictures and the session for Pick different`() = runTest {
+        val pictures = imagesSession(1)
+        val vm = viewModel(com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID, FakeLlmEngine.streaming("NO RECIPE"))
+
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.error).isEqualTo(ExtractionError.ParseFailed("NO RECIPE"))
+        assertThat(pictures.single().file.exists()).isTrue()
+        assertThat(session.current.value).isNotNull()
+    }
+
+    @Test
+    fun `images session - Retry after a failure runs again on the same pictures`() = runTest {
+        imagesSession(1)
+        var calls = 0
+        val engine = FakeLlmEngine { if (calls++ == 0) FakeLlmEngine.chunks("NO RECIPE") else FakeLlmEngine.chunks(goodOutput) }
+        val vm = viewModel(com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID, engine)
+        advanceUntilIdle()
+        assertThat(vm.state.value.error).isNotNull()
+
+        vm.onIntent(ExtractionIntent.Retry)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
+    }
+
+    @Test
+    fun `images session - cancelling from the failure screen deletes the pictures and drops the session`() = runTest {
+        val pictures = imagesSession(2)
+        val vm = viewModel(com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID, FakeLlmEngine.streaming("NO RECIPE"))
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onIntent(ExtractionIntent.Cancel)
+            assertThat(awaitItem()).isEqualTo(ExtractionEffect.PopToBrowser)
+        }
+
+        pictures.forEach { assertThat(it.file.exists()).isFalse() }
+        assertThat(session.current.value).isNull()
+    }
+
+    @Test
+    fun `a retry mid-run clears the streamed text of the first attempt`() = runTest {
+        imagesSession(2)
+        val engine = FakeLlmEngine { request ->
+            if (request.images.size == 2) FakeLlmEngine.chunks("NO RECIPE") else FakeLlmEngine.chunks(goodOutput)
+        }
+        val vm = viewModel(com.llmlocal.feature.webclipper.domain.IMAGES_CANDIDATE_ID, engine)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.streamedText).isEqualTo(goodOutput) // not "NO RECIPE" + goodOutput
+        assertThat(vm.state.value.savedId).isEqualTo("saved-1")
     }
 }

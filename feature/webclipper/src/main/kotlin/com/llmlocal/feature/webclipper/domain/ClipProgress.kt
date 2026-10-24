@@ -74,6 +74,13 @@ sealed interface ClipProgress {
         val localFile: File? = null,
     ) : ClipProgress
 
+    /**
+     * An images run got no recipe out of its pictures and starts again with
+     * fewer of them: the streamed text so far is void and the phases restart
+     * at Reading. Emitted at most once per run.
+     */
+    data class Retrying(val imageCount: Int) : ClipProgress
+
     /** Whether the model output looked cut off at the token cap. */
     data class Truncated(val truncated: Boolean) : ClipProgress
 
